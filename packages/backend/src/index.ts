@@ -13,6 +13,7 @@ import statsRoutes from './routes/stats';
 import uploadRoutes from './routes/uploads';
 import pricingRoutes from './routes/pricing';
 import syncRoutes from './routes/sync';
+import container3dRoutes from './routes/container3d';
 
 const app = express();
 
@@ -23,6 +24,9 @@ app.use(express.json({ limit: '10mb' }));
 // Serves DATA_PATH/images/* at /api/files/images/*
 // Serves DATA_PATH/qrcodes/* at /api/files/qrcodes/*
 app.use('/api/files', express.static(path.resolve(config.dataPath)));
+
+// ── Public static files (3D viewer, etc.) ────────────────
+app.use('/api/public', express.static(path.join(__dirname, '..', 'public')));
 
 // ── Health check (no auth required) ──────────────────────
 app.get('/api/health', (_req, res) => {
@@ -41,6 +45,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', pricingRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/containers', container3dRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

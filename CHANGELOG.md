@@ -5,6 +5,19 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-03-27
+
+### Added
+- Three.js 3D container visualization with wireframe box, colored item blocks (by fate), orbit controls, and auto-rotate
+- Standalone HTML renderer (container-3d.html) loaded via CDN, works in both iframe (admin) and WebView (mobile)
+- GET /api/containers/:id/3d endpoint returning container dimensions and item dimensions/fates
+- Admin container detail page now shows 3D view at the top with volume fill % and weight overlays
+- Mobile Container3DScreen using react-native-webview to load the 3D viewer
+- Public static file serving at /api/public/* for the 3D viewer HTML
+- Volume fill warning at 85%, weight warning when over max
+- Fate color legend in the 3D view
+- TEACH.md Step 9: Three.js core concepts (scene/camera/renderer), wireframe vs solid geometry, MeshPhongMaterial, OrbitControls, scaling, postMessage data flow
+
 ## [0.8.0] - 2026-03-27
 
 ### Added

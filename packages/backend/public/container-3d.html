@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Container 3D View</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1e293b; overflow: hidden; font-family: -apple-system, sans-serif; }
+  canvas { display: block; }
+  #overlay {
+    position: absolute; top: 12px; left: 12px;
+    color: #e2e8f0; font-size: 13px; pointer-events: none;
+  }
+  #overlay .stat { margin-bottom: 6px; }
+  #overlay .label { color: #94a3b8; font-size: 11px; text-transform: uppercase; }
+  #overlay .value { font-size: 18px; font-weight: 700; }
+  #overlay .warning { color: #f97316; }
+  #legend {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: #94a3b8;
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div class="stat">
+    <div class="label">Volume Fill</div>
+    <div class="value" id="fill-pct">0%</div>
+  </div>
+  <div class="stat">
+    <div class="label">Weight</div>
+    <div class="value" id="weight-val">0 lbs</div>
+  </div>
+</div>
+
+<div id="legend"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Scene Setup ──────────────────────────────────────────
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e293b);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 8, 5);
+scene.add(dirLight);
+
+// ── Fate Colors ──────────────────────────────────────────
+
+const FATE_COLORS = {
+  KEEP: 0x16a34a,
+  SELL: 0xf97316,
+  DONATE: 0x7c3aed,
+  TRASH: 0xdc2626,
+  UNDECIDED: 0x6b7280,
+};
+
+// ── Render Container ─────────────────────────────────────
+
+function renderContainer(data) {
+  // Clear previous objects
+  while (scene.children.length > 2) scene.remove(scene.children[scene.children.length - 1]);
+
+  const { container, items } = data;
+  const cL = container.internalLengthIn;
+  const cW = container.internalWidthIn;
+  const cH = container.internalHeightIn;
+
+  // Scale: 1 unit = 10 inches (keeps numbers manageable)
+  const scale = 0.1;
+  const sL = cL * scale;
+  const sW = cW * scale;
+  const sH = cH * scale;
+
+  // Wireframe container box
+  const boxGeo = new THREE.BoxGeometry(sL, sH, sW);
+  const wireframe = new THREE.LineSegments(
+    new THREE.EdgesGeometry(boxGeo),
+    new THREE.LineBasicMaterial({ color: 0x475569, linewidth: 1 })
+  );
+  wireframe.position.set(0, sH / 2, 0);
+  scene.add(wireframe);
+
+  // Semi-transparent floor
+  const floorGeo = new THREE.PlaneGeometry(sL, sW);
+  const floorMat = new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0.01;
+  scene.add(floor);
+
+  // Grid on the floor
+  const grid = new THREE.GridHelper(Math.max(sL, sW), 10, 0x475569, 0x334155);
+  scene.add(grid);
+
+  // Place items as colored blocks
+  let totalVolume = 0;
+  let totalWeight = 0;
+  const containerVolume = cL * cW * cH;
+
+  // Simple stacking: place items in a grid pattern
+  let x = -sL / 2 + 0.1;
+  let y = 0;
+  let z = -sW / 2 + 0.1;
+  let rowMaxH = 0;
+
+  const legendItems = new Map();
+
+  items.forEach((item) => {
+    const iL = (item.lengthIn || 12) * scale;
+    const iW = (item.widthIn || 12) * scale;
+    const iH = (item.heightIn || 12) * scale;
+    const fate = item.fate || 'UNDECIDED';
+    const color = FATE_COLORS[fate] || FATE_COLORS.UNDECIDED;
+
+    // Check if we need to move to next row
+    if (x + iL > sL / 2) {
+      x = -sL / 2 + 0.1;
+      z += rowMaxH + 0.1;
+      rowMaxH = 0;
+    }
+
+    // Check if we need a new layer
+    if (z + iW > sW / 2) {
+      z = -sW / 2 + 0.1;
+      x = -sL / 2 + 0.1;
+      y += rowMaxH + 0.1;
+      rowMaxH = 0;
+    }
+
+    const blockGeo = new THREE.BoxGeometry(iL, iH, iW);
+    const blockMat = new THREE.MeshPhongMaterial({
+      color,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const block = new THREE.Mesh(blockGeo, blockMat);
+    block.position.set(x + iL / 2, y + iH / 2, z + iW / 2);
+    scene.add(block);
+
+    // Wireframe edge on each block
+    const blockEdge = new THREE.LineSegments(
+      new THREE.EdgesGeometry(blockGeo),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })
+    );
+    blockEdge.position.copy(block.position);
+    scene.add(blockEdge);
+
+    x += iL + 0.05;
+    rowMaxH = Math.max(rowMaxH, iW);
+
+    totalVolume += (item.lengthIn || 12) * (item.widthIn || 12) * (item.heightIn || 12);
+    totalWeight += item.weightLbs || 0;
+
+    // Track for legend
+    if (!legendItems.has(fate)) legendItems.set(fate, 0);
+    legendItems.set(fate, legendItems.get(fate) + 1);
+  });
+
+  // Camera position based on container size
+  const maxDim = Math.max(sL, sW, sH);
+  camera.position.set(maxDim * 1.2, maxDim * 0.9, maxDim * 1.2);
+  controls.target.set(0, sH / 3, 0);
+  controls.update();
+
+  // Update overlay
+  const fillPct = containerVolume > 0 ? Math.round((totalVolume / containerVolume) * 100) : 0;
+  const fillEl = document.getElementById('fill-pct');
+  fillEl.textContent = `${fillPct}%`;
+  if (fillPct >= 85) fillEl.classList.add('warning');
+
+  const weightEl = document.getElementById('weight-val');
+  weightEl.textContent = `${Math.round(totalWeight)} lbs`;
+  if (container.maxWeightLbs && totalWeight > container.maxWeightLbs) {
+    weightEl.classList.add('warning');
+    weightEl.textContent += ` / ${container.maxWeightLbs} max`;
+  }
+
+  // Update legend
+  const legendEl = document.getElementById('legend');
+  legendEl.innerHTML = '';
+  for (const [fate, count] of legendItems) {
+    const hex = '#' + FATE_COLORS[fate].toString(16).padStart(6, '0');
+    legendEl.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${hex}"></div>
+        ${fate} (${count})
+      </div>
+    `;
+  }
+}
+
+// ── Message Handling ─────────────────────────────────────
+
+// Receive data via postMessage (from iframe parent or WebView)
+window.addEventListener('message', (event) => {
+  try {
+    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    if (data.container && data.items) {
+      renderContainer(data);
+    }
+  } catch (e) {
+    console.error('Failed to parse container data:', e);
+  }
+});
+
+// Also check URL params for direct loading
+const params = new URLSearchParams(window.location.search);
+const dataParam = params.get('data');
+if (dataParam) {
+  try {
+    renderContainer(JSON.parse(decodeURIComponent(dataParam)));
+  } catch (e) {
+    console.error('Failed to parse URL data:', e);
+  }
+}
+
+// ── Animate ──────────────────────────────────────────────
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── Resize ───────────────────────────────────────────────
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

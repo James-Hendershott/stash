@@ -2161,3 +2161,164 @@ curl -X POST http://localhost:3001/api/sync/pull \
 
 # In the mobile app: Settings tab → Sync Now button
 ```
+
+---
+
+## Step 9: Three.js 3D Container Visualization
+
+### What We Built
+
+An interactive 3D view that shows what's inside a container — items
+rendered as colored blocks (colored by fate), inside a wireframe box,
+with volume fill percentage and weight overlays:
+
+```
+packages/backend/
+├── public/
+│   └── container-3d.html       → Standalone Three.js renderer (HTML + JS)
+└── src/routes/
+    └── container3d.ts          → GET /api/containers/:id/3d (data endpoint)
+
+packages/admin/src/pages/
+└── ContainerDetailPage.tsx     → Embeds 3D view as iframe
+
+packages/mobile/src/screens/
+└── Container3DScreen.tsx       → Loads 3D view in WebView
+```
+
+### One Renderer, Two Platforms
+
+The 3D visualization is a standalone HTML file (`container-3d.html`) that:
+1. Loads Three.js from a CDN
+2. Creates a scene with a wireframe box and colored item blocks
+3. Receives container data via `postMessage`
+4. Works in both an `<iframe>` (admin) and a `<WebView>` (mobile)
+
+**Why a standalone HTML file?** Three.js can be bundled into a React app, but
+that adds 500KB+ to the bundle and complicates the build. By keeping it as
+a separate HTML file served by the backend, both platforms use the same
+renderer with zero build config.
+
+### Three.js — The Core Concepts
+
+Three.js renders 3D scenes using WebGL (the browser's GPU-accelerated
+graphics API). Every 3D scene needs three things:
+
+```javascript
+const scene = new THREE.Scene();           // The world
+const camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000); // The eye
+const renderer = new THREE.WebGLRenderer(); // The painter
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+```
+
+**Scene** — The container for all 3D objects. Like a `<div>` but in 3D space.
+**Camera** — Where you're looking from. PerspectiveCamera mimics human vision
+(distant objects appear smaller).
+**Renderer** — Draws the scene to a `<canvas>` element 60 times per second.
+
+### Building the Container Scene
+
+**Wireframe box** (the container walls):
+```javascript
+const boxGeo = new THREE.BoxGeometry(length, height, width);
+const wireframe = new THREE.LineSegments(
+  new THREE.EdgesGeometry(boxGeo),       // Only the edges, not the faces
+  new THREE.LineBasicMaterial({ color: 0x475569 })
+);
+```
+
+`EdgesGeometry` extracts just the 12 edges of the box — so you can see
+through the walls to the items inside. A solid box would hide everything.
+
+**Item blocks** (colored by fate):
+```javascript
+const blockGeo = new THREE.BoxGeometry(itemL, itemH, itemW);
+const blockMat = new THREE.MeshPhongMaterial({
+  color: FATE_COLORS[item.fate],
+  transparent: true,
+  opacity: 0.85,
+});
+const block = new THREE.Mesh(blockGeo, blockMat);
+```
+
+`MeshPhongMaterial` reacts to lighting (shiny highlights, shadows) — which
+makes the blocks look 3D rather than flat. The slight transparency lets you
+see overlapping items.
+
+**Orbit controls** — Click and drag to rotate, scroll to zoom:
+```javascript
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.autoRotate = true;     // Slowly spin when idle
+controls.autoRotateSpeed = 0.8; // One rotation every ~45 seconds
+controls.enableDamping = true;  // Smooth deceleration after dragging
+```
+
+### Scale and Placement
+
+Real-world dimensions (95 inches) are too large for Three.js's default
+coordinate system. We scale everything by 0.1:
+
+```javascript
+const scale = 0.1;  // 1 Three.js unit = 10 inches
+const sL = containerLength * scale;  // 95" → 9.5 units
+```
+
+Items are stacked using a simple grid algorithm: place left-to-right,
+wrap to the next row when hitting the wall, start a new layer when the
+floor is full. This isn't perfect bin-packing, but it gives a visual
+sense of how full the container is.
+
+### The Data Flow
+
+```
+1. Admin clicks container → ContainerDetailPage loads
+2. Page renders iframe pointing to /api/public/container-3d.html
+3. Page calls GET /api/containers/:id/3d → gets dimensions + items
+4. Page sends data to iframe via postMessage
+5. Three.js renderer builds the 3D scene
+6. User rotates/zooms with mouse
+```
+
+For mobile, the flow is identical but uses `<WebView>` and
+`injectedJavaScript` instead of `<iframe>` and `postMessage`.
+
+### Volume and Weight Overlays
+
+The HUD shows two key metrics:
+- **Volume Fill %** — Sum of all item volumes / container volume
+- **Weight** — Sum of all item weights / max weight
+
+```javascript
+const fillPct = Math.round((totalVolume / containerVolume) * 100);
+fillEl.textContent = `${fillPct}%`;
+if (fillPct >= 85) fillEl.classList.add('warning');  // Turns orange
+```
+
+Warning at 85% volume or over the max weight — these help avoid overpacking
+containers, which is especially important for U-Boxes (2,000 lb limit).
+
+### What's Next
+
+Step 10 will add PDF export — container manifests, QR label sheets, sell
+lists, and donate lists using @react-pdf/renderer.
+
+### Commands to Explore
+
+```bash
+# Get 3D data for a container
+curl http://localhost:3001/api/containers/CONTAINER_ID/3d \
+  -H "Authorization: Bearer TOKEN"
+
+# Open the 3D viewer directly (with sample data via URL)
+open "http://localhost:3001/api/public/container-3d.html"
+# Then send data via browser console:
+# window.postMessage(JSON.stringify({container: {...}, items: [...]}), '*')
+
+# In the admin dashboard: navigate to any container detail page
+# The 3D view loads automatically at the top
+```

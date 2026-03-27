@@ -124,6 +124,9 @@ export const api = {
     get(id: string) {
       return request<any>(`/containers/${id}`);
     },
+    get3dData(id: string) {
+      return request<{ container: any; items: any[] }>(`/containers/${id}/3d`);
+    },
   },
 
   categories: {

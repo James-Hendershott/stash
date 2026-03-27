@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { FateBadge } from '../components/FateBadge';
@@ -8,6 +8,7 @@ export function ContainerDetailPage() {
   const [container, setContainer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -17,10 +18,29 @@ export function ContainerDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Load 3D data and send it to the iframe once it's ready
+  useEffect(() => {
+    if (!id || !container) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    function sendData() {
+      api.containers.get3dData(id!).then((data) => {
+        iframe?.contentWindow?.postMessage(JSON.stringify(data), '*');
+      });
+    }
+
+    iframe.addEventListener('load', sendData);
+    // Also try immediately in case iframe already loaded
+    if (iframe.contentDocument?.readyState === 'complete') sendData();
+
+    return () => iframe.removeEventListener('load', sendData);
+  }, [id, container]);
+
   async function handleRemovePlacement(placementId: string) {
     try {
       await api.placements.remove(placementId);
-      // Refresh container data
       if (id) {
         const updated = await api.containers.get(id);
         setContainer(updated);
@@ -50,6 +70,19 @@ export function ContainerDetailPage() {
 
       <div className="detail-grid">
         <div className="detail-main">
+          {/* 3D Container View */}
+          <div className="detail-card">
+            <h3>3D View</h3>
+            <div className="container-3d-wrapper">
+              <iframe
+                ref={iframeRef}
+                src="/api/public/container-3d.html"
+                className="container-3d-iframe"
+                title="Container 3D View"
+              />
+            </div>
+          </div>
+
           <div className="detail-card">
             <h3>Container Info</h3>
             <div className="field-grid">

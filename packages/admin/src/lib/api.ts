@@ -156,6 +156,9 @@ export const api = {
     update(id: string, data: Record<string, unknown>) {
       return request<any>(`/containers/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     },
+    get3dData(id: string) {
+      return request<{ container: any; items: any[] }>(`/containers/${id}/3d`);
+    },
   },
 
   // ── Locations ─────────────────────────────────────────────
