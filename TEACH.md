@@ -2322,3 +2322,161 @@ open "http://localhost:3001/api/public/container-3d.html"
 # In the admin dashboard: navigate to any container detail page
 # The 3D view loads automatically at the top
 ```
+
+---
+
+## Step 10: PDF & CSV Export
+
+### What We Built
+
+PDF generation using `@react-pdf/renderer` and CSV export, served as
+downloadable files from the backend:
+
+```
+packages/backend/src/
+├── services/pdf.ts       → 4 PDF templates (manifest, QR labels, sell list, donate list)
+└── routes/exports.ts     → 5 export endpoints (4 PDF + 1 CSV)
+
+packages/admin/src/
+├── pages/ExportPage.tsx  → Export hub with download buttons
+└── components/Layout.tsx → Added "Export" to sidebar nav
+```
+
+### @react-pdf/renderer — PDFs in React
+
+`@react-pdf/renderer` lets you build PDFs using React components:
+
+```tsx
+import { Document, Page, View, Text } from '@react-pdf/renderer';
+
+const doc = (
+  <Document>
+    <Page size="LETTER" style={{ padding: 40 }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Container Manifest</Text>
+      <View style={{ flexDirection: 'row' }}>
+        <Text style={{ width: '50%' }}>Item Name</Text>
+        <Text style={{ width: '50%' }}>Fate</Text>
+      </View>
+    </Page>
+  </Document>
+);
+
+const buffer = await ReactPDF.renderToBuffer(doc);
+```
+
+**Why React for PDFs?** The same component model you already know (JSX, props,
+styles) works for PDF layout. No learning a separate PDF API. The styles use
+Flexbox — the same layout system as React Native and CSS.
+
+**Server-side rendering:** Unlike browser React, `renderToBuffer()` runs on
+the server and produces a binary PDF buffer. No browser, no DOM. The Express
+route sends this buffer with `Content-Type: application/pdf`.
+
+### The Four PDF Templates
+
+**1. Container Manifest** — Print and tape to the outside of a box:
+- Container label, type, dimensions, origin → destination
+- Summary cards: total items, total weight / max weight
+- Table: item name, category, fate (color-coded), condition, qty, dimensions
+
+**2. QR Label Sheet** — Print and cut into stickers (2 per row):
+- QR code image (from the generated PNGs on disk)
+- Container label, name, origin → destination
+- Cut along the card borders and stick on each box
+
+**3. Sell List** — Hand to someone managing sales:
+- All SELL items sorted alphabetically
+- Your estimate vs. AI estimate for each
+- Totals at the top for quick reference
+
+**4. Donate List** — Hand to the charity truck driver:
+- All DONATE items with category, room, condition, quantity
+- Serves as a receipt for tax-deductible donation records
+
+### CSV Export — Spreadsheet-Compatible
+
+```typescript
+const headers = ['Name', 'Category', 'Fate', 'Condition', ...];
+const rows = items.map(item => [
+  csvEscape(item.name),  // Handle commas, quotes, newlines
+  item.category.name,
+  item.fate,
+  // ...
+].join(','));
+
+const csv = [headers.join(','), ...rows].join('\n');
+```
+
+CSV export supports the same filters as the item list (`?fate=SELL`,
+`?categoryId=...`). This lets you export just sell items, just a specific
+category, etc.
+
+**`csvEscape`** wraps values in double quotes if they contain commas,
+quotes, or newlines — otherwise Excel/Sheets would misparse them.
+
+### The Download Pattern (Frontend)
+
+```typescript
+function downloadUrl(path, filename) {
+  const token = localStorage.getItem('stash_token');
+  fetch(`/api/export${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(res => res.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+}
+```
+
+**Why not a simple `<a>` link?** The export endpoints require JWT auth.
+A normal link doesn't send the Authorization header. Instead, we fetch
+with the token, convert the response to a Blob, create a temporary URL,
+and trigger a download via a programmatic click.
+
+### Export Endpoints
+
+| Method | Endpoint | Output | Description |
+|--------|----------|--------|-------------|
+| GET | /api/export/pdf/manifest/:id | PDF | Container manifest with contents table |
+| GET | /api/export/pdf/qr-labels | PDF | QR label sheet (2 per row, all containers) |
+| GET | /api/export/pdf/sell-list | PDF | All SELL items with price estimates |
+| GET | /api/export/pdf/donate-list | PDF | All DONATE items for charity receipt |
+| GET | /api/export/csv/items | CSV | Full inventory spreadsheet (filterable) |
+
+### What's Next
+
+Step 11 will add CSV import with a column mapper — drag-and-drop a
+spreadsheet, map its columns to Stash fields, preview the data, and
+confirm the import.
+
+### Commands to Explore
+
+```bash
+# Download a container manifest PDF
+curl -o manifest.pdf http://localhost:3001/api/export/pdf/manifest/CONTAINER_ID \
+  -H "Authorization: Bearer TOKEN"
+
+# Download QR label sheet
+curl -o labels.pdf http://localhost:3001/api/export/pdf/qr-labels \
+  -H "Authorization: Bearer TOKEN"
+
+# Download sell list
+curl -o sell-list.pdf http://localhost:3001/api/export/pdf/sell-list \
+  -H "Authorization: Bearer TOKEN"
+
+# Download full CSV
+curl -o items.csv http://localhost:3001/api/export/csv/items \
+  -H "Authorization: Bearer TOKEN"
+
+# Download filtered CSV (just sell items)
+curl -o sell-items.csv "http://localhost:3001/api/export/csv/items?fate=SELL" \
+  -H "Authorization: Bearer TOKEN"
+
+# In the admin dashboard: navigate to Export page in the sidebar
+```

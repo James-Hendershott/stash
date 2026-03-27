@@ -42,6 +42,9 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Mobile: barcode/UPC scanning with product lookup
 - [ ] Mobile: haptic feedback on fate selection
 - [ ] Mobile: push notifications for sync status
+- [ ] Export: room-by-room PDF report (items grouped by origin location)
+- [ ] Export: custom QR label layout (configurable sizes, with/without text)
+- [ ] Export: insurance valuation report PDF
 - [ ] Add mobile UI tests
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Database backups (automated pg_dump to Unraid share)

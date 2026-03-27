@@ -14,6 +14,7 @@ import uploadRoutes from './routes/uploads';
 import pricingRoutes from './routes/pricing';
 import syncRoutes from './routes/sync';
 import container3dRoutes from './routes/container3d';
+import exportRoutes from './routes/exports';
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api', uploadRoutes);
 app.use('/api', pricingRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/containers', container3dRoutes);
+app.use('/api/export', exportRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

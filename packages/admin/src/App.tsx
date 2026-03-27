@@ -13,6 +13,7 @@ import { LocationListPage } from './pages/LocationListPage';
 import { LocationDetailPage } from './pages/LocationDetailPage';
 import { CategoryListPage } from './pages/CategoryListPage';
 import { ActivityPage } from './pages/ActivityPage';
+import { ExportPage } from './pages/ExportPage';
 
 export function App() {
   return (
@@ -36,6 +37,7 @@ export function App() {
             <Route path="/locations" element={<LocationListPage />} />
             <Route path="/locations/:id" element={<LocationDetailPage />} />
             <Route path="/categories" element={<CategoryListPage />} />
+            <Route path="/export" element={<ExportPage />} />
             <Route path="/activity" element={<ActivityPage />} />
           </Route>
         </Routes>

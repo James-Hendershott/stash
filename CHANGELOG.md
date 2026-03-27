@@ -5,6 +5,20 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-03-27
+
+### Added
+- PDF export using @react-pdf/renderer with 4 templates:
+  - Container manifest (contents table, weight summary, fate colors)
+  - QR label sheet (2 per row with QR images, container name, origin/destination)
+  - Sell list (all SELL items with your estimate vs. AI estimate, totals)
+  - Donate list (all DONATE items for charity receipt)
+- CSV export for full inventory (filterable by fate, category, location)
+- Export API routes: 4 PDF endpoints + 1 CSV endpoint
+- Admin Export page with download buttons for all formats
+- Export nav item in admin sidebar
+- TEACH.md Step 10: @react-pdf/renderer, server-side PDF generation, CSV escaping, authenticated file download pattern
+
 ## [0.9.0] - 2026-03-27
 
 ### Added

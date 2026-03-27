@@ -920,3 +920,39 @@ a:hover {
   height: 100%;
   border: none;
 }
+
+/* ── Export Page ──────────────────────────────────────────── */
+
+.export-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.export-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.export-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.export-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
