@@ -570,3 +570,397 @@ cat prisma/migrations/*/migration.sql
 # In your editor, Ctrl+click on 'PrismaClient' in src/lib/prisma.ts
 # to see all the generated types and methods
 ```
+
+---
+
+## Step 3: Backend API Routes
+
+### What We Built
+
+A complete REST API with 8 route groups, authentication middleware, and
+request validation:
+
+```
+packages/backend/src/
+├── middleware/
+│   ├── auth.ts          → JWT verification + role checking
+│   └── validate.ts      → Zod schema validation middleware
+├── validators/
+│   ├── auth.ts          → Login/password schemas
+│   ├── items.ts         → Item create/update schemas
+│   ├── containers.ts    → Container create/update schemas
+│   ├── locations.ts     → Location create/update schemas
+│   ├── categories.ts    → Category create/update schemas
+│   └── placements.ts    → Placement create/remove schemas
+├── routes/
+│   ├── auth.ts          → POST /login, /change-password, GET /me
+│   ├── items.ts         → Full CRUD + fate shortcut
+│   ├── containers.ts    → CRUD (creates Item + Container together)
+│   ├── locations.ts     → CRUD with referential integrity checks
+│   ├── categories.ts    → CRUD with referential integrity checks
+│   ├── placements.ts    → Place/remove items in containers
+│   ├── activity.ts      → Paginated activity log
+│   └── stats.ts         → Dashboard summary statistics
+└── index.ts             → Express app with all routes mounted
+```
+
+### What Is a REST API?
+
+REST (Representational State Transfer) is a pattern for designing HTTP APIs.
+The core idea: **URLs represent resources**, and **HTTP methods represent actions**:
+
+| Method | Meaning | Example |
+|--------|---------|---------|
+| GET | Read data | `GET /api/items` → list all items |
+| POST | Create new data | `POST /api/items` → create an item |
+| PATCH | Update existing data | `PATCH /api/items/:id` → update one item |
+| DELETE | Remove data | `DELETE /api/items/:id` → delete one item |
+
+The `:id` in the URL is a **route parameter**. When someone requests
+`GET /api/items/abc-123`, Express sets `req.params.id` to `"abc-123"`.
+
+**Why PATCH and not PUT?** PUT means "replace the entire resource." PATCH means
+"update only the fields I'm sending." PATCH is more practical — if you want
+to change just the fate of an item, you send `{ "fate": "SELL" }` without
+resending the name, description, and every other field.
+
+### Express Router — Organizing Routes
+
+Instead of putting every endpoint in `index.ts`, we use Express **Router**
+objects to group related routes:
+
+```typescript
+// routes/items.ts
+const router = Router();
+router.get('/', listItems);
+router.post('/', createItem);
+export default router;
+
+// index.ts
+import itemRoutes from './routes/items';
+app.use('/api/items', itemRoutes);
+```
+
+When `app.use('/api/items', itemRoutes)` runs, Express prepends `/api/items`
+to every route defined in that router. So `router.get('/')` becomes
+`GET /api/items/` and `router.get('/:id')` becomes `GET /api/items/:id`.
+
+This keeps each file focused on one resource. The items file doesn't need
+to know about containers, and vice versa.
+
+### Middleware — The Pipeline Pattern
+
+Express processes each request through a **pipeline** of functions called
+middleware. Each middleware can:
+1. Do something with the request (read headers, validate data, check auth)
+2. Call `next()` to pass to the next middleware
+3. Send a response to stop the pipeline
+
+```
+Request → cors() → json() → requireAuth() → validate() → route handler → Response
+```
+
+Our middleware stack:
+- **`cors()`** — Adds headers so browsers allow the admin dashboard to call the API
+- **`express.json()`** — Parses the request body as JSON into `req.body`
+- **`requireAuth()`** — Checks the JWT token and attaches `req.user`
+- **`validate(schema)`** — Validates `req.body` against a Zod schema
+
+If any middleware sends a response (like a 401 Unauthorized), the pipeline
+stops — the route handler never runs. This is how auth is enforced: every
+request must pass through `requireAuth` before reaching the actual logic.
+
+### JWT Authentication — How It Works
+
+JWT (JSON Web Token) is a stateless authentication mechanism. Here's the flow:
+
+```
+1. Client sends: POST /api/auth/login { email, password }
+2. Server verifies password against bcrypt hash in database
+3. Server creates JWT: jwt.sign({ userId, role }, SECRET)
+4. Server responds: { token: "eyJhbG...", user: { ... } }
+
+5. Client stores token (localStorage, SecureStore, etc.)
+
+6. Client sends: GET /api/items
+   Headers: { Authorization: "Bearer eyJhbG..." }
+7. requireAuth middleware: jwt.verify(token, SECRET)
+   → Attaches { userId, role } to req.user
+8. Route handler uses req.user.userId for database queries
+```
+
+**Why "stateless"?** The server doesn't store sessions. The token itself
+contains the user's ID and role, signed with a secret key. The server just
+verifies the signature — no database lookup needed for auth. This makes it
+easy to scale to multiple servers.
+
+**The token structure:**
+```
+eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJhYmMtMTIzIiwicm9sZSI6IkFETUlOIn0.signature
+│                      │                                                      │
+│  Header (algorithm)  │  Payload (userId, role, expiry)                      │  Signature
+```
+
+The payload is just Base64-encoded JSON — anyone can read it. The signature
+proves it wasn't tampered with. Only the server knows the JWT_SECRET needed
+to create valid signatures.
+
+### Zod Validation — Trust Nothing from the Client
+
+Every POST and PATCH request body is validated with **Zod** before the route
+handler touches it:
+
+```typescript
+// validators/items.ts
+export const createItemSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200),
+  fate: z.enum(['KEEP', 'SELL', 'DONATE', 'TRASH', 'UNDECIDED']).default('UNDECIDED'),
+  categoryId: z.string().uuid(),
+  quantity: z.number().int().positive().default(1),
+  description: z.string().max(2000).nullable().optional(),
+  // ...
+});
+```
+
+**What Zod does:**
+1. Checks that every required field is present
+2. Checks that every value is the right type (string, number, etc.)
+3. Applies constraints (min length, max value, regex patterns, valid UUID)
+4. Applies defaults for missing optional fields
+5. Returns a clean, typed object — or a list of errors
+
+**Why validate on the server?** The admin dashboard will have its own form
+validation, but that only protects against mistakes. Server validation
+protects against:
+- Malicious requests (someone using curl or Postman to bypass the UI)
+- Bugs in the frontend that let invalid data through
+- Mobile app versions that haven't been updated yet
+
+**The `.partial()` trick:**
+```typescript
+export const updateItemSchema = createItemSchema.partial();
+```
+
+`.partial()` makes every field optional. For creating an item, you must provide
+a name and category. For updating, you can send just `{ fate: "SELL" }` and
+everything else stays the same. One schema definition, two uses.
+
+### Route Patterns We Use
+
+#### List with Filtering (GET /api/items)
+
+```typescript
+router.get('/', async (req, res) => {
+  const { fate, categoryId, search } = req.query;
+  const where = { deletedAt: null };
+
+  if (fate) where.fate = fate;
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
+  const items = await prisma.item.findMany({
+    where,
+    include: { category: true, originLocation: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(items);
+});
+```
+
+Query parameters let clients filter without separate endpoints:
+- `GET /api/items` — all items
+- `GET /api/items?fate=KEEP` — only items being kept
+- `GET /api/items?search=desk` — search by name/description
+- `GET /api/items?categoryId=xxx&fate=SELL` — combine filters
+
+The `include` option tells Prisma to JOIN related tables and nest the
+results — so each item comes back with its category name and location
+name embedded, not just the IDs.
+
+#### Create with Activity Log (POST /api/items)
+
+```typescript
+router.post('/', validate(createItemSchema), async (req, res) => {
+  const userId = req.user!.userId;
+
+  const item = await prisma.item.create({
+    data: { ...req.body, addedById: userId, lastModifiedById: userId },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId,
+      action: 'CREATE',
+      entityType: 'Item',
+      entityId: item.id,
+      newValue: { name: item.name, fate: item.fate },
+    },
+  });
+
+  res.status(201).json(item);
+});
+```
+
+Every mutation (create, update, delete) writes to the activity log.
+This gives us an audit trail — who changed what, when, and what the
+previous value was. The admin dashboard will display this as a timeline.
+
+#### Transactions (POST /api/containers)
+
+Creating a container requires creating two records: an Item (the container
+itself is a physical thing) and a Container (the metadata about capacity).
+Both must succeed or both must fail:
+
+```typescript
+const result = await prisma.$transaction(async (tx) => {
+  const item = await tx.item.create({ data: { ... } });
+  const container = await tx.container.create({ data: { itemId: item.id, ... } });
+  return { ...container, item };
+});
+```
+
+`$transaction` wraps multiple queries in a database transaction. If the
+container creation fails (e.g., invalid data), the item creation is
+automatically rolled back. Without transactions, you'd have an orphaned
+item row with no container.
+
+#### Safe Deletes (DELETE /api/locations)
+
+Some resources can't be deleted if other data depends on them:
+
+```typescript
+router.delete('/:id', async (req, res) => {
+  const itemCount = await prisma.item.count({
+    where: { originLocationId: req.params.id, deletedAt: null },
+  });
+
+  if (itemCount > 0) {
+    res.status(409).json({
+      error: `Cannot delete — ${itemCount} item(s) still reference it`,
+    });
+    return;
+  }
+
+  await prisma.location.delete({ where: { id: req.params.id } });
+  res.status(204).send();
+});
+```
+
+HTTP 409 (Conflict) tells the client: "I understood your request but it
+conflicts with the current state of the data." The frontend can show this
+message and suggest moving items first.
+
+Items use **soft delete** (set `deletedAt`). Locations and categories use
+**hard delete with a guard** — they can only be deleted when nothing
+references them.
+
+### HTTP Status Codes We Use
+
+| Code | Meaning | When |
+|------|---------|------|
+| 200 | OK | Successful GET or PATCH |
+| 201 | Created | Successful POST (new resource) |
+| 204 | No Content | Successful DELETE (nothing to return) |
+| 400 | Bad Request | Validation failed (Zod errors) |
+| 401 | Unauthorized | Missing/invalid JWT token |
+| 403 | Forbidden | Valid token but insufficient permissions |
+| 404 | Not Found | Resource doesn't exist or was soft-deleted |
+| 409 | Conflict | Can't delete (items reference it) or duplicate |
+| 500 | Server Error | Unhandled exception (bugs) |
+
+### The Global Error Handler
+
+The last middleware in the pipeline catches any unhandled errors:
+
+```typescript
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: config.nodeEnv === 'production'
+      ? 'Internal server error'
+      : err.message,
+  });
+});
+```
+
+In development, you see the actual error message (helpful for debugging).
+In production, you see a generic message (prevents leaking internal details
+to attackers). The error is still logged server-side either way.
+
+### API Endpoint Summary
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /api/auth/login | No | Login, get JWT |
+| POST | /api/auth/change-password | Yes | Change own password |
+| GET | /api/auth/me | Yes | Get own profile |
+| GET | /api/items | Yes | List items (filterable) |
+| GET | /api/items/:id | Yes | Get single item |
+| POST | /api/items | Yes | Create item |
+| PATCH | /api/items/:id | Yes | Update item |
+| PATCH | /api/items/:id/fate | Yes | Quick fate update |
+| DELETE | /api/items/:id | Yes | Soft-delete item |
+| GET | /api/containers | Yes | List containers |
+| GET | /api/containers/:id | Yes | Get container + contents |
+| POST | /api/containers | Yes | Create container |
+| PATCH | /api/containers/:id | Yes | Update container |
+| GET | /api/locations | Yes | List locations |
+| GET | /api/locations/:id | Yes | Get location + items |
+| POST | /api/locations | Yes | Create location |
+| PATCH | /api/locations/:id | Yes | Update location |
+| DELETE | /api/locations/:id | Yes | Delete location (if empty) |
+| GET | /api/categories | Yes | List categories |
+| GET | /api/categories/:id | Yes | Get category |
+| POST | /api/categories | Yes | Create category |
+| PATCH | /api/categories/:id | Yes | Update category |
+| DELETE | /api/categories/:id | Yes | Delete category (if empty) |
+| GET | /api/placements | Yes | List placements |
+| POST | /api/placements | Yes | Place item in container |
+| PATCH | /api/placements/:id/remove | Yes | Remove item from container |
+| GET | /api/activity | Yes | Paginated activity log |
+| GET | /api/stats | Yes | Dashboard statistics |
+| GET | /api/health | No | Health check |
+
+### What's Next
+
+Step 4 will add image upload and QR code generation — using Multer for
+file uploads and the `qrcode` library to generate scannable labels for
+items and containers.
+
+### Commands to Explore
+
+```bash
+# Start the full stack
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Test the health endpoint
+curl http://localhost:3001/api/health
+
+# Login and get a token
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"james@stash.local","password":"password123"}'
+
+# Use the token to list items (replace TOKEN with the actual token)
+curl http://localhost:3001/api/items \
+  -H "Authorization: Bearer TOKEN"
+
+# Create an item
+curl -X POST http://localhost:3001/api/items \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test Item","categoryId":"...","originLocationId":"..."}'
+
+# Filter items by fate
+curl "http://localhost:3001/api/items?fate=KEEP" \
+  -H "Authorization: Bearer TOKEN"
+
+# Get dashboard stats
+curl http://localhost:3001/api/stats \
+  -H "Authorization: Bearer TOKEN"
+```

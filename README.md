@@ -44,6 +44,7 @@ Stash becomes a permanent property inventory system.
 | ORM         | Prisma                              |
 | Offline     | WatermelonDB                        |
 | 3D          | Three.js                            |
+| Validation  | Zod                                 |
 | Auth        | JWT + bcrypt                        |
 | LLM         | Claude claude-haiku-4-5 (price estimates) |
 | Deploy      | Docker Compose on Unraid            |
@@ -98,6 +99,21 @@ See [SETUP.md](SETUP.md) for detailed local and production setup instructions.
 | LAN | http://192.168.1.153:3002 | http://192.168.1.153:3001 |
 | Tailscale | http://100.122.58.114:3002 | http://100.122.58.114:3001 |
 | Proxy | https://stash.shottsserver.com | https://stash-api.shottsserver.com |
+
+## API
+
+29 REST endpoints with JWT authentication. See [TEACH.md Step 3](TEACH.md) for
+the full endpoint table. Quick test:
+
+```bash
+# Login
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"james@stash.local","password":"password123"}'
+
+# Use the returned token for all other requests
+curl http://localhost:3001/api/items -H "Authorization: Bearer <token>"
+```
 
 ## Documentation
 

@@ -88,3 +88,20 @@ For direct database access (psql), connect from any Tailscale device:
 psql "postgresql://stash:<password>@100.122.58.114:5432/stash"
 ```
 Note: Port 5432 is only exposed on the Tailscale interface in production, not publicly.
+
+## API Testing via Tailscale
+
+Test the API from any device on the Tailscale network:
+```bash
+# Health check
+curl http://100.122.58.114:3001/api/health
+
+# Login
+curl -X POST http://100.122.58.114:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"james@stash.local","password":"<your-password>"}'
+
+# Authenticated request (replace TOKEN)
+curl http://100.122.58.114:3001/api/items \
+  -H "Authorization: Bearer TOKEN"
+```

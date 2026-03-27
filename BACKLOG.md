@@ -27,8 +27,10 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Add mobile UI tests
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Database backups (automated pg_dump to Unraid share)
-- [ ] Rate limiting on API endpoints
-- [ ] Request logging / observability
+- [ ] Rate limiting on API endpoints (express-rate-limit)
+- [ ] Request logging / observability (morgan or pino)
+- [ ] API pagination on item list endpoint (cursor-based)
+- [ ] Bulk fate update endpoint (update multiple items at once)
 - [ ] Image optimization / thumbnail generation on upload
 - [ ] Auto-generate @stash/shared types from Prisma schema (prisma-generator or zod-prisma)
 - [ ] Add database connection pooling (PgBouncer or Prisma Accelerate) for production

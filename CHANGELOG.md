@@ -5,6 +5,22 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-27
+
+### Added
+- Complete REST API with 29 endpoints across 8 route groups
+- JWT authentication middleware (login, token verification, role-based access)
+- Zod request validation middleware for all POST/PATCH endpoints
+- Auth routes: login, change password, get current user profile
+- Item CRUD routes with search, filtering by fate/category/location, soft delete
+- Container CRUD routes with transactional Item+Container creation
+- Location and Category CRUD with referential integrity guards (409 on delete if referenced)
+- Placement routes: place items into containers, remove with history tracking
+- Activity log route with pagination (limit/offset)
+- Dashboard stats route (fate breakdown, category breakdown, sell value totals)
+- Global error handler (detailed errors in dev, sanitized in production)
+- TEACH.md Step 3: REST APIs, Express Router, middleware pipeline, JWT auth, Zod validation, route patterns
+
 ## [0.2.0] - 2026-03-27
 
 ### Added
