@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+*.local
+
+# Local dev data — NEVER commit
+data/
+
+# Learning file — NEVER commit
+LEARNING.md
+
+# Prisma
+packages/backend/prisma/migrations/**/migration_lock.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Expo
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

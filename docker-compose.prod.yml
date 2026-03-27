@@ -1,0 +1,30 @@
+# Unraid production overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  stash-postgres:
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-99}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/Denver}
+    # Postgres port NOT exposed externally in production
+
+  stash-backend:
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PUID: ${PUID:-99}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/Denver}
+
+  stash-admin:
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-99}
+      PGID: ${PGID:-100}
+      TZ: ${TZ:-America/Denver}
+
+networks:
+  stash_network:
+    name: shottsproxy
+    external: true

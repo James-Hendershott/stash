@@ -1,0 +1,60 @@
+services:
+  stash-postgres:
+    image: postgres:16
+    container_name: stash-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stash}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stash}
+      POSTGRES_DB: ${POSTGRES_DB:-stash}
+    volumes:
+      - ${DATA_PATH:-./data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stash}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - stash_network
+
+  stash-backend:
+    container_name: stash-backend
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      BACKEND_PORT: 3001
+      DATABASE_URL: ${DATABASE_URL:-postgresql://stash:stash@stash-postgres:5432/stash}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
+      DATA_PATH: /app/data
+    volumes:
+      - ${DATA_PATH:-./data}/images:/app/data/images
+      - ${DATA_PATH:-./data}/qrcodes:/app/data/qrcodes
+      - ${DATA_PATH:-./data}/exports:/app/data/exports
+      - ${DATA_PATH:-./data}/floorplans:/app/data/floorplans
+    depends_on:
+      stash-postgres:
+        condition: service_healthy
+    networks:
+      - stash_network
+
+  stash-admin:
+    container_name: stash-admin
+    build:
+      context: .
+      dockerfile: packages/admin/Dockerfile
+    ports:
+      - "${ADMIN_PORT:-3002}:80"
+    depends_on:
+      - stash-backend
+    networks:
+      - stash_network
+
+networks:
+  stash_network:
+    driver: bridge

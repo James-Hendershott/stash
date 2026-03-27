@@ -1,0 +1,86 @@
+# Stash
+
+Self-hosted inventory and move management application.
+
+Stash answers one question: **"Where is this thing?"**
+
+Built for cataloging household items, assigning them to containers (boxes, totes, U-Box),
+tracking what to Keep/Sell/Donate/Trash, and managing a full household move. After the move,
+Stash becomes a permanent property inventory system.
+
+## Architecture
+
+```
+┌─────────────────────┐         ┌──────────┐         ┌──────────────────────────────┐
+│  archpy (Dev)       │         │  GitHub   │         │  ShottsServer (Unraid)       │
+│  Dell Inspiron 15   │  push   │  Private  │  pull   │  Dell PowerEdge R730         │
+│                     │ ──────► │  Repo     │ ──────► │  192.168.1.153 (LAN)         │
+│  Arch Linux         │         │          │         │  100.122.58.114 (Tailscale)  │
+│  Node.js 25.7       │         └──────────┘         │                              │
+│  Docker 29.3        │                               │  Docker Containers:          │
+│                     │                               │  ├─ stash-postgres (:5432)   │
+│  Local dev with     │                               │  ├─ stash-backend  (:3001)   │
+│  docker compose     │                               │  └─ stash-admin    (:3002)   │
+└─────────────────────┘                               │                              │
+                                                      │  Nginx Proxy Manager:        │
+┌─────────────────────┐                               │  ├─ stash.shottsserver.com   │
+│  Mobile Devices     │                               │  │  → stash-admin:3002       │
+│  (iOS & Android)    │  Tailscale VPN                │  └─ stash-api.shottsserver.  │
+│                     │ ─────────────────────────────► │     com → stash-backend:3001 │
+│  React Native /     │                               │                              │
+│  Expo app           │                               │  Data: /mnt/user/appdata/    │
+└─────────────────────┘                               │        stash/               │
+                                                      └──────────────────────────────┘
+```
+
+## Tech Stack
+
+| Layer       | Technology                          |
+|-------------|-------------------------------------|
+| Mobile      | React Native + Expo (SDK 51+)       |
+| Admin       | React 18 + Vite                     |
+| Backend     | Node.js 20 + Express                |
+| Database    | PostgreSQL 16                       |
+| ORM         | Prisma                              |
+| Offline     | WatermelonDB                        |
+| 3D          | Three.js                            |
+| Auth        | JWT + bcrypt                        |
+| LLM         | Claude claude-haiku-4-5 (price estimates) |
+| Deploy      | Docker Compose on Unraid            |
+| Remote      | Tailscale                           |
+
+## Quick Start
+
+```bash
+# Clone and setup
+git clone git@github.com:james-hendershott/stash.git
+cd stash
+cp .env.example .env
+npm install
+
+# Start local dev environment
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Run database migrations and seed
+npm run db:migrate
+npm run db:seed
+```
+
+See [SETUP.md](SETUP.md) for detailed local and production setup instructions.
+
+## Access URLs
+
+| Environment | Admin Dashboard | API |
+|------------|-----------------|-----|
+| Local Dev | http://localhost:3002 | http://localhost:3001 |
+| LAN | http://192.168.1.153:3002 | http://192.168.1.153:3001 |
+| Tailscale | http://100.122.58.114:3002 | http://100.122.58.114:3001 |
+| Proxy | https://stash.shottsserver.com | https://stash-api.shottsserver.com |
+
+## Documentation
+
+- [SETUP.md](SETUP.md) — Local dev and Unraid production setup
+- [TAILSCALE.md](TAILSCALE.md) — Remote access configuration
+- [TEACH.md](TEACH.md) — Step-by-step learning notes
+- [CHANGELOG.md](CHANGELOG.md) — Release history
+- [BACKLOG.md](BACKLOG.md) — Future enhancements

@@ -1,0 +1,36 @@
+# Local development overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  stash-postgres:
+    ports:
+      - "5434:5432"
+
+  stash-backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+      target: development
+    volumes:
+      - ./packages/backend/src:/app/packages/backend/src
+      - ./packages/backend/prisma:/app/packages/backend/prisma
+      - ./packages/shared/src:/app/packages/shared/src
+      - ${DATA_PATH:-./data}/images:/app/data/images
+      - ${DATA_PATH:-./data}/qrcodes:/app/data/qrcodes
+      - ${DATA_PATH:-./data}/exports:/app/data/exports
+      - ${DATA_PATH:-./data}/floorplans:/app/data/floorplans
+    environment:
+      NODE_ENV: development
+
+  stash-admin:
+    build:
+      context: .
+      dockerfile: packages/admin/Dockerfile
+      target: development
+    ports:
+      - "${ADMIN_PORT:-3002}:3002"
+    volumes:
+      - ./packages/admin/src:/app/packages/admin/src
+      - ./packages/admin/index.html:/app/packages/admin/index.html
+      - ./packages/shared/src:/app/packages/shared/src
+    environment:
+      NODE_ENV: development
