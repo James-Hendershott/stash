@@ -1,8 +1,45 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Layout } from './components/Layout';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { ItemListPage } from './pages/ItemListPage';
+import { ItemDetailPage } from './pages/ItemDetailPage';
+import { ItemCreatePage } from './pages/ItemCreatePage';
+import { ContainerListPage } from './pages/ContainerListPage';
+import { ContainerDetailPage } from './pages/ContainerDetailPage';
+import { LocationListPage } from './pages/LocationListPage';
+import { LocationDetailPage } from './pages/LocationDetailPage';
+import { CategoryListPage } from './pages/CategoryListPage';
+import { ActivityPage } from './pages/ActivityPage';
+
 export function App() {
   return (
-    <div>
-      <h1>Stash — Admin Dashboard</h1>
-      <p>Step 1 scaffold complete. Admin UI coming in Step 13.</p>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/items" element={<ItemListPage />} />
+            <Route path="/items/new" element={<ItemCreatePage />} />
+            <Route path="/items/:id" element={<ItemDetailPage />} />
+            <Route path="/containers" element={<ContainerListPage />} />
+            <Route path="/containers/:id" element={<ContainerDetailPage />} />
+            <Route path="/locations" element={<LocationListPage />} />
+            <Route path="/locations/:id" element={<LocationDetailPage />} />
+            <Route path="/categories" element={<CategoryListPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

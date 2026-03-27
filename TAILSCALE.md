@@ -28,6 +28,8 @@ https://stash-api.shottsserver.com
 
 ### Admin Dashboard
 
+Login: `james@stash.local` / `password123` (or your production password)
+
 | Method | URL |
 |--------|-----|
 | Tailscale | http://100.122.58.114:3002 |

@@ -5,6 +5,27 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-27
+
+### Added
+- Complete admin dashboard frontend (React 18 + Vite + React Router)
+- API client with JWT token management and typed error handling
+- Auth context with localStorage token persistence and auto-validation
+- Login page with email/password form
+- Dashboard page with stat cards (total items, containers, locations, sell total), fate breakdown bars, recent activity
+- Item list page with search, fate filtering via URL params, photo-aware card grid
+- Item detail page with inline editing, photo upload, fate selector, container placement history
+- Item create page with category/location dropdowns, dimension inputs
+- Container list/detail pages with contents table and item removal
+- Location list page (origin/destination groups) and detail page with item tables
+- Category list page with color-coded cards and item counts
+- Activity log page with pagination
+- Protected routes (redirect to login when unauthenticated)
+- Sidebar navigation with active state highlighting
+- FateBadge reusable component with color-coded labels
+- Complete CSS (layout, forms, tables, cards, badges, responsive grid)
+- TEACH.md Step 5: React concepts (components, useState, useEffect, Router), auth pattern, API client, URL filtering, CSS architecture
+
 ## [0.4.0] - 2026-03-27
 
 ### Added

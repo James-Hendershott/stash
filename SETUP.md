@@ -52,7 +52,7 @@
 
 7. **Verify**
    - Backend health: http://localhost:3001/api/health
-   - Admin dashboard: http://localhost:3002
+   - Admin dashboard: http://localhost:3002 (login: `james@stash.local` / `password123`)
    - Database (via Prisma Studio): `npx prisma studio` (opens http://localhost:5555)
    - API login test:
      ```bash

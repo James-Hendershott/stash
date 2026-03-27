@@ -26,7 +26,11 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 
 - [ ] Add unit tests (backend services, shared utils)
 - [ ] Add integration tests (API endpoints)
-- [ ] Add E2E tests (admin dashboard flows)
+- [ ] Add E2E tests (admin dashboard flows — Playwright or Cypress)
+- [ ] Admin dark mode toggle
+- [ ] Admin responsive layout (mobile sidebar collapse)
+- [ ] Admin item bulk selection and bulk fate update
+- [ ] Admin container packing wizard (drag items into containers)
 - [ ] Add mobile UI tests
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Database backups (automated pg_dump to Unraid share)

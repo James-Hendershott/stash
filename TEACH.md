@@ -1215,3 +1215,244 @@ open http://localhost:3001/api/files/qrcodes/item-abc-123.png
 curl -X DELETE http://localhost:3001/api/items/ITEM_ID/photo \
   -H "Authorization: Bearer TOKEN"
 ```
+
+---
+
+## Step 5: Admin Dashboard Frontend
+
+### What We Built
+
+A complete React single-page application (SPA) with routing, authentication,
+and pages for every major feature:
+
+```
+packages/admin/src/
+├── lib/
+│   └── api.ts               → API client (fetch wrapper with JWT)
+├── context/
+│   └── AuthContext.tsx        → Authentication state management
+├── components/
+│   ├── Layout.tsx            → Sidebar + main content shell
+│   ├── ProtectedRoute.tsx    → Redirects to login if not authenticated
+│   └── FateBadge.tsx         → Colored fate label component
+├── pages/
+│   ├── LoginPage.tsx         → Email/password login form
+│   ├── DashboardPage.tsx     → Stats cards, fate bars, recent activity
+│   ├── ItemListPage.tsx      → Filterable item grid with search
+│   ├── ItemDetailPage.tsx    → View/edit item, photo upload, fate selector
+│   ├── ItemCreatePage.tsx    → New item form
+│   ├── ContainerListPage.tsx → Table of all containers with item counts
+│   ├── ContainerDetailPage.tsx → Container contents, remove items
+│   ├── LocationListPage.tsx  → Origin/destination room tables
+│   ├── LocationDetailPage.tsx → Room detail with item list
+│   ├── CategoryListPage.tsx  → Category cards with item counts
+│   └── ActivityPage.tsx      → Paginated audit log table
+├── styles/
+│   └── globals.css           → Complete CSS (no framework needed)
+└── App.tsx                   → Route definitions
+```
+
+### React Concepts in Practice
+
+#### Components — Reusable UI Building Blocks
+
+Every piece of UI is a **component** — a function that returns JSX (HTML-like
+syntax in JavaScript). Components can be as small as a badge or as large as
+an entire page:
+
+```tsx
+// Small component — reusable everywhere
+export function FateBadge({ fate }: { fate: string }) {
+  return <span className="fate-badge" style={{ color: COLORS[fate] }}>{fate}</span>;
+}
+
+// Page component — used once in the router
+export function ItemListPage() {
+  // State, effects, event handlers...
+  return <div className="page">...</div>;
+}
+```
+
+**Props** are how data flows down. `{ fate }` is a prop — the parent decides
+what fate to display, the FateBadge just renders it.
+
+#### useState — Reactive State
+
+```tsx
+const [items, setItems] = useState<any[]>([]);
+const [loading, setLoading] = useState(true);
+```
+
+`useState` creates a value + a setter function. When you call `setItems(newData)`,
+React automatically re-renders the component with the new value. You never
+manually update the DOM — you update state, React handles the rest.
+
+**Why `useState(true)` for loading?** We start in a loading state, fetch data,
+then set loading to false. This pattern shows a spinner while waiting.
+
+#### useEffect — Side Effects
+
+```tsx
+useEffect(() => {
+  api.items.list(params)
+    .then(setItems)
+    .finally(() => setLoading(false));
+}, [currentFate, currentSearch]);
+```
+
+`useEffect` runs code **after the component renders**. The dependency array
+`[currentFate, currentSearch]` means: "re-run this effect whenever either
+of these values changes." If the user switches the fate filter, the effect
+fires again and fetches new data.
+
+**Without the dependency array?** The effect would run on every render —
+infinite loop of fetch → render → fetch → render.
+
+#### React Router — Client-Side Navigation
+
+```tsx
+<Routes>
+  <Route path="/login" element={<LoginPage />} />
+  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+    <Route path="/" element={<DashboardPage />} />
+    <Route path="/items" element={<ItemListPage />} />
+    <Route path="/items/:id" element={<ItemDetailPage />} />
+  </Route>
+</Routes>
+```
+
+When you click a `<Link to="/items">`, React Router:
+1. Updates the browser URL (without a full page reload)
+2. Matches the new URL against the route definitions
+3. Renders the matching component
+
+**Nested routes:** The Layout wraps all protected routes. It renders the
+sidebar and a `<Outlet />` component. The Outlet is replaced by whichever
+child route matches:
+
+```
+/items     →  Layout > Outlet=ItemListPage
+/items/123 →  Layout > Outlet=ItemDetailPage
+/login     →  LoginPage (no Layout wrapper)
+```
+
+**Route parameters:** `/items/:id` captures the ID from the URL. Inside the
+component, `useParams()` returns `{ id: "abc-123" }`.
+
+### Authentication Pattern
+
+The auth flow uses React Context — a way to share state across many components
+without passing props through every level:
+
+```
+AuthProvider (wraps entire app)
+  ├── LoginPage (calls login())
+  ├── ProtectedRoute (reads user, redirects if null)
+  └── Layout
+       └── Sidebar (shows user.name, calls logout())
+            └── DashboardPage (API calls use stored token)
+```
+
+**On app load:**
+1. AuthProvider checks localStorage for an existing JWT
+2. If found, calls `GET /api/auth/me` to validate it
+3. If valid → user is set, protected routes render
+4. If invalid → token cleared, user sees login page
+
+**On login:**
+1. LoginPage calls `api.auth.login(email, password)`
+2. API client receives `{ token, user }` response
+3. Token saved to localStorage, user set in context
+4. React Router navigates to dashboard
+
+**On logout:**
+1. Token cleared from localStorage
+2. User set to null in context
+3. ProtectedRoute detects null user → redirects to login
+
+### The API Client Pattern
+
+```typescript
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const headers = { ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`/api${path}`, { ...options, headers });
+  if (!res.ok) throw new ApiError(data.error, res.status);
+  return data;
+}
+```
+
+**Why a wrapper instead of raw fetch?**
+1. Automatically adds the JWT token to every request
+2. Automatically parses JSON responses
+3. Throws typed errors that components can catch
+4. Centralizes the base URL (`/api`)
+
+**The Vite proxy:** In development, `vite.config.ts` proxies `/api/*` requests
+to `http://localhost:3001`. The browser thinks it's talking to the same origin
+(port 3002), but Vite forwards the request to the backend (port 3001). This
+avoids CORS issues during development.
+
+In production, nginx does the same proxying (see `nginx.conf`).
+
+### URL-Based Filtering
+
+The item list uses URL search params for filtering:
+
+```tsx
+const [searchParams, setSearchParams] = useSearchParams();
+const currentFate = searchParams.get('fate') || 'ALL';
+
+function setFate(fate: string) {
+  const params = new URLSearchParams(searchParams);
+  if (fate === 'ALL') params.delete('fate');
+  else params.set('fate', fate);
+  setSearchParams(params);
+}
+```
+
+**Why URL params instead of component state?**
+1. **Shareable** — You can share `http://localhost:3002/items?fate=SELL`
+   and the recipient sees the same filtered view
+2. **Bookmarkable** — Save a filter to come back to later
+3. **Browser back button** — Changing filters updates the URL, so "back"
+   goes to the previous filter instead of the previous page
+
+### CSS Architecture — No Framework
+
+We use a single `globals.css` file with plain CSS instead of a framework like
+Tailwind. For a small admin dashboard with ~10 pages, this is simpler:
+
+- Class names follow BEM-ish conventions (`.item-card`, `.item-card-header`)
+- Layout uses CSS Grid and Flexbox
+- Subtle transitions for hover effects and page loads
+- Responsive-ready with `grid-template-columns: repeat(auto-fill, minmax(...))`
+
+**Why not Tailwind?** Tailwind is great for larger teams and design systems.
+For this project, a 350-line CSS file is easier to read and modify than
+hundreds of utility classes scattered across JSX.
+
+### What's Next
+
+Step 6 will add the Claude LLM integration for price estimation — when an
+item is marked as SELL, the app can ask Claude to suggest a selling price,
+recommend platforms (Facebook Marketplace, OfferUp, etc.), and explain its
+rationale.
+
+### Commands to Explore
+
+```bash
+# Start the full stack (with hot reload on both frontend and backend)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Open the admin dashboard
+open http://localhost:3002
+
+# Login with: james@stash.local / password123
+
+# Or run the frontend outside Docker (for faster hot reload)
+cd packages/admin && npm run dev
+# Opens at http://localhost:3002, proxies /api to :3001
+```
