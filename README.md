@@ -111,6 +111,7 @@ React 18 SPA with sidebar navigation, JWT authentication, and pages for:
 - **Containers** — 3D visualization (Three.js), contents table, place/remove items
 - **Locations** — Origin/destination rooms with item lists
 - **Categories** — Color-coded cards with item counts
+- **Import** — Drag-drop CSV upload, column mapper, preview, batch create
 - **Export** — PDF manifests, QR label sheets, sell/donate lists, CSV download
 - **Activity Log** — Paginated audit trail
 

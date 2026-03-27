@@ -2480,3 +2480,178 @@ curl -o sell-items.csv "http://localhost:3001/api/export/csv/items?fate=SELL" \
 
 # In the admin dashboard: navigate to Export page in the sidebar
 ```
+
+---
+
+## Step 11: CSV Import with Column Mapper
+
+### What We Built
+
+A two-phase CSV import: parse the file to preview it, then map columns
+to Stash fields and execute the import:
+
+```
+packages/backend/src/
+├── services/csv-import.ts   → CSV parser, field definitions, batch item creation
+└── routes/imports.ts        → POST /parse (preview) and /execute (import)
+
+packages/admin/src/
+├── pages/ImportPage.tsx     → 3-step wizard: upload → map → result
+└── components/Layout.tsx    → Added "Import" to sidebar nav
+```
+
+### The Two-Phase Approach
+
+**Why not just upload and import?** Every spreadsheet is different. One might
+have columns labeled "Item Name", another "Description", another "Object".
+We can't know in advance which CSV column maps to which Stash field.
+
+**Phase 1 — Parse and Preview:**
+```
+User drops CSV → Server parses headers + first 5 rows → returns preview
+No items created yet — just a preview for the user to review
+```
+
+**Phase 2 — Map and Import:**
+```
+User maps CSV columns to Stash fields (Name, Category, Fate, etc.)
+User confirms → Server creates items using the mapping
+Server returns: { created: 47, errors: [{ row: 12, message: "..." }] }
+```
+
+### CSV Parsing — Handling Edge Cases
+
+CSV looks simple but has many edge cases:
+```
+Name,Description,Price
+"Coffee Table","Walnut, mid-century",150
+"Bookshelf ""Billy""",from IKEA,45
+```
+
+Our parser handles:
+- **Quoted fields** — Commas inside quotes are part of the value, not delimiters
+- **Escaped quotes** — `""` inside a quoted field represents a literal `"`
+- **Windows line endings** — `\r\n` vs `\n`
+- **Empty rows** — Skipped silently
+
+```typescript
+for (let i = 0; i < text.length; i++) {
+  const ch = text[i];
+  if (inQuotes) {
+    if (ch === '"' && next === '"') { field += '"'; i++; }
+    else if (ch === '"') { inQuotes = false; }
+    else { field += ch; }
+  } else {
+    if (ch === '"') { inQuotes = true; }
+    else if (ch === ',') { current.push(field); field = ''; }
+    else if (ch === '\n') { lines.push(current); current = []; field = ''; }
+    // ...
+  }
+}
+```
+
+### Auto-Mapping — Smart Column Detection
+
+When the CSV headers match Stash field names, we auto-map them:
+
+```typescript
+data.headers.forEach((header, idx) => {
+  const normalized = header.toLowerCase().trim();
+  const match = importableFields.find(
+    f => f.label.toLowerCase() === normalized || f.key.toLowerCase() === normalized
+  );
+  if (match) autoMapping[idx] = match.key;
+});
+```
+
+If your CSV has a column called "Name", it automatically maps to the Name
+field. "Category" maps to Category. Unrecognized columns default to "(skip)".
+
+This means if you export from Stash and re-import, columns map automatically.
+
+### Name-to-ID Resolution
+
+CSV data contains names ("Kitchen", "Furniture") but the database needs
+UUIDs. The import service resolves names to IDs:
+
+```typescript
+const categories = await prisma.category.findMany();
+const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
+
+// In the import loop:
+const catName = getValue('categoryName');
+const categoryId = catName
+  ? categoryMap.get(catName.toLowerCase()) || defaultCategoryId
+  : defaultCategoryId;
+```
+
+If a category name doesn't match any existing category, it falls back to
+the first category (rather than failing). Same for locations. This makes
+imports forgiving — you don't need exact spelling.
+
+### The Import UI — 3-Step Wizard
+
+```
+Step 1: UPLOAD         Step 2: MAP COLUMNS       Step 3: RESULT
+┌──────────────────┐   ┌──────────────────────┐  ┌──────────────────┐
+│                  │   │ CSV Col → Stash Field │  │ ✓ 47 Created     │
+│  Drop CSV here   │   │ "Name"  → Name *      │  │ ✗ 3 Errors       │
+│  or click to     │   │ "Desc"  → Description │  │                  │
+│  browse          │   │ "Type"  → Category    │  │ Row 12: Name     │
+│                  │   │ "Room"  → Origin Room │  │   is required    │
+│                  │   │ "Price" → Est. Value  │  │                  │
+└──────────────────┘   │                      │  │ [Import More]    │
+                       │ Preview: first 5 rows │  │ [View Items]     │
+                       │ [Import 50 Items]     │  └──────────────────┘
+                       └──────────────────────┘
+```
+
+**Drag and drop:** The drop zone uses the HTML5 Drag and Drop API. When a
+file is dragged over, the zone highlights blue. On drop, the file is read
+and uploaded to the parse endpoint.
+
+**Mapped columns highlight** in the preview table, unmapped columns are
+grayed out — visual feedback for what will and won't be imported.
+
+### Error Handling — Row-Level
+
+The import doesn't stop on the first error. Each row is imported
+independently, and errors are collected:
+
+```typescript
+for (let i = 0; i < rows.length; i++) {
+  try {
+    await prisma.item.create({ data: { ... } });
+    created++;
+  } catch (err) {
+    errors.push({ row: i + 2, message: err.message }); // +2 for 1-indexed + header
+  }
+}
+```
+
+If row 12 is missing a name and row 35 has an invalid value, the other 48
+rows still import successfully. The result shows exactly which rows failed
+and why.
+
+### What's Next
+
+Step 12 will add the floor plan view — a static image of the house layout
+with colored room zones overlaid, showing item counts per room.
+
+### Commands to Explore
+
+```bash
+# Parse a CSV for preview
+curl -X POST http://localhost:3001/api/import/csv/parse \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@inventory.csv"
+
+# Execute an import (after mapping columns)
+curl -X POST http://localhost:3001/api/import/csv/execute \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"csvText":"Name,Fate\nDesk,KEEP\nChair,SELL","mapping":{"0":"name","1":"fate"}}'
+
+# In the admin dashboard: Import page in the sidebar
+# Drag a .csv file, map columns, click Import
+```

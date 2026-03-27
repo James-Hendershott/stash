@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/containers', label: 'Containers' },
   { to: '/locations', label: 'Locations' },
   { to: '/categories', label: 'Categories' },
+  { to: '/import', label: 'Import' },
   { to: '/export', label: 'Export' },
   { to: '/activity', label: 'Activity' },
 ];

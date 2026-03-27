@@ -5,6 +5,19 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-03-27
+
+### Added
+- CSV import with column mapper: 2-phase approach (parse preview, then map and execute)
+- Custom CSV parser handling quoted fields, escaped quotes, Windows line endings
+- Auto-mapping: CSV headers matching Stash field names map automatically
+- Name-to-ID resolution for categories and locations during import (fuzzy, case-insensitive)
+- Row-level error handling: failed rows don't block successful ones
+- Import API: POST /api/import/csv/parse (preview) and /api/import/csv/execute (batch create)
+- Admin Import page: 3-step wizard with drag-drop upload, column mapper dropdowns, preview table, result summary
+- Import nav item in admin sidebar
+- TEACH.md Step 11: two-phase import, CSV parsing edge cases, auto-mapping, name-to-ID resolution, wizard UI
+
 ## [0.10.0] - 2026-03-27
 
 ### Added
