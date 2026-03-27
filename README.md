@@ -110,6 +110,7 @@ React 18 SPA with sidebar navigation, JWT authentication, and pages for:
 - **Items** — Search, filter by fate, card grid with photos, inline edit, photo upload
 - **Containers** — 3D visualization (Three.js), contents table, place/remove items
 - **Locations** — Origin/destination rooms with item lists
+- **Floor Plan** — Visual room grid by floor with fate breakdown bars, house toggle
 - **Categories** — Color-coded cards with item counts
 - **Import** — Drag-drop CSV upload, column mapper, preview, batch create
 - **Export** — PDF manifests, QR label sheets, sell/donate lists, CSV download

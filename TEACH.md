@@ -2655,3 +2655,165 @@ curl -X POST http://localhost:3001/api/import/csv/execute \
 # In the admin dashboard: Import page in the sidebar
 # Drag a .csv file, map columns, click Import
 ```
+
+---
+
+## Step 12: Floor Plan View
+
+### What We Built
+
+A visual room-by-room view of each house, showing colored room cards
+grouped by floor with item counts and fate breakdown bars:
+
+```
+packages/backend/src/routes/
+└── floorplan.ts              → GET /:house (room data) + PATCH /room/:id/position
+
+packages/admin/src/pages/
+└── FloorPlanPage.tsx         → Room grid with fate bars, house toggle
+```
+
+### The Floor Plan Concept
+
+The floor plan shows your home as a grid of rooms, each room colored by
+its assigned color and showing:
+- **Room name** and **item count**
+- **Fate bar** — a horizontal stacked bar showing the proportion of items
+  in each fate (green for KEEP, orange for SELL, etc.)
+- **Fate counts** — abbreviated labels (K: 5, S: 2, D: 1)
+
+Clicking a room navigates to that location's detail page (items list).
+
+```
+┌─────────────────────────────────────────────────┐
+│ MAIN FLOOR                                      │
+├───────────────┬───────────────┬─────────────────┤
+│ Living Room 8 │ Kitchen    12 │ Office        5 │
+│ ████████░░░░  │ ██████████░░  │ ███████████░░░  │
+│ K:5 S:2 U:1   │ K:10 T:2     │ K:4 S:1        │
+├───────────────┼───────────────┼─────────────────┤
+│ Dining Room 6 │ Garage      9 │ Guest BR      2 │
+│ ░░░░██████░░  │ ███████░░░░░  │ ░░░░░░░░░░░░   │
+│ S:4 D:2       │ K:5 T:3 U:1  │ D:2            │
+└───────────────┴───────────────┴─────────────────┘
+```
+
+### v1 (Now) vs v2 (Future)
+
+**v1 — Grid layout:** Rooms are displayed as cards in a CSS grid, grouped
+by floor. No actual floor plan image. This works because:
+- We don't have the NC property floor plan yet (TBD)
+- A grid gives the same information (items per room, fate breakdown)
+- Click-to-navigate works identically
+
+**v2 — Image overlay (BACKLOG):** When the NC property is identified:
+1. Upload a floor plan image to `DATA_PATH/floorplans/`
+2. Use the position endpoint to drag rooms onto the image
+3. Rooms render as positioned, colored overlays on top of the image
+4. The `floorPlanX/Y/Width/Height` fields on Location support this
+
+### The Data Endpoint
+
+```typescript
+// GET /api/floorplan/Colorado%20Home
+router.get('/:house', async (req, res) => {
+  const locations = await prisma.location.findMany({ where: { house } });
+
+  // Group items by location and fate using Prisma groupBy
+  const fateCountsRaw = await prisma.item.groupBy({
+    by: ['originLocationId', 'fate'],
+    where: { deletedAt: null, originLocationId: { in: locationIds } },
+    _count: true,
+  });
+  // ...
+});
+```
+
+**`groupBy`** is a Prisma feature that translates to SQL `GROUP BY`. Instead
+of fetching all items and counting in JavaScript, the database does the
+counting — much faster for thousands of items.
+
+The response groups rooms by floor:
+```json
+{
+  "house": "Colorado Home",
+  "floors": [
+    { "floor": "Main", "rooms": [
+      { "name": "Living Room", "color": "#3B82F6", "totalItems": 8,
+        "fateCounts": { "KEEP": 5, "SELL": 2, "UNDECIDED": 1 } }
+    ]},
+    { "floor": "Upper", "rooms": [...] }
+  ]
+}
+```
+
+### The House Toggle
+
+The floor plan page has two buttons at the top: **Origin (Colorado)** and
+**Destination (NC)**. This uses React state to switch between houses:
+
+```typescript
+const [house, setHouse] = useState('Colorado Home');
+
+useEffect(() => {
+  fetch(`/api/floorplan/${encodeURIComponent(house)}`)
+    .then(r => r.json())
+    .then(data => setFloors(data.floors));
+}, [house]);
+```
+
+Switching houses re-fetches the floor plan data. Origin shows where items
+are now. Destination shows where they're going (once assigned).
+
+### The Fate Bar — A Stacked Horizontal Bar
+
+```tsx
+<div className="floor-plan-fate-bar">
+  {FATE_ORDER.map(fate => {
+    const count = room.fateCounts[fate] || 0;
+    const pct = (count / room.totalItems) * 100;
+    return (
+      <div
+        style={{ width: `${pct}%`, backgroundColor: FATE_COLORS[fate] }}
+        title={`${fate}: ${count}`}
+      />
+    );
+  })}
+</div>
+```
+
+Each fate gets a segment proportional to its count. A room with 5 KEEP and
+5 SELL items shows a bar that's half green, half orange. This gives an
+at-a-glance sense of how "decided" each room is — rooms with lots of gray
+(UNDECIDED) need attention.
+
+### The Position Endpoint (for v2)
+
+```typescript
+PATCH /api/floorplan/room/:id/position
+Body: { floorPlanX: 100, floorPlanY: 200, floorPlanWidth: 150, floorPlanHeight: 120 }
+```
+
+This endpoint exists now but isn't used by the v1 grid layout. When v2
+adds the image overlay, rooms will be draggable onto the floor plan image,
+and their positions will be saved via this endpoint.
+
+### What's Next
+
+Step 13 will add users management — admin CRUD for user accounts with
+role assignment and password reset.
+
+### Commands to Explore
+
+```bash
+# Get floor plan data for the origin house
+curl "http://localhost:3001/api/floorplan/Colorado%20Home" \
+  -H "Authorization: Bearer TOKEN"
+
+# Get destination house data
+curl "http://localhost:3001/api/floorplan/North%20Carolina%20Home" \
+  -H "Authorization: Bearer TOKEN"
+
+# In the admin dashboard: Floor Plan in the sidebar
+# Toggle between Origin and Destination views
+```

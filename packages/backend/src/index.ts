@@ -16,6 +16,7 @@ import syncRoutes from './routes/sync';
 import container3dRoutes from './routes/container3d';
 import exportRoutes from './routes/exports';
 import importRoutes from './routes/imports';
+import floorplanRoutes from './routes/floorplan';
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/sync', syncRoutes);
 app.use('/api/containers', container3dRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/floorplan', floorplanRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

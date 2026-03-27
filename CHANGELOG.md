@@ -5,6 +5,18 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-03-27
+
+### Added
+- Floor plan view with room grid grouped by floor, colored by room assignment
+- Stacked fate bar per room (proportional KEEP/SELL/DONATE/TRASH/UNDECIDED segments)
+- House toggle (Origin Colorado / Destination NC) with live data refresh
+- GET /api/floorplan/:house endpoint with Prisma groupBy for item counts per location per fate
+- PATCH /api/floorplan/room/:id/position for future image overlay positioning
+- Floor Plan nav item in admin sidebar
+- Click room → navigate to location detail (item list for that room)
+- TEACH.md Step 12: floor plan v1 grid vs v2 image overlay, Prisma groupBy, stacked bar rendering
+
 ## [0.11.0] - 2026-03-27
 
 ### Added

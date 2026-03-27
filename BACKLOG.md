@@ -5,7 +5,8 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 ## Features
 
 - [ ] Update destination locations with real NC property data
-- [ ] Interactive floor plan furniture placement (v2 of floor plan view)
+- [ ] Floor plan v2: image overlay with draggable room zones (uses floorPlanX/Y/Width/Height)
+- [ ] Interactive floor plan furniture placement (v3 of floor plan view)
 - [ ] iGUIDE 3D walkthrough integration
 - [ ] Home Mode: check-in / check-out log for items
 - [ ] Full property-wide search ("where is my X?")
