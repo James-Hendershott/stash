@@ -5,6 +5,21 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-27
+
+### Added
+- React Native mobile app with Expo (iOS + Android)
+- Bottom tab navigation (Items, Scan, Settings) with nested stack navigation
+- Login screen with SecureStore JWT persistence
+- Item list screen with search, fate filtering, pull-to-refresh, photo-aware cards
+- Item detail screen with camera photo capture, image picker, fate selector, AI price estimate
+- Add item screen with chip-based category/condition/fate/room selectors
+- QR code scanner using expo-camera (auto-navigates to scanned item)
+- Settings screen with configurable server URL and logout
+- API client using expo-secure-store for encrypted token storage
+- iPhone user guide (IPHONE-GUIDE.md) with step-by-step instructions
+- TEACH.md Step 7: React Native vs React, Expo, navigation patterns, SecureStore, camera, QR scanning, FlatList, StyleSheet
+
 ## [0.6.0] - 2026-03-27
 
 ### Added

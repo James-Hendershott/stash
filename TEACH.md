@@ -1685,3 +1685,251 @@ curl http://localhost:3001/api/items/ITEM_ID/price-estimate \
 # Or use the admin dashboard:
 # Navigate to any item → sidebar → "Get Price Estimate" button
 ```
+
+---
+
+## Step 7: React Native Mobile App
+
+### What We Built
+
+A cross-platform mobile app (iOS + Android) using React Native and Expo:
+
+```
+packages/mobile/
+├── App.tsx                        → Root: navigation, auth provider
+├── src/
+│   ├── lib/api.ts                → API client (SecureStore for tokens)
+│   ├── context/AuthContext.tsx    → Auth state with SecureStore persistence
+│   ├── components/
+│   │   └── FateBadge.tsx         → Colored fate label (same as admin)
+│   └── screens/
+│       ├── LoginScreen.tsx       → Email/password login
+│       ├── ItemListScreen.tsx    → Card list with search, fate filter, pull-to-refresh
+│       ├── ItemDetailScreen.tsx  → Full item view, camera, fate selector, AI pricing
+│       ├── AddItemScreen.tsx     → Create item form with chip selectors
+│       ├── ScanScreen.tsx        → Camera-based QR code scanner
+│       └── SettingsScreen.tsx    → Account info, server URL, logout
+└── package.json                  → expo, react-navigation, expo-camera, etc.
+```
+
+### React Native vs React (Web)
+
+React Native uses the same React concepts (components, props, state, effects)
+but renders **native UI components** instead of HTML:
+
+| Web (React) | Mobile (React Native) |
+|------------|----------------------|
+| `<div>` | `<View>` |
+| `<p>`, `<span>` | `<Text>` |
+| `<input>` | `<TextInput>` |
+| `<button>` | `<TouchableOpacity>` |
+| `<img>` | `<Image>` |
+| `<ul>` + `<li>` | `<FlatList>` |
+| CSS files | `StyleSheet.create()` |
+
+**Why React Native?** One codebase, two platforms. The same code runs on
+iPhone and Android. Expo adds a layer that handles native APIs (camera,
+secure storage, etc.) without needing Xcode or Android Studio installed.
+
+### Expo — The React Native Toolkit
+
+Expo provides:
+- **Expo Go** — An app you install on your phone to run dev builds instantly.
+  No compiling, no app store. Change code, shake phone, see the update.
+- **expo-camera** — Access the device camera for photos and QR scanning
+- **expo-image-picker** — Take or select photos with built-in UI
+- **expo-secure-store** — Encrypted key-value storage (for JWT tokens)
+
+**Expo Go vs. native builds:** During development, you run the app through
+Expo Go (faster iteration). For production, Expo can build standalone `.ipa`
+and `.apk` files that install like regular apps.
+
+### Navigation — Tabs + Stack
+
+Mobile apps use a different navigation model than web:
+
+```
+App
+├── Login Screen (shown if not authenticated)
+└── Main Tabs (shown if authenticated)
+    ├── Items Tab
+    │   ├── Item List (default)
+    │   ├── Item Detail (push)
+    │   └── Add Item (push)
+    ├── Scan Tab (camera)
+    └── Settings Tab
+```
+
+**Bottom tabs** are the primary navigation — the user taps between Items,
+Scan, and Settings. Within the Items tab, screens are **stacked**: tapping
+an item pushes the detail screen on top, with a back arrow to return.
+
+```typescript
+// Tab navigator — persistent bar at the bottom
+const Tab = createBottomTabNavigator();
+
+// Stack navigator — screens push/pop on top of each other
+const Stack = createNativeStackNavigator();
+
+// Items tab has its own stack of screens
+function ItemsStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="ItemList" component={ItemListScreen} />
+      <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+      <Stack.Screen name="AddItem" component={AddItemScreen} />
+    </Stack.Navigator>
+  );
+}
+```
+
+### SecureStore vs localStorage
+
+On the web, we store the JWT in `localStorage`. On mobile, that's insecure —
+any app with root access could read it. `expo-secure-store` uses the iOS
+Keychain (encrypted by the device's Secure Enclave hardware):
+
+```typescript
+import * as SecureStore from 'expo-secure-store';
+
+// Save (encrypted automatically)
+await SecureStore.setItemAsync('stash_token', token);
+
+// Read
+const token = await SecureStore.getItemAsync('stash_token');
+
+// Delete
+await SecureStore.deleteItemAsync('stash_token');
+```
+
+Note that these are all **async** operations (unlike `localStorage.setItem`
+which is synchronous). This is because the encryption/decryption happens on
+a separate thread.
+
+### Camera and Image Picker
+
+Two ways to get a photo on the item detail screen:
+
+**1. Take a new photo:**
+```typescript
+const result = await ImagePicker.launchCameraAsync({
+  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  quality: 0.8,  // 80% quality — good balance of size vs clarity
+});
+```
+
+**2. Choose from photo library:**
+```typescript
+const result = await ImagePicker.launchImageLibraryAsync({
+  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  quality: 0.8,
+});
+```
+
+Both return a `result.assets[0].uri` — a local file path like
+`file:///var/mobile/.../photo.jpg`. We upload this to the server
+using FormData, the same way the admin dashboard does.
+
+**Permission handling:** iOS requires explicit permission before accessing
+the camera. Expo handles the permission dialog automatically — the first
+time the user taps "Take Photo", iOS shows "Stash would like to access
+the camera" with Allow/Don't Allow buttons.
+
+### QR Code Scanning
+
+```typescript
+<CameraView
+  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+  onBarcodeScanned={handleBarCodeScanned}
+/>
+```
+
+The camera continuously scans for QR codes. When one is detected, we
+parse the URL to extract the item or container ID:
+
+```typescript
+function handleBarCodeScanned({ data }) {
+  const itemMatch = data.match(/\/items\/([a-f0-9-]+)/);
+  if (itemMatch) {
+    navigation.navigate('ItemDetail', { id: itemMatch[1] });
+  }
+}
+```
+
+The QR codes from Step 4 encode URLs like `http://server/api/items/abc-123`.
+We extract the UUID with a regex and navigate directly to that item's
+detail screen. Scan a box label → instantly see what's inside.
+
+### FlatList — Efficient Long Lists
+
+Mobile can't render hundreds of DOM elements like a browser. `FlatList`
+is React Native's virtualized list — it only renders the items currently
+visible on screen, recycling components as you scroll:
+
+```typescript
+<FlatList
+  data={items}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => <ItemCard item={item} />}
+  refreshControl={<RefreshControl onRefresh={handleRefresh} />}
+/>
+```
+
+**Pull-to-refresh:** The `RefreshControl` adds the iOS pull-down-to-refresh
+gesture automatically. When the user pulls down, `handleRefresh` fires and
+re-fetches from the API.
+
+### StyleSheet — CSS for Native
+
+```typescript
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16 },
+  title: { fontSize: 22, fontWeight: '700', color: '#1e293b' },
+});
+```
+
+React Native doesn't use CSS files. Instead, styles are JavaScript objects
+passed to a `style` prop. The syntax is similar to CSS but uses camelCase
+(`backgroundColor` not `background-color`) and numbers for pixel values.
+
+`StyleSheet.create()` validates and optimizes the styles at creation time
+rather than on every render.
+
+### Server URL Configuration
+
+The mobile app needs to know where the backend is. Unlike the admin dashboard
+(which uses a Vite proxy), the mobile app connects directly:
+
+```typescript
+// Default: Tailscale IP for remote access
+let baseUrl = 'http://100.122.58.114:3001/api';
+
+// Changeable in Settings screen
+export function setBaseUrl(url: string): void { ... }
+```
+
+The Settings screen lets the user change the server URL. This is useful for:
+- **Home WiFi**: `http://192.168.1.153:3001`
+- **Tailscale**: `http://100.122.58.114:3001`
+- **Proxy**: `https://stash-api.shottsserver.com`
+
+### What's Next
+
+Step 8 will add WatermelonDB for offline-first data sync — so the mobile
+app works even without internet, queuing changes for later upload.
+
+### Commands to Explore
+
+```bash
+# Install mobile dependencies
+cd packages/mobile && npm install
+
+# Start the Expo dev server
+npx expo start
+
+# Scan the QR code with Expo Go on your phone
+# Or press 'i' for iOS simulator, 'a' for Android emulator
+
+# The app connects to your backend at the configured URL
+# Make sure the backend is running (docker compose up)
+```

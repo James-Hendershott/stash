@@ -115,6 +115,15 @@ React 18 SPA with sidebar navigation, JWT authentication, and pages for:
 
 Login: `james@stash.local` / `password123`
 
+## Mobile App
+
+React Native + Expo app with bottom tab navigation:
+- **Items** — Search, filter, card grid, tap to view/edit, camera photo capture
+- **Scan** — Point camera at QR code labels to jump to items
+- **Settings** — Server URL configuration, account info, logout
+
+See [IPHONE-GUIDE.md](IPHONE-GUIDE.md) for step-by-step user instructions.
+
 ## API
 
 36 REST endpoints with JWT authentication. See [TEACH.md Step 3](TEACH.md) for
@@ -135,5 +144,6 @@ curl http://localhost:3001/api/items -H "Authorization: Bearer <token>"
 - [SETUP.md](SETUP.md) — Local dev and Unraid production setup
 - [TAILSCALE.md](TAILSCALE.md) — Remote access configuration
 - [TEACH.md](TEACH.md) — Step-by-step learning notes
+- [IPHONE-GUIDE.md](IPHONE-GUIDE.md) — iPhone user guide for Savanah
 - [CHANGELOG.md](CHANGELOG.md) — Release history
 - [BACKLOG.md](BACKLOG.md) — Future enhancements

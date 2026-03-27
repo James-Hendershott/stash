@@ -82,6 +82,14 @@ Development data is stored in `./data/` (gitignored):
 - `data/exports/` — Generated CSV/PDF exports
 - `data/floorplans/` — Floor plan images
 
+9. **Start the mobile app (optional)**
+   ```bash
+   cd packages/mobile
+   npx expo start
+   ```
+   Scan the QR code with **Expo Go** on your phone. The app connects
+   to the backend at the configured server URL (Settings tab).
+
 ### Stopping Services
 
 ```bash

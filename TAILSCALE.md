@@ -9,9 +9,9 @@ Tailscale is already configured on ShottsServer, phones, and development machine
 
 ## Access URLs
 
-### Mobile App
+### Mobile App (Expo Go)
 
-Set `BACKEND_URL` in the mobile app to:
+Open the Stash app in Expo Go. In Settings, set the server URL to:
 ```
 http://100.122.58.114:3001
 ```
