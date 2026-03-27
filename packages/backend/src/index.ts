@@ -12,6 +12,7 @@ import activityRoutes from './routes/activity';
 import statsRoutes from './routes/stats';
 import uploadRoutes from './routes/uploads';
 import pricingRoutes from './routes/pricing';
+import syncRoutes from './routes/sync';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', pricingRoutes);
+app.use('/api/sync', syncRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

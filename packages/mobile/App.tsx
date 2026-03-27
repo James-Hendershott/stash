@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { SyncProvider } from './src/context/SyncContext';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ItemListScreen } from './src/screens/ItemListScreen';
 import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
@@ -86,8 +87,10 @@ export default function App() {
   return (
     <NavigationContainer>
       <AuthProvider>
-        <RootNavigator />
-        <StatusBar style="auto" />
+        <SyncProvider>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </SyncProvider>
       </AuthProvider>
     </NavigationContainer>
   );

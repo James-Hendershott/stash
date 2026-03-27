@@ -5,6 +5,20 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-27
+
+### Added
+- WatermelonDB offline-first database with schema mirroring Prisma models (items, containers, locations, categories)
+- WatermelonDB model classes with decorated fields (Item, Container, Location, Category)
+- Pull/push sync protocol: POST /api/sync/pull and /api/sync/push backend endpoints
+- Pull endpoint returns created/updated/deleted records since last sync timestamp, with denormalized category and location names
+- Push endpoint applies local item creates/updates/deletes to PostgreSQL
+- Sync service on mobile using WatermelonDB's synchronize() function
+- SyncContext for managing sync state (idle/syncing/success/error) across the app
+- SyncIndicator component (colored dot + label, tap to sync)
+- Settings screen updated with offline sync status, last synced time, and Sync Now button
+- TEACH.md Step 8: offline-first architecture, WatermelonDB vs SQLite, sync protocol, denormalization, Expo dev builds
+
 ## [0.7.0] - 2026-03-27
 
 ### Added

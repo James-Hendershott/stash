@@ -1933,3 +1933,231 @@ npx expo start
 # The app connects to your backend at the configured URL
 # Make sure the backend is running (docker compose up)
 ```
+
+---
+
+## Step 8: WatermelonDB — Offline-First Data Sync
+
+### What We Built
+
+A local SQLite database on the phone that syncs with the server, plus
+the server-side endpoints to support the sync protocol:
+
+```
+packages/mobile/src/db/
+├── schema.ts              → WatermelonDB table definitions
+├── models/
+│   ├── Item.ts           → Item model with decorated fields
+│   ├── Container.ts      → Container model
+│   ├── Location.ts       → Location model
+│   └── Category.ts       → Category model
+├── index.ts              → Database initialization
+└── sync.ts               → Pull/push sync with server
+
+packages/mobile/src/context/
+└── SyncContext.tsx         → Sync state management (status, last synced, errors)
+
+packages/mobile/src/components/
+└── SyncIndicator.tsx      → Visual sync status (dot + label)
+
+packages/backend/src/routes/
+└── sync.ts                → POST /api/sync/pull and /api/sync/push
+```
+
+### What Is "Offline-First"?
+
+Most apps stop working without internet — they show a spinner and wait.
+An **offline-first** app stores data locally and works immediately, syncing
+with the server when a connection is available.
+
+```
+ONLINE-FIRST (typical web app):
+  User taps "Items" → API request → wait → show data
+  No internet → spinner → nothing works
+
+OFFLINE-FIRST (Stash mobile):
+  User taps "Items" → read local SQLite → show data instantly
+  Background: sync local ↔ server when connected
+  No internet → still works, changes queued
+```
+
+This is critical for Stash because:
+- You might be in the basement, garage, or backyard with weak signal
+- During moving day, WiFi might be disconnected
+- The phone should be fast — no waiting for network round-trips
+
+### WatermelonDB — Why Not Just SQLite?
+
+WatermelonDB is a layer on top of SQLite that adds:
+1. **Lazy loading** — Records aren't loaded until accessed. A list of 1,000
+   items only loads the ~10 currently visible on screen.
+2. **Observable queries** — When a record changes, any component showing it
+   automatically re-renders. No manual refreshing.
+3. **Built-in sync** — The `synchronize()` function handles the pull/push
+   protocol, conflict detection, and marking records as synced.
+
+### The Schema — Local Mirror of the Server
+
+```typescript
+tableSchema({
+  name: 'items',
+  columns: [
+    { name: 'server_id', type: 'string' },    // The server's UUID
+    { name: 'name', type: 'string' },
+    { name: 'fate', type: 'string' },
+    { name: 'category_name', type: 'string', isOptional: true },
+    // ...
+  ],
+})
+```
+
+**Key differences from the server schema:**
+- **Denormalized:** We store `category_name` and `origin_location_name`
+  directly on the item (instead of just IDs). This avoids JOINs in SQLite
+  and means the item card can display everything without extra queries.
+- **`server_id`:** Maps to the PostgreSQL UUID. WatermelonDB generates its
+  own local IDs for records created offline.
+- **`_status` and `_changed`:** Hidden columns managed by WatermelonDB's
+  sync engine — they track whether a record is `synced`, `created`,
+  `updated`, or `deleted` locally.
+
+### Models — Decorated Classes
+
+```typescript
+import { Model } from '@nozbe/watermelondb';
+import { field, text, date } from '@nozbe/watermelondb/decorators';
+
+export default class Item extends Model {
+  static table = 'items';
+
+  @field('server_id') serverId!: string;
+  @text('name') name!: string;
+  @field('fate') fate!: string;
+  @date('created_at') createdAt!: Date;
+}
+```
+
+**Decorators** (`@field`, `@text`, `@date`) define how each property maps
+to a database column. They're TypeScript syntax that adds metadata to class
+properties — similar to Python decorators or Java annotations.
+
+- `@field` — Basic column (string, number, boolean)
+- `@text` — String with special sanitization (trims whitespace)
+- `@date` — Converts between JavaScript Date and integer timestamp
+- `@readonly` — Prevents writes after creation
+
+### The Sync Protocol
+
+WatermelonDB uses a **pull-then-push** sync protocol:
+
+```
+PULL (server → phone):
+1. Phone sends: { lastPulledAt: 1711500000000 }    // "give me changes since this time"
+2. Server queries: WHERE updatedAt > timestamp
+3. Server responds: {
+     changes: {
+       items: { created: [...], updated: [...], deleted: ['id1', 'id2'] },
+       containers: { created: [...], updated: [...], deleted: [] },
+     },
+     timestamp: 1711500060000    // "you're now synced up to this time"
+   }
+4. WatermelonDB applies changes to local SQLite
+
+PUSH (phone → server):
+1. WatermelonDB collects locally changed records (_status != 'synced')
+2. Phone sends: { changes: { items: { created: [...], updated: [...], deleted: [...] } } }
+3. Server applies changes to PostgreSQL
+4. WatermelonDB marks local records as synced
+```
+
+**First sync:** `lastPulledAt` is `null`, so the server returns everything.
+Subsequent syncs only transfer what changed since the last timestamp.
+
+### The Server Sync Endpoints
+
+```typescript
+// POST /api/sync/pull
+router.post('/pull', async (req, res) => {
+  const since = lastPulledAt ? new Date(lastPulledAt) : new Date(0);
+
+  const changedItems = await prisma.item.findMany({
+    where: { updatedAt: { gt: since } },
+    include: { category: true, originLocation: true },
+  });
+
+  // Separate into created vs updated vs deleted
+  const isFirstSync = !lastPulledAt;
+  const created = isFirstSync ? active : active.filter(i => i.createdAt > since);
+  const updated = isFirstSync ? [] : active.filter(i => i.createdAt <= since);
+  const deleted = changedItems.filter(i => i.deletedAt).map(i => i.id);
+
+  res.json({ changes: { items: { created, updated, deleted } }, timestamp });
+});
+```
+
+**Why separate created/updated/deleted?** WatermelonDB needs to know:
+- **Created**: INSERT into local SQLite
+- **Updated**: UPDATE existing local record
+- **Deleted**: DELETE from local SQLite
+
+If we sent all records as "created," WatermelonDB would try to INSERT a
+record that already exists locally and fail.
+
+### The Sync Context — Managing UI State
+
+```typescript
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
+
+const { status, lastSynced, error, sync } = useSync();
+```
+
+The SyncContext wraps the sync function with UI-friendly state:
+- `idle` — Ready to sync (gray dot)
+- `syncing` — Sync in progress (blue spinner)
+- `success` — Just synced (green dot, resets to idle after 3s)
+- `error` — Sync failed (red dot + error message)
+
+The Settings screen shows this status with a "Sync Now" button and the
+last sync timestamp.
+
+### Expo Dev Build Requirement
+
+WatermelonDB includes native (C++) code for SQLite performance. This means
+it doesn't work with Expo Go (which can only run JavaScript). To use
+WatermelonDB, you need an **Expo dev build**:
+
+```bash
+# One-time: create a custom dev build
+npx expo prebuild
+npx expo run:ios    # or run:android
+```
+
+This compiles the native modules into a custom app binary. After that,
+the development experience is the same — hot reload, Metro bundler, etc.
+
+Until the dev build is set up, the app falls back to direct API calls
+(which still work perfectly — just without offline support).
+
+### What's Next
+
+Step 9 will add Three.js 3D visualization — a wireframe container view
+showing items as colored blocks inside, with volume fill percentage and
+weight indicators.
+
+### Commands to Explore
+
+```bash
+# Trigger a sync from the command line
+curl -X POST http://localhost:3001/api/sync/pull \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"lastPulledAt": null}'
+
+# See what changes exist since a timestamp
+curl -X POST http://localhost:3001/api/sync/pull \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"lastPulledAt": 1711500000000}'
+
+# In the mobile app: Settings tab → Sync Now button
+```

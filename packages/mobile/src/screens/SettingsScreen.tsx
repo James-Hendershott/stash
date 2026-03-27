@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useSync } from '../context/SyncContext';
 import { getBaseUrl, setBaseUrl } from '../lib/api';
 
 export function SettingsScreen() {
   const { user, logout } = useAuth();
+  const { status, lastSynced, error: syncError, sync } = useSync();
   const [serverUrl, setServerUrl] = useState(getBaseUrl().replace(/\/api$/, ''));
 
   function handleSaveUrl() {
@@ -45,11 +47,31 @@ export function SettingsScreen() {
         </View>
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Offline Sync</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Status</Text>
+          <Text style={[styles.value, { color: status === 'error' ? '#dc2626' : status === 'success' ? '#16a34a' : '#1e293b' }]}>
+            {status === 'idle' ? 'Ready' : status === 'syncing' ? 'Syncing...' : status === 'success' ? 'Synced' : 'Error'}
+          </Text>
+          {lastSynced && (
+            <>
+              <Text style={styles.label}>Last Synced</Text>
+              <Text style={styles.value}>{new Date(lastSynced).toLocaleString()}</Text>
+            </>
+          )}
+          {syncError && <Text style={styles.errorText}>{syncError}</Text>}
+          <TouchableOpacity style={styles.saveBtn} onPress={sync} disabled={status === 'syncing'}>
+            <Text style={styles.saveBtnText}>{status === 'syncing' ? 'Syncing...' : 'Sync Now'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>Stash v0.7.0</Text>
+      <Text style={styles.version}>Stash v0.8.0</Text>
     </View>
   );
 }
@@ -78,5 +100,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#fca5a5', alignItems: 'center',
   },
   logoutText: { color: '#dc2626', fontWeight: '600', fontSize: 15 },
+  errorText: { color: '#dc2626', fontSize: 13, marginTop: 4 },
   version: { textAlign: 'center', color: '#94a3b8', marginTop: 16, fontSize: 13 },
 });

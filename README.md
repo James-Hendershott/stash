@@ -122,7 +122,8 @@ React Native + Expo app with bottom tab navigation:
 - **Scan** — Point camera at QR code labels to jump to items
 - **Settings** — Server URL configuration, account info, logout
 
-See [IPHONE-GUIDE.md](IPHONE-GUIDE.md) for step-by-step user instructions.
+Supports offline-first operation with WatermelonDB — works without internet,
+syncs when connected. See [IPHONE-GUIDE.md](IPHONE-GUIDE.md) for user guide.
 
 ## API
 

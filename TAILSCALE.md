@@ -119,4 +119,10 @@ open http://100.122.58.114:3001/api/files/qrcodes/item-abc-123.png
 # Get an AI price estimate for an item
 curl -X POST http://100.122.58.114:3001/api/items/ITEM_ID/price-estimate \
   -H "Authorization: Bearer TOKEN"
+
+# Trigger a full sync (what the mobile app does)
+curl -X POST http://100.122.58.114:3001/api/sync/pull \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"lastPulledAt": null}'
 ```

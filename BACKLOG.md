@@ -34,7 +34,8 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Admin responsive layout (mobile sidebar collapse)
 - [ ] Admin item bulk selection and bulk fate update
 - [ ] Admin container packing wizard (drag items into containers)
-- [ ] Mobile: offline-first with WatermelonDB sync
+- [ ] Mobile: auto-sync on app foreground and on connectivity change
+- [ ] Mobile: conflict resolution UI (show both versions, let user pick)
 - [ ] Mobile: barcode/UPC scanning with product lookup
 - [ ] Mobile: haptic feedback on fate selection
 - [ ] Mobile: push notifications for sync status
