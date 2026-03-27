@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config } from './config';
 import authRoutes from './routes/auth';
 import itemRoutes from './routes/items';
@@ -9,11 +10,17 @@ import categoryRoutes from './routes/categories';
 import placementRoutes from './routes/placements';
 import activityRoutes from './routes/activity';
 import statsRoutes from './routes/stats';
+import uploadRoutes from './routes/uploads';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// ── Static files (photos, QR codes) ─────────────────────
+// Serves DATA_PATH/images/* at /api/files/images/*
+// Serves DATA_PATH/qrcodes/* at /api/files/qrcodes/*
+app.use('/api/files', express.static(path.resolve(config.dataPath)));
 
 // ── Health check (no auth required) ──────────────────────
 app.get('/api/health', (_req, res) => {
@@ -29,6 +36,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/placements', placementRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api', uploadRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

@@ -964,3 +964,254 @@ curl "http://localhost:3001/api/items?fate=KEEP" \
 curl http://localhost:3001/api/stats \
   -H "Authorization: Bearer TOKEN"
 ```
+
+---
+
+## Step 4: Image Upload & QR Code Generation
+
+### What We Built
+
+Photo upload for items and QR code generation for items and containers:
+
+```
+packages/backend/src/
+├── middleware/
+│   └── upload.ts        → Multer config (storage, file filter, size limits)
+├── services/
+│   └── qrcode.ts        → QR code generation (to file and to data URL)
+└── routes/
+    └── uploads.ts       → Photo upload/delete + QR code endpoints
+```
+
+Data is stored on disk under `DATA_PATH/`:
+```
+data/
+├── images/              → Item photos (JPEG, PNG, WebP, HEIC)
+│   ├── 1711500000000-sectional-sofa.jpg
+│   └── 1711500001000-standing-desk.png
+└── qrcodes/             → Generated QR code PNGs
+    ├── item-abc-123.png
+    └── container-xyz-456.png
+```
+
+### File Uploads — Why They're Different
+
+Most API endpoints receive JSON. File uploads are different — you can't put
+binary image data in a JSON object. Instead, the client sends the request as
+**multipart/form-data**, which is the same encoding browsers use for `<form>`
+elements with file inputs.
+
+```
+POST /api/items/abc-123/photo
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="photo"; filename="sofa.jpg"
+Content-Type: image/jpeg
+
+<binary image data>
+------WebKitFormBoundary--
+```
+
+Express's built-in `json()` parser can't handle this format. That's where
+**Multer** comes in.
+
+### Multer — File Upload Middleware
+
+Multer is Express middleware that parses multipart/form-data and writes
+uploaded files to disk. Our configuration:
+
+```typescript
+const photoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = config.imagesPath;   // DATA_PATH/images
+    ensureDir(dir);                   // Create directory if it doesn't exist
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    // 1711500000000-photo.jpg — timestamp prefix prevents name collisions
+    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+    cb(null, uniqueName);
+  },
+});
+```
+
+**Three decisions we made:**
+
+1. **Disk storage vs. memory storage.** Multer can store files in memory
+   (as a Buffer) or on disk. We use disk storage because:
+   - Photos can be 5-10 MB. Holding many in memory risks running out of RAM.
+   - We want files to survive server restarts (they're on the filesystem).
+   - The `DATA_PATH` directory is mounted as a Docker volume, so files persist
+     even when containers are rebuilt.
+
+2. **Timestamp-prefixed filenames.** If two items are both photographed as
+   "photo.jpg", they'd overwrite each other. Prefixing with `Date.now()`
+   (millisecond Unix timestamp) makes every filename unique. We also replace
+   spaces with underscores to avoid URL-encoding headaches.
+
+3. **File type filtering.** We only accept image formats:
+   ```typescript
+   const allowed = /^image\/(jpeg|png|webp|heic|heif)$/;
+   ```
+   Without this, someone could upload a 10 MB executable or a zip bomb.
+   The check is on the MIME type, not just the extension.
+
+**Size limit:** 10 MB per file. If exceeded, Multer returns an error which
+our route handler translates to HTTP 413 (Payload Too Large).
+
+### The Upload Flow
+
+```
+1. Mobile app: User takes a photo of their coffee table
+2. App sends: POST /api/items/:id/photo (multipart/form-data)
+3. Multer middleware:
+   a. Validates file type (JPEG? ✓)
+   b. Validates file size (< 10 MB? ✓)
+   c. Writes file to DATA_PATH/images/1711500000000-coffee-table.jpg
+   d. Attaches file info to req.file
+4. Route handler:
+   a. Verifies the item exists
+   b. Deletes the old photo (if replacing)
+   c. Saves relative path in database: images/1711500000000-coffee-table.jpg
+   d. Returns the URL for viewing: /api/files/images/1711500000000-coffee-table.jpg
+```
+
+**Replacing photos:** When uploading a new photo for an item that already has
+one, we delete the old file first. This prevents orphaned files from filling
+up the disk over time.
+
+### Static File Serving
+
+```typescript
+app.use('/api/files', express.static(path.resolve(config.dataPath)));
+```
+
+This single line makes Express serve any file under `DATA_PATH/` at the
+`/api/files/` URL prefix. So `DATA_PATH/images/photo.jpg` is accessible at
+`http://localhost:3001/api/files/images/photo.jpg`.
+
+Express's `static` middleware handles:
+- Setting the correct `Content-Type` header based on the file extension
+- Returning 404 if the file doesn't exist
+- Caching headers for browser performance
+- Streaming large files without loading them entirely into memory
+
+**Why a relative path in the database?** We store `images/photo.jpg`, not
+`/home/james/stash/data/images/photo.jpg`. This makes the data portable —
+when we move from the local dev machine to the Unraid server, only the
+`DATA_PATH` environment variable changes. The database values stay the same.
+
+### QR Codes — What and Why
+
+A QR code is a 2D barcode that encodes text — in our case, a URL:
+
+```
+┌──────────────────┐
+│ ██ ▄▄▄ █ █▀█ ██  │  Encodes:
+│ ██ █ █ █▀▀ █ █▄  │  http://localhost:3001/api/items/abc-123
+│ ██ ▀▀▀ █ ▄▀█ ██  │
+│ ▄▄▄▄▄▄▄ ▄▄█ ▄▄  │  When scanned:
+│ █▄▀ ▄ ▄▀▀▄▄█▄   │  → Mobile app opens item detail screen
+│ ▄▄▄▄▄▄▄ █▀▄▄ ▄  │  → Browser navigates to admin dashboard
+└──────────────────┘
+```
+
+**The workflow for moving day:**
+1. Admin dashboard generates QR codes for all containers
+2. Print them as sticker labels (future PDF generation feature)
+3. Stick labels on physical boxes and totes
+4. On unpacking day, scan a QR code with the mobile app
+5. Instantly see what's inside without opening the box
+
+### QR Code Generation — Two Modes
+
+We provide QR codes in two formats:
+
+**1. File on disk** (`POST /api/items/:id/qrcode`):
+```typescript
+await QRCode.toFile(filePath, url, {
+  type: 'png',
+  width: 300,       // 300x300 pixels — good for printing
+  margin: 2,        // White border (QR readers need this)
+  errorCorrectionLevel: 'M',
+});
+```
+
+Saved to `DATA_PATH/qrcodes/item-abc-123.png`. Useful for batch-generating
+QR codes for printing.
+
+**2. Data URL** (`GET /api/items/:id/qrcode`):
+```typescript
+const dataUrl = await QRCode.toDataURL(url, { ... });
+// Returns: "data:image/png;base64,iVBORw0KGgo..."
+```
+
+A data URL is a base64-encoded image embedded directly in a string. The
+frontend can use it immediately in an `<img>` tag without a second HTTP
+request. Useful for displaying a QR code in the UI without saving to disk.
+
+**Error correction level 'M'** means the QR code can still be scanned even
+if ~15% of it is damaged (scuffed label, partial tear). Options range from
+L (7%) to H (30%) — higher correction = larger QR code. 'M' is a good
+balance for printed sticker labels.
+
+### Serving Files in Production
+
+In development, Express serves static files directly. In production on Unraid,
+the Docker setup ensures files persist:
+
+```yaml
+# docker-compose.prod.yml
+volumes:
+  - /mnt/user/appdata/stash:/data    # DATA_PATH → Unraid disk array
+```
+
+The `DATA_PATH` in the container maps to Unraid's disk array, so photos and
+QR codes survive container rebuilds. On the Tailscale network, files are
+accessible at `http://100.122.58.114:3001/api/files/images/photo.jpg`.
+
+### New Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/items/:id/photo | Upload item photo |
+| DELETE | /api/items/:id/photo | Remove item photo |
+| POST | /api/items/:id/qrcode | Generate QR code (save to disk) |
+| GET | /api/items/:id/qrcode | Get QR code as data URL |
+| POST | /api/containers/:id/qrcode | Generate container QR code |
+| GET | /api/containers/:id/qrcode | Get container QR as data URL |
+| GET | /api/files/* | Serve uploaded files (static) |
+
+### What's Next
+
+Step 5 will build the admin dashboard frontend — React components for
+the login screen, item list with filtering, item detail/edit forms,
+container management, and the dashboard with fate breakdown charts.
+
+### Commands to Explore
+
+```bash
+# Upload a photo to an item (replace TOKEN and ITEM_ID)
+curl -X POST http://localhost:3001/api/items/ITEM_ID/photo \
+  -H "Authorization: Bearer TOKEN" \
+  -F "photo=@/path/to/photo.jpg"
+
+# Generate a QR code for an item
+curl -X POST http://localhost:3001/api/items/ITEM_ID/qrcode \
+  -H "Authorization: Bearer TOKEN"
+
+# Get QR code as data URL (no file saved)
+curl http://localhost:3001/api/items/ITEM_ID/qrcode \
+  -H "Authorization: Bearer TOKEN"
+
+# View an uploaded photo in the browser
+open http://localhost:3001/api/files/images/1711500000000-photo.jpg
+
+# View a generated QR code
+open http://localhost:3001/api/files/qrcodes/item-abc-123.png
+
+# Delete a photo
+curl -X DELETE http://localhost:3001/api/items/ITEM_ID/photo \
+  -H "Authorization: Bearer TOKEN"
+```

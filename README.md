@@ -45,6 +45,8 @@ Stash becomes a permanent property inventory system.
 | Offline     | WatermelonDB                        |
 | 3D          | Three.js                            |
 | Validation  | Zod                                 |
+| File Upload | Multer (disk storage)               |
+| QR Codes    | qrcode (PNG + data URL)             |
 | Auth        | JWT + bcrypt                        |
 | LLM         | Claude claude-haiku-4-5 (price estimates) |
 | Deploy      | Docker Compose on Unraid            |

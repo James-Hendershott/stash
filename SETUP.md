@@ -61,12 +61,24 @@
        -d '{"email":"james@stash.local","password":"password123"}'
      ```
 
+8. **Test file uploads (optional)**
+   ```bash
+   # Upload a photo (replace TOKEN and ITEM_ID from the login/list responses)
+   curl -X POST http://localhost:3001/api/items/ITEM_ID/photo \
+     -H "Authorization: Bearer TOKEN" \
+     -F "photo=@/path/to/any-image.jpg"
+
+   # Generate a QR code for an item
+   curl -X POST http://localhost:3001/api/items/ITEM_ID/qrcode \
+     -H "Authorization: Bearer TOKEN"
+   ```
+
 ### Local Data
 
 Development data is stored in `./data/` (gitignored):
 - `data/postgres/` — PostgreSQL data files
-- `data/images/` — Uploaded item photos
-- `data/qrcodes/` — Generated QR code images
+- `data/images/` — Uploaded item photos (JPEG, PNG, WebP, HEIC; 10 MB limit)
+- `data/qrcodes/` — Generated QR code PNGs (300x300, error correction M)
 - `data/exports/` — Generated CSV/PDF exports
 - `data/floorplans/` — Floor plan images
 

@@ -13,6 +13,9 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Insurance valuation export
 - [ ] Multi-property support
 - [ ] Native mobile QR label printing (direct to Bluetooth printer)
+- [ ] Batch QR code generation (generate all at once for a container set)
+- [ ] Image thumbnail generation on upload (sharp library, save 200px thumbs)
+- [ ] Image compression / WebP conversion on upload for storage savings
 - [ ] Push notifications for sync conflicts
 - [ ] Shared packing list views for helpers
 - [ ] Facebook Marketplace / OfferUp API integration for listings

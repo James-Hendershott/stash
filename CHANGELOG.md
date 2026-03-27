@@ -5,6 +5,17 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-27
+
+### Added
+- Item photo upload via Multer (JPEG, PNG, WebP, HEIC; 10 MB limit)
+- Multer middleware with disk storage, timestamp-prefixed filenames, MIME type filtering
+- QR code generation service (to PNG file and to base64 data URL)
+- QR codes encode API URLs for items and containers (scannable on mobile)
+- Upload routes: photo upload/delete, QR code generate/retrieve for items and containers
+- Static file serving at /api/files/* for photos and QR codes
+- TEACH.md Step 4: file uploads, Multer, multipart/form-data, QR codes, static serving
+
 ## [0.3.0] - 2026-03-27
 
 ### Added

@@ -104,4 +104,13 @@ curl -X POST http://100.122.58.114:3001/api/auth/login \
 # Authenticated request (replace TOKEN)
 curl http://100.122.58.114:3001/api/items \
   -H "Authorization: Bearer TOKEN"
+
+# Upload a photo via Tailscale
+curl -X POST http://100.122.58.114:3001/api/items/ITEM_ID/photo \
+  -H "Authorization: Bearer TOKEN" \
+  -F "photo=@/path/to/photo.jpg"
+
+# View uploaded photos / QR codes
+open http://100.122.58.114:3001/api/files/images/photo.jpg
+open http://100.122.58.114:3001/api/files/qrcodes/item-abc-123.png
 ```
