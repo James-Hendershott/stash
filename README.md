@@ -47,6 +47,7 @@ Stash becomes a permanent property inventory system.
 | Validation  | Zod                                 |
 | File Upload | Multer (disk storage)               |
 | QR Codes    | qrcode (PNG + data URL)             |
+| AI Pricing  | Claude API (claude-sonnet-4-6)    |
 | Auth        | JWT + bcrypt                        |
 | LLM         | Claude claude-haiku-4-5 (price estimates) |
 | Deploy      | Docker Compose on Unraid            |

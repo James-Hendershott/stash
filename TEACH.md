@@ -1456,3 +1456,232 @@ open http://localhost:3002
 cd packages/admin && npm run dev
 # Opens at http://localhost:3002, proxies /api to :3001
 ```
+
+---
+
+## Step 6: Claude LLM Integration — AI Price Estimation
+
+### What We Built
+
+A pricing service that calls the Claude API to estimate selling prices:
+
+```
+packages/backend/src/
+├── services/
+│   └── pricing.ts       → Claude API integration, prompt, response parsing
+└── routes/
+    └── pricing.ts       → POST/GET /api/items/:id/price-estimate
+
+packages/admin/src/
+├── lib/api.ts           → Added getPriceEstimate, requestPriceEstimate
+└── pages/
+    └── ItemDetailPage.tsx → AI Price Estimate card in sidebar
+```
+
+### What Is an LLM API?
+
+An LLM (Large Language Model) like Claude is a program that generates text
+based on a prompt. The API lets you send text to Claude and get text back —
+programmatically, from your backend code, without any browser or chat UI.
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({ apiKey: 'sk-ant-...' });
+
+const message = await client.messages.create({
+  model: 'claude-sonnet-4-6',
+  max_tokens: 1024,
+  messages: [
+    { role: 'user', content: 'How much is a used Herman Miller Aeron worth?' }
+  ],
+});
+```
+
+The response contains Claude's text in `message.content[0].text`. Just like
+chatting with Claude, but in code.
+
+### The Pricing Prompt
+
+The key to getting useful results from an LLM is the **prompt** — the
+instructions you send. Our pricing prompt does several things:
+
+```typescript
+const prompt = `You are helping someone sell household items during a
+cross-country move. Based on the item details below, provide a realistic
+selling price for the US secondhand market (2026).
+
+${details}
+
+Respond with ONLY a JSON object (no markdown, no code fences) in this
+exact format:
+{
+  "suggestedPrice": <number>,
+  "rationale": "<2-3 sentences>",
+  "platforms": ["<best>", "<second>", "<third>"]
+}`;
+```
+
+**Prompt design decisions:**
+
+1. **Context:** "helping someone sell during a cross-country move" — gives
+   Claude the right frame. Moving sales are time-sensitive, which affects
+   pricing strategy.
+
+2. **Details:** We include name, description, category, condition, dimensions,
+   weight, and the owner's own estimate (if any). More context = better prices.
+
+3. **Structured output:** "Respond with ONLY a JSON object" — we need to
+   parse the response programmatically. Without this instruction, Claude
+   might return conversational text like "I'd suggest around $150..."
+
+4. **Format enforcement:** The exact JSON format with field names means we
+   can `JSON.parse()` the response and know what to expect.
+
+5. **Calibration:** "Used items typically sell for 20-50% of retail" — this
+   grounds Claude's estimates in reality. Without it, LLMs tend to estimate
+   closer to retail prices.
+
+### Parsing the Response
+
+Claude returns text, not structured data. We need to parse it:
+
+```typescript
+const textBlock = message.content.find((block) => block.type === 'text');
+let estimate: PriceEstimate;
+
+try {
+  estimate = JSON.parse(textBlock.text);
+} catch {
+  throw new Error(`Failed to parse Claude response: ${textBlock.text}`);
+}
+
+// Validate the shape
+if (
+  typeof estimate.suggestedPrice !== 'number' ||
+  typeof estimate.rationale !== 'string' ||
+  !Array.isArray(estimate.platforms)
+) {
+  throw new Error('Invalid response shape from Claude');
+}
+```
+
+**Why all the error handling?** LLMs are probabilistic — they usually follow
+instructions, but sometimes they:
+- Add markdown code fences around the JSON (`\`\`\`json ... \`\`\``)
+- Include extra text before/after the JSON
+- Return slightly different field names
+- Return a string instead of a number for the price
+
+Our code handles the common case (clean JSON) and throws clear errors for
+edge cases so we can debug. In production, you might add retry logic or
+more flexible parsing.
+
+### Caching Results in the Database
+
+We store Claude's response in the item record:
+
+```prisma
+model Item {
+  llmPriceSuggestion    Float?
+  llmPriceRationale     String?
+  llmPricePlatforms     String[]
+  llmPriceGeneratedAt   DateTime?
+}
+```
+
+**Why cache?** Each Claude API call takes 1-3 seconds and costs money. If
+you view the same item 10 times, you don't want to call Claude 10 times.
+The GET endpoint returns the stored estimate; the POST endpoint generates
+a fresh one.
+
+The `llmPriceGeneratedAt` timestamp lets the UI show when the estimate was
+made. If the item's condition or description changes significantly, the
+user can click "Refresh Estimate" to get an updated price.
+
+### API Key Management
+
+```typescript
+// config.ts
+anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+
+// pricing.ts route
+if (!config.anthropicApiKey) {
+  res.status(503).json({
+    error: 'Price estimation unavailable — ANTHROPIC_API_KEY not configured',
+  });
+  return;
+}
+```
+
+The API key is stored in the environment, never in code. If it's not set,
+the endpoint returns a 503 (Service Unavailable) with a clear message.
+This means:
+- Dev machines without the key can still run the rest of the app
+- The key isn't committed to Git
+- Different environments can use different keys (dev vs prod)
+
+### The Frontend Integration
+
+The item detail page has an "AI Price Estimate" card in the sidebar:
+
+```
+┌────────────────────────┐
+│ AI Price Estimate      │
+│                        │
+│ $150                   │  ← Big green number
+│                        │
+│ This mid-century       │  ← Claude's rationale
+│ walnut coffee table    │
+│ in fair condition...   │
+│                        │
+│ Facebook Marketplace   │  ← Platform tags
+│ OfferUp               │
+│ Craigslist            │
+│                        │
+│ Generated 3/27/2026   │
+│ [Refresh Estimate]    │
+└────────────────────────┘
+```
+
+The UI flow:
+1. Page loads → GET `/api/items/:id/price-estimate`
+2. If no estimate exists → show "Get Price Estimate" button
+3. User clicks → POST `/api/items/:id/price-estimate`
+4. Loading state: "Asking Claude..." (1-3 seconds)
+5. Response received → show price, rationale, platforms
+6. "Refresh Estimate" button available for re-generation
+
+### Cost & Performance Considerations
+
+- **Model choice:** We use `claude-sonnet-4-6` — fast and cheap for
+  structured data tasks. Opus would be overkill for pricing.
+- **Max tokens:** 1024 is plenty for a JSON response. Lower = faster + cheaper.
+- **No streaming:** We wait for the full response because we need complete
+  JSON to parse. Streaming would show partial JSON which isn't useful.
+- **One call per item:** The prompt includes all item details in one message.
+  No multi-turn conversation needed.
+- **Approximate cost:** ~$0.003 per estimate (varies by item description length).
+
+### What's Next
+
+Step 7 will add the mobile app with React Native / Expo — camera integration
+for photographing items, QR code scanning, and offline-first data sync.
+
+### Commands to Explore
+
+```bash
+# Set your API key (add to .env)
+echo 'ANTHROPIC_API_KEY=sk-ant-your-key-here' >> .env
+
+# Request a price estimate via curl
+curl -X POST http://localhost:3001/api/items/ITEM_ID/price-estimate \
+  -H "Authorization: Bearer TOKEN"
+
+# Get stored estimate
+curl http://localhost:3001/api/items/ITEM_ID/price-estimate \
+  -H "Authorization: Bearer TOKEN"
+
+# Or use the admin dashboard:
+# Navigate to any item → sidebar → "Get Price Estimate" button
+```

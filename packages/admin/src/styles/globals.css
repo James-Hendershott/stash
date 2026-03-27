@@ -857,3 +857,50 @@ a:hover {
 .edit-form {
   max-width: 500px;
 }
+
+/* ── Price Estimate ──────────────────────────────────────── */
+
+.price-estimate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.price-estimate-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.price-estimate-rationale {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.price-estimate-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.platform-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.platform-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.price-estimate-meta {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}

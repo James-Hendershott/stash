@@ -11,6 +11,7 @@ import placementRoutes from './routes/placements';
 import activityRoutes from './routes/activity';
 import statsRoutes from './routes/stats';
 import uploadRoutes from './routes/uploads';
+import pricingRoutes from './routes/pricing';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/placements', placementRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api', uploadRoutes);
+app.use('/api', pricingRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

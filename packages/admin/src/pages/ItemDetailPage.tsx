@@ -14,6 +14,8 @@ export function ItemDetailPage() {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [priceEstimate, setPriceEstimate] = useState<any>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -21,6 +23,11 @@ export function ItemDetailPage() {
       .then((data) => {
         setItem(data);
         setForm(data);
+        // Load existing price estimate if available
+        return api.items.getPriceEstimate(id);
+      })
+      .then((pe) => {
+        if (pe.estimated) setPriceEstimate(pe);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -77,6 +84,26 @@ export function ItemDetailPage() {
       setItem({ ...item, photoPath: result.photoPath });
     } catch (err: any) {
       setError(err.message);
+    }
+  }
+
+  async function handleRequestPriceEstimate() {
+    if (!id) return;
+    setPricingLoading(true);
+    setError('');
+    try {
+      const estimate = await api.items.requestPriceEstimate(id);
+      setPriceEstimate({
+        estimated: true,
+        suggestedPrice: estimate.suggestedPrice,
+        rationale: estimate.rationale,
+        platforms: estimate.platforms,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPricingLoading(false);
     }
   }
 
@@ -214,6 +241,48 @@ export function ItemDetailPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* AI Price Estimate */}
+          <div className="detail-card">
+            <h3>AI Price Estimate</h3>
+            {priceEstimate ? (
+              <div className="price-estimate">
+                <div className="price-estimate-value">
+                  ${priceEstimate.suggestedPrice}
+                </div>
+                <p className="price-estimate-rationale">{priceEstimate.rationale}</p>
+                <div className="price-estimate-platforms">
+                  <span className="field-label">Recommended Platforms</span>
+                  <div className="platform-tags">
+                    {priceEstimate.platforms.map((p: string) => (
+                      <span key={p} className="platform-tag">{p}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="price-estimate-meta">
+                  Generated {new Date(priceEstimate.generatedAt).toLocaleString()}
+                </div>
+                <button
+                  onClick={handleRequestPriceEstimate}
+                  className="btn btn-small"
+                  disabled={pricingLoading}
+                >
+                  {pricingLoading ? 'Refreshing...' : 'Refresh Estimate'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="empty-state">No estimate yet</p>
+                <button
+                  onClick={handleRequestPriceEstimate}
+                  className="btn btn-primary btn-full"
+                  disabled={pricingLoading}
+                >
+                  {pricingLoading ? 'Asking Claude...' : 'Get Price Estimate'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Container Placements */}

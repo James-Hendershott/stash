@@ -16,6 +16,9 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Batch QR code generation (generate all at once for a container set)
 - [ ] Image thumbnail generation on upload (sharp library, save 200px thumbs)
 - [ ] Image compression / WebP conversion on upload for storage savings
+- [ ] Batch price estimation (estimate all SELL items at once)
+- [ ] Price comparison (show owner's estimate vs AI estimate side by side)
+- [ ] LLM-powered item description generation from photos (vision API)
 - [ ] Push notifications for sync conflicts
 - [ ] Shared packing list views for helpers
 - [ ] Facebook Marketplace / OfferUp API integration for listings

@@ -115,4 +115,8 @@ curl -X POST http://100.122.58.114:3001/api/items/ITEM_ID/photo \
 # View uploaded photos / QR codes
 open http://100.122.58.114:3001/api/files/images/photo.jpg
 open http://100.122.58.114:3001/api/files/qrcodes/item-abc-123.png
+
+# Get an AI price estimate for an item
+curl -X POST http://100.122.58.114:3001/api/items/ITEM_ID/price-estimate \
+  -H "Authorization: Bearer TOKEN"
 ```

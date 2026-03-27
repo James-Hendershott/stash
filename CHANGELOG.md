@@ -5,6 +5,19 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-27
+
+### Added
+- Claude LLM integration for AI-powered price estimation on sell items
+- Pricing service using @anthropic-ai/sdk (claude-sonnet-4-6 model)
+- Structured prompt that returns JSON with suggested price, rationale, and platform recommendations
+- Price estimate caching in database (llmPriceSuggestion, llmPriceRationale, llmPricePlatforms, llmPriceGeneratedAt)
+- POST /api/items/:id/price-estimate — generate new estimate via Claude
+- GET /api/items/:id/price-estimate — retrieve stored estimate
+- Graceful 503 if ANTHROPIC_API_KEY not configured
+- AI Price Estimate card on item detail page with price, rationale, platform tags, refresh button
+- TEACH.md Step 6: LLM APIs, prompt design, JSON parsing, caching, API key management, cost considerations
+
 ## [0.5.0] - 2026-03-27
 
 ### Added

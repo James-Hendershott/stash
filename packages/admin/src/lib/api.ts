@@ -130,6 +130,15 @@ export const api = {
     generateQRCode(id: string) {
       return request<{ qrCodePath: string; url: string }>(`/items/${id}/qrcode`, { method: 'POST' });
     },
+    getPriceEstimate(id: string) {
+      return request<any>(`/items/${id}/price-estimate`);
+    },
+    requestPriceEstimate(id: string) {
+      return request<{ suggestedPrice: number; rationale: string; platforms: string[] }>(
+        `/items/${id}/price-estimate`,
+        { method: 'POST' },
+      );
+    },
   },
 
   // ── Containers ────────────────────────────────────────────
