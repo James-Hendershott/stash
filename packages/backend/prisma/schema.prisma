@@ -1,0 +1,222 @@
+// Stash — Prisma Schema
+// This file defines every table in the database. Prisma reads it to:
+//   1. Generate migrations (SQL files that create/alter tables)
+//   2. Generate the TypeScript client (type-safe query builder)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Condition {
+  GOOD
+  FAIR
+  POOR
+}
+
+enum Fate {
+  KEEP
+  SELL
+  DONATE
+  TRASH
+  UNDECIDED
+}
+
+enum ShapeType {
+  BOX
+  CYLINDER
+  SPHERE
+  L_SHAPE
+  PANEL
+}
+
+enum ContainerType {
+  UBOX
+  TOTE_27GAL
+  BOX_SMALL
+  BOX_MEDIUM
+  BOX_LARGE
+  BOX_CUSTOM
+  CUSTOM
+}
+
+enum LocationType {
+  ORIGIN
+  DESTINATION
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String
+  name              String
+  role              Role     @default(USER)
+  mustChangePassword Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  addedItems        Item[]         @relation("AddedBy")
+  modifiedItems     Item[]         @relation("LastModifiedBy")
+  placements        ItemPlacement[] @relation("PlacedBy")
+  activityLogs      ActivityLog[]
+
+  @@map("users")
+}
+
+model Location {
+  id              String       @id @default(uuid())
+  name            String
+  type            LocationType
+  house           String
+  floor           String
+  color           String       @default("#6B7280")
+  floorPlanX      Float?
+  floorPlanY      Float?
+  floorPlanWidth  Float?
+  floorPlanHeight Float?
+  sortOrder       Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  originItems      Item[] @relation("OriginLocation")
+  destinationItems Item[] @relation("DestinationLocation")
+
+  @@map("locations")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items Item[]
+
+  @@map("categories")
+}
+
+model Item {
+  id                    String    @id @default(uuid())
+  name                  String
+  description           String?
+  categoryId            String
+  condition             Condition @default(GOOD)
+  quantity              Int       @default(1)
+  lengthIn              Float?
+  widthIn               Float?
+  heightIn              Float?
+  weightLbs             Float?
+  shapeType             ShapeType @default(BOX)
+  fate                  Fate      @default(UNDECIDED)
+  originLocationId      String
+  destinationLocationId String?
+  photoPath             String?
+  qrCodePath            String?
+  isContainer           Boolean   @default(false)
+  estimatedSaleValue    Float?
+  llmPriceSuggestion    Float?
+  llmPriceRationale     String?
+  llmPricePlatforms     String[]
+  llmPriceGeneratedAt   DateTime?
+  notes                 String?
+  addedById             String
+  lastModifiedById      String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  category            Category    @relation(fields: [categoryId], references: [id])
+  originLocation      Location    @relation("OriginLocation", fields: [originLocationId], references: [id])
+  destinationLocation Location?   @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  addedBy             User        @relation("AddedBy", fields: [addedById], references: [id])
+  lastModifiedBy      User        @relation("LastModifiedBy", fields: [lastModifiedById], references: [id])
+  container           Container?
+  placements          ItemPlacement[] @relation("PlacedItem")
+
+  @@index([categoryId])
+  @@index([originLocationId])
+  @@index([destinationLocationId])
+  @@index([fate])
+  @@index([deletedAt])
+  @@map("items")
+}
+
+model Container {
+  id               String        @id @default(uuid())
+  itemId           String        @unique
+  containerType    ContainerType
+  label            String
+  internalLengthIn Float
+  internalWidthIn  Float
+  internalHeightIn Float
+  maxWeightLbs     Float?
+  qrCodePath       String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  item       Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  placements ItemPlacement[]
+
+  @@map("containers")
+}
+
+model ItemPlacement {
+  id          String    @id @default(uuid())
+  itemId      String
+  containerId String
+  placedById  String
+  placedAt    DateTime  @default(now())
+  removedAt   DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  item      Item      @relation("PlacedItem", fields: [itemId], references: [id], onDelete: Cascade)
+  container Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  placedBy  User      @relation("PlacedBy", fields: [placedById], references: [id])
+
+  @@index([itemId])
+  @@index([containerId])
+  @@index([placedById])
+  @@map("item_placements")
+}
+
+model ActivityLog {
+  id            String   @id @default(uuid())
+  userId        String
+  action        String
+  entityType    String
+  entityId      String
+  previousValue Json?
+  newValue      Json?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

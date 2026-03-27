@@ -30,3 +30,5 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Rate limiting on API endpoints
 - [ ] Request logging / observability
 - [ ] Image optimization / thumbnail generation on upload
+- [ ] Auto-generate @stash/shared types from Prisma schema (prisma-generator or zod-prisma)
+- [ ] Add database connection pooling (PgBouncer or Prisma Accelerate) for production

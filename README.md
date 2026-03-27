@@ -49,6 +49,24 @@ Stash becomes a permanent property inventory system.
 | Deploy      | Docker Compose on Unraid            |
 | Remote      | Tailscale                           |
 
+## Database Models
+
+```
+User ──────┐
+           ├──► Item ◄── Category
+Location ──┤     │
+           │     ├──► Container
+           │     └──► ItemPlacement ◄── Container
+           └──► ActivityLog
+```
+
+- **Item** — Anything you own. Has a fate (Keep/Sell/Donate/Trash), dimensions, condition, photos.
+- **Container** — A special Item that holds other Items (U-Box, tote, box).
+- **ItemPlacement** — Tracks which items are in which container (with history).
+- **Location** — Rooms in origin house (Colorado) and destination house (NC).
+- **Category** — Furniture, Electronics, Kitchen, etc.
+- **ActivityLog** — Audit trail of who changed what and when.
+
 ## Quick Start
 
 ```bash
@@ -62,8 +80,12 @@ npm install
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # Run database migrations and seed
-npm run db:migrate
-npm run db:seed
+cd packages/backend
+npx prisma migrate dev --name init
+npx prisma db seed
+
+# Browse data visually
+npx prisma studio
 ```
 
 See [SETUP.md](SETUP.md) for detailed local and production setup instructions.

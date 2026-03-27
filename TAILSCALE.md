@@ -66,3 +66,25 @@ peer-to-peer tunnel between your devices and the server.
    ssh unraid
    docker ps | grep stash
    ```
+
+4. **Database connection issues:** If the backend can't reach Postgres, verify
+   the database container is healthy:
+   ```bash
+   ssh unraid
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml logs stash-postgres
+   ```
+
+## Database Access
+
+Prisma Studio can be used to browse production data. SSH into Unraid and run:
+```bash
+cd /mnt/user/appdata/stash/repo/packages/backend
+npx prisma studio
+```
+Then access via Tailscale: `http://100.122.58.114:5555`
+
+For direct database access (psql), connect from any Tailscale device:
+```bash
+psql "postgresql://stash:<password>@100.122.58.114:5432/stash"
+```
+Note: Port 5432 is only exposed on the Tailscale interface in production, not publicly.

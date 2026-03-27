@@ -37,18 +37,23 @@
 
 5. **Run database migrations**
    ```bash
-   npm run db:migrate
+   cd packages/backend
+   npx prisma migrate dev --name init
    ```
+   This reads `prisma/schema.prisma`, generates a SQL migration file, and
+   creates all tables in the local PostgreSQL container.
 
 6. **Seed the database**
    ```bash
-   npm run db:seed
+   npx prisma db seed
    ```
+   Populates the database with dev data: 2 users, locations, categories,
+   items, containers, and placements. Default login: `james@stash.local` / `password123`.
 
 7. **Verify**
    - Backend health: http://localhost:3001/api/health
    - Admin dashboard: http://localhost:3002
-   - Database (via Prisma Studio): `npm run db:studio`
+   - Database (via Prisma Studio): `npx prisma studio` (opens http://localhost:5555)
 
 ### Local Data
 
