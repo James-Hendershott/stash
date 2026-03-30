@@ -2817,3 +2817,140 @@ curl "http://localhost:3001/api/floorplan/North%20Carolina%20Home" \
 # In the admin dashboard: Floor Plan in the sidebar
 # Toggle between Origin and Destination views
 ```
+
+---
+
+## Step 13: Users Management
+
+### What We Built
+
+Admin-only CRUD for user accounts with role management, password reset,
+and safety guards:
+
+```
+packages/backend/src/
+├── validators/users.ts    → Zod schemas (create, update, reset password)
+└── routes/users.ts        → Full CRUD + reset password (admin only)
+
+packages/admin/src/pages/
+└── UsersPage.tsx          → Users table, create form, role toggle, password reset modal
+```
+
+### Role-Based Access — requireAdmin
+
+All user management endpoints use two middleware layers:
+
+```typescript
+router.use(requireAuth, requireAdmin);
+```
+
+`requireAuth` verifies the JWT token (any logged-in user).
+`requireAdmin` checks `req.user.role === 'ADMIN'` and returns 403 if not.
+
+This means regular users can't access the Users page or any user
+management API — even if they know the endpoint URLs.
+
+### Safety Guards
+
+User management needs more safety checks than most CRUD:
+
+**Can't delete yourself:**
+```typescript
+if (req.params.id === req.user!.userId) {
+  res.status(400).json({ error: 'Cannot delete your own account' });
+  return;
+}
+```
+
+**Can't remove the last admin:**
+```typescript
+if (req.body.role === 'USER' && existing.role === 'ADMIN') {
+  const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+  if (adminCount <= 1) {
+    res.status(400).json({ error: 'Cannot remove the last admin' });
+    return;
+  }
+}
+```
+
+**Item reassignment on delete:** Users who added items can't simply be
+deleted — the `addedById` foreign key would break. We reassign their items
+to the admin performing the delete:
+```typescript
+await prisma.item.updateMany({
+  where: { addedById: req.params.id },
+  data: { addedById: req.user!.userId },
+});
+```
+
+### Password Reset Flow
+
+Admins can reset any user's password. The flow sets `mustChangePassword: true`
+on the user record. This flag could be used by the login flow to force a
+password change on next login (implemented in auth but not yet enforced
+in the frontend).
+
+```
+Admin clicks "Reset PW" → modal with password input → POST /reset-password
+→ bcrypt hash stored → mustChangePassword = true
+→ User logs in → sees "you must change your password" (future enforcement)
+```
+
+### The Users UI
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Users (2)                                    [+ Add User] │
+├────────────────────────────────────────────────────────────┤
+│ Name           Email                 Role  Items Actions  │
+│ James          james@stash.local     ADMIN  12   [Demote] │
+│                                                  [Reset]  │
+│ Ashley ⚠pw     ashley@stash.local    USER   7    [Promote]│
+│                                                  [Reset]  │
+│                                                  [Delete] │
+└────────────────────────────────────────────────────────────┘
+```
+
+- **Role badges** — Blue "ADMIN", gray "USER"
+- **Warning badge** — Yellow "must change pw" if `mustChangePassword` is true
+- **Promote/Demote** — Toggle between ADMIN and USER roles
+- **Reset PW** — Opens a modal to set a new password
+- **Delete** — Confirmation dialog, reassigns items, removes user
+- **Create form** — Inline form with name, email, password, role
+
+### User Management Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/users | List all users with item/activity counts |
+| POST | /api/users | Create user (bcrypt hash, mustChangePassword) |
+| PATCH | /api/users/:id | Update name, email, or role |
+| POST | /api/users/:id/reset-password | Admin resets user's password |
+| DELETE | /api/users/:id | Delete user (reassigns items to admin) |
+
+### What's Next
+
+Step 14 will add polish — error/loading/empty states, responsive layout,
+and general UI refinements.
+
+### Commands to Explore
+
+```bash
+# List all users (admin only)
+curl http://localhost:3001/api/users \
+  -H "Authorization: Bearer ADMIN_TOKEN"
+
+# Create a new user
+curl -X POST http://localhost:3001/api/users \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@stash.local","name":"Test","password":"password123","role":"USER"}'
+
+# Reset a user's password
+curl -X POST http://localhost:3001/api/users/USER_ID/reset-password \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"newPassword":"newpassword123"}'
+
+# In the admin dashboard: Users page in the sidebar (admin only)
+```

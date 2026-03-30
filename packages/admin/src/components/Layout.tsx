@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/categories', label: 'Categories' },
   { to: '/import', label: 'Import' },
   { to: '/export', label: 'Export' },
+  { to: '/users', label: 'Users' },
   { to: '/activity', label: 'Activity' },
 ];
 

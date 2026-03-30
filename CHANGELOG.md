@@ -5,6 +5,17 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-03-30
+
+### Added
+- Users management (admin only): list, create, update role, reset password, delete
+- Zod validators for user create, update, and password reset
+- Safety guards: can't delete self, can't remove last admin, item reassignment on delete
+- Password reset sets mustChangePassword flag for forced change on next login
+- Admin Users page with inline create form, role badges, promote/demote toggle, reset password modal
+- Users nav item in admin sidebar
+- TEACH.md Step 13: role-based access, safety guards, password reset flow, admin UI patterns
+
 ## [0.12.0] - 2026-03-27
 
 ### Added

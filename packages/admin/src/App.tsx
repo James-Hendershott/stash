@@ -16,6 +16,7 @@ import { ActivityPage } from './pages/ActivityPage';
 import { ExportPage } from './pages/ExportPage';
 import { ImportPage } from './pages/ImportPage';
 import { FloorPlanPage } from './pages/FloorPlanPage';
+import { UsersPage } from './pages/UsersPage';
 
 export function App() {
   return (
@@ -42,6 +43,7 @@ export function App() {
             <Route path="/floorplan" element={<FloorPlanPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/export" element={<ExportPage />} />
+            <Route path="/users" element={<UsersPage />} />
             <Route path="/activity" element={<ActivityPage />} />
           </Route>
         </Routes>

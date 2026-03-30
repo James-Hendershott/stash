@@ -114,6 +114,7 @@ React 18 SPA with sidebar navigation, JWT authentication, and pages for:
 - **Categories** — Color-coded cards with item counts
 - **Import** — Drag-drop CSV upload, column mapper, preview, batch create
 - **Export** — PDF manifests, QR label sheets, sell/donate lists, CSV download
+- **Users** — Admin user management (create, roles, password reset, delete)
 - **Activity Log** — Paginated audit trail
 
 Login: `james@stash.local` / `password123`

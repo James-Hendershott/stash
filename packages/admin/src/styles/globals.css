@@ -1154,3 +1154,61 @@ a:hover {
   font-size: 0.7rem;
   font-weight: 600;
 }
+
+/* ── Users Page ──────────────────────────────────────────── */
+
+.user-role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.user-role-badge.admin {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.user-role-badge.user {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.user-badge-warn {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.65rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.user-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
