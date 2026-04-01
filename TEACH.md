@@ -2954,3 +2954,164 @@ curl -X POST http://localhost:3001/api/users/USER_ID/reset-password \
 
 # In the admin dashboard: Users page in the sidebar (admin only)
 ```
+
+---
+
+## Step 14: Polish — Error Handling, Responsive Layout, UI Refinements
+
+### What We Built
+
+Production-readiness improvements across the admin dashboard:
+
+```
+packages/admin/src/
+├── components/
+│   ├── ErrorBoundary.tsx   → Catches React render errors, shows recovery UI
+│   ├── Spinner.tsx         → Consistent animated loading indicator
+│   └── EmptyState.tsx      → Reusable card for "no data" states with action button
+├── context/
+│   └── ToastContext.tsx    → Toast notification system (success/error/info)
+├── components/
+│   └── Layout.tsx          → Responsive sidebar with mobile toggle + overlay
+└── styles/
+    └── globals.css         → Responsive breakpoints, toast, spinner, error boundary
+```
+
+### Error Boundaries — Catching React Crashes
+
+When a React component throws an error during rendering, the entire app
+crashes and shows a blank white screen. **Error boundaries** catch these
+crashes and show a fallback UI instead:
+
+```tsx
+class ErrorBoundary extends Component {
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <div>Something went wrong. <button>Go to Dashboard</button></div>;
+    }
+    return this.props.children;
+  }
+}
+```
+
+Error boundaries must be class components — React doesn't support them as
+function components (a rare case where classes are still needed). They wrap
+the entire app so any component crash shows the recovery UI.
+
+**Why this matters:** Without an error boundary, a bug in one page (like the
+item detail page receiving unexpected data) would crash the entire app. With
+a boundary, only that page shows an error — the user can navigate away.
+
+### Toast Notifications — Non-Blocking Feedback
+
+Instead of `alert()` (which blocks everything and looks ugly), toasts slide
+in from the right, show a message, and auto-dismiss after 4 seconds:
+
+```typescript
+const { toast } = useToast();
+toast('Item created successfully', 'success');
+toast('Failed to save', 'error');
+toast('Sync complete', 'info');
+```
+
+Implementation uses React Context with a state array of active toasts:
+```typescript
+const [toasts, setToasts] = useState<Toast[]>([]);
+
+function addToast(message, type) {
+  const id = nextId++;
+  setToasts(prev => [...prev, { id, type, message }]);
+  setTimeout(() => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, 4000);
+}
+```
+
+Each toast gets a unique ID so multiple toasts can stack. The auto-remove
+timeout cleans them up. The slide-in animation uses CSS `@keyframes`.
+
+### Responsive Sidebar — Mobile-Friendly
+
+The sidebar is fixed on desktop (always visible) and hidden on mobile
+(slides in from the left on toggle):
+
+```
+DESKTOP (> 768px):               MOBILE (< 768px):
+┌──────┬──────────────────┐     ┌──────────────────────┐
+│ Side │                  │     │ [=] Stash            │ ← mobile header
+│ bar  │  Main Content    │     ├──────────────────────┤
+│      │                  │     │                      │
+│      │                  │     │  Main Content        │
+│      │                  │     │  (full width)        │
+└──────┴──────────────────┘     └──────────────────────┘
+```
+
+**How the toggle works:**
+1. Mobile header (hidden on desktop via `display: none`, shown on mobile)
+2. Hamburger button toggles `sidebarOpen` state
+3. CSS class `sidebar-open` applies `transform: translateX(0)` (visible)
+4. Dark overlay behind sidebar catches taps to close
+5. Clicking a nav link closes the sidebar automatically
+
+```css
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);  /* hidden by default */
+    transition: transform 0.2s ease;
+  }
+  .sidebar-open {
+    transform: translateX(0);  /* visible when toggled */
+  }
+  .main-content {
+    margin-left: 0;  /* full width on mobile */
+    padding-top: 64px;  /* room for mobile header */
+  }
+}
+```
+
+**Other responsive adjustments:**
+- Stats grid: 4 columns → 2 columns on mobile
+- Detail grid: 2 columns → 1 column (sidebar stacks below)
+- Form rows: horizontal → vertical (inputs stack)
+- Filters: horizontal → vertical
+- Floor plan grid: auto-fill → single column
+
+### Reusable Components — Spinner and EmptyState
+
+**Spinner** — Replaces plain "Loading..." text with an animated circle:
+```tsx
+<Spinner text="Loading items..." />
+```
+The animation uses CSS `border-top-color` trick and `@keyframes spin`.
+
+**EmptyState** — A styled card for "no data" with optional action button:
+```tsx
+<EmptyState
+  title="No items found"
+  description="Try adjusting your filters or add a new item"
+  actionLabel="Add Item"
+  actionTo="/items/new"
+/>
+```
+
+### What's Next
+
+Step 15 will test the Docker production build — verify that all containers
+build and start correctly with the production Docker Compose configuration.
+
+### Commands to Explore
+
+```bash
+# Test responsive layout: resize browser window below 768px
+# The sidebar should collapse and show a hamburger menu
+
+# Test error boundary: temporarily add `throw new Error('test')` to any
+# component's render function — the error boundary card should appear
+
+# Toast notifications are available via useToast() in any component
+# They auto-dismiss after 4 seconds
+```

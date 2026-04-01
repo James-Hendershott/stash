@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,10 +17,22 @@ const NAV_ITEMS = [
 
 export function Layout() {
   const { user, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      {/* Mobile header — only visible on small screens */}
+      <header className="mobile-header">
+        <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          {sidebarOpen ? '\u2715' : '\u2630'}
+        </button>
+        <span className="mobile-header-title">Stash</span>
+      </header>
+
+      {/* Overlay to close sidebar on mobile */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
           <h1>Stash</h1>
         </div>
@@ -30,6 +43,7 @@ export function Layout() {
               to={item.to}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               end={item.to === '/'}
+              onClick={() => setSidebarOpen(false)}
             >
               {item.label}
             </NavLink>

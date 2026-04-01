@@ -5,6 +5,18 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-04-01
+
+### Added
+- ErrorBoundary component — catches React render crashes with recovery UI
+- Toast notification system (success/error/info) with auto-dismiss and stacking
+- Spinner component with CSS animation for consistent loading states
+- EmptyState card component with optional action button/link
+- Responsive sidebar: collapses on mobile (<768px), hamburger toggle, overlay backdrop
+- Mobile header with app title and menu toggle
+- Responsive breakpoints for stats grid, detail grid, forms, filters, floor plan
+- TEACH.md Step 14: error boundaries, toast pattern, responsive sidebar, reusable components
+
 ## [0.13.0] - 2026-03-30
 
 ### Added

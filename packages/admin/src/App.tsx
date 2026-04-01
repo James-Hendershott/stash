@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -20,34 +22,38 @@ import { UsersPage } from './pages/UsersPage';
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/items" element={<ItemListPage />} />
-            <Route path="/items/new" element={<ItemCreatePage />} />
-            <Route path="/items/:id" element={<ItemDetailPage />} />
-            <Route path="/containers" element={<ContainerListPage />} />
-            <Route path="/containers/:id" element={<ContainerDetailPage />} />
-            <Route path="/locations" element={<LocationListPage />} />
-            <Route path="/locations/:id" element={<LocationDetailPage />} />
-            <Route path="/categories" element={<CategoryListPage />} />
-            <Route path="/floorplan" element={<FloorPlanPage />} />
-            <Route path="/import" element={<ImportPage />} />
-            <Route path="/export" element={<ExportPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/activity" element={<ActivityPage />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/items" element={<ItemListPage />} />
+                <Route path="/items/new" element={<ItemCreatePage />} />
+                <Route path="/items/:id" element={<ItemDetailPage />} />
+                <Route path="/containers" element={<ContainerListPage />} />
+                <Route path="/containers/:id" element={<ContainerDetailPage />} />
+                <Route path="/locations" element={<LocationListPage />} />
+                <Route path="/locations/:id" element={<LocationDetailPage />} />
+                <Route path="/categories" element={<CategoryListPage />} />
+                <Route path="/floorplan" element={<FloorPlanPage />} />
+                <Route path="/import" element={<ImportPage />} />
+                <Route path="/export" element={<ExportPage />} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/activity" element={<ActivityPage />} />
+              </Route>
+            </Routes>
+          </ToastProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

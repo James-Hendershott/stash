@@ -105,7 +105,7 @@ See [SETUP.md](SETUP.md) for detailed local and production setup instructions.
 
 ## Admin Dashboard
 
-React 18 SPA with sidebar navigation, JWT authentication, and pages for:
+React 18 SPA with responsive sidebar, JWT auth, error boundaries, toast notifications, and pages for:
 - **Dashboard** — Stats overview, fate breakdown bars, recent activity
 - **Items** — Search, filter by fate, card grid with photos, inline edit, photo upload
 - **Containers** — 3D visualization (Three.js), contents table, place/remove items
