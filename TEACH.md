@@ -3115,3 +3115,223 @@ build and start correctly with the production Docker Compose configuration.
 # Toast notifications are available via useToast() in any component
 # They auto-dismiss after 4 seconds
 ```
+
+---
+
+## Steps 15-16: Docker Production Build & Unraid Deployment
+
+### What We Built
+
+Final deployment preparation — Dockerfile fixes, nginx configuration for
+production, and comprehensive deployment documentation:
+
+```
+Fixes applied:
+├── packages/backend/Dockerfile     → Added public/ directory copy for 3D viewer
+├── packages/admin/nginx.conf       → Added client_max_body_size + proxy timeout
+├── docker-compose.dev.yml          → Added public/ bind mount for dev
+└── SETUP.md                        → Production checklist, backup, mobile setup
+```
+
+### Docker Multi-Stage Builds — What Happens on Deploy
+
+When you run `docker compose up -d --build`, Docker builds each service
+through its multi-stage Dockerfile:
+
+**Backend build (3 stages):**
+```
+Stage 1 — development:
+  Install ALL deps (including devDeps) → copy source → prisma generate
+  Result: 500MB image with nodemon, tsx, TypeScript
+
+Stage 2 — build:
+  Run `tsc` to compile TypeScript → JavaScript
+  Result: same image + dist/ folder with compiled .js files
+
+Stage 3 — production:
+  Fresh node:20-alpine → install ONLY production deps
+  Copy: dist/, prisma/, public/, .prisma client
+  Result: 150MB lean image, only what's needed to run
+```
+
+**Admin build (3 stages):**
+```
+Stage 1 — development:
+  Install deps → Vite dev server
+  Result: Node image with all React source
+
+Stage 2 — build:
+  Run `tsc && vite build` → optimized static HTML/JS/CSS bundle
+  Result: dist/ folder with hashed assets
+
+Stage 3 — production:
+  Fresh nginx:alpine → copy dist/ and nginx.conf
+  Result: 30MB image, just nginx serving static files
+```
+
+**Why this matters:** Development images are 500MB+ with all the dev tools.
+Production images are 30-150MB with only compiled code. Smaller images
+start faster, use less memory, and have less attack surface.
+
+### Nginx in Production — The API Proxy
+
+In development, Vite's built-in proxy handles `/api` requests. In production,
+nginx serves the React app AND proxies API requests:
+
+```nginx
+server {
+    # SPA: serve index.html for all routes (React Router handles them)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy /api/* to the backend container
+    location /api/ {
+        proxy_pass http://stash-backend:3001;
+        client_max_body_size 15m;     # Photo uploads
+        proxy_read_timeout 30s;       # Claude API calls
+    }
+}
+```
+
+**`try_files $uri $uri/ /index.html`** — This is the SPA fallback. When
+someone navigates to `stash.shottsserver.com/items/abc-123`, nginx doesn't
+have a file at `/items/abc-123`. Instead of returning 404, it serves
+`index.html`, and React Router handles the URL on the client side.
+
+**`client_max_body_size 15m`** — Nginx defaults to 1MB request bodies.
+Without this, photo uploads over 1MB would get a 413 error from nginx
+before even reaching the backend.
+
+**`proxy_read_timeout 30s`** — Claude API price estimation calls can take
+3-5 seconds. Default nginx timeout is 60s, but we set 30s explicitly as
+documentation. If the timeout is too low, the client sees a 504 Gateway
+Timeout while the backend is still waiting for Claude's response.
+
+### The Production Network — shottsproxy
+
+```yaml
+# docker-compose.prod.yml
+networks:
+  stash_network:
+    name: shottsproxy
+    external: true
+```
+
+On Unraid, all proxied services share a Docker network called `shottsproxy`.
+Nginx Proxy Manager runs on this network and can reach any container by
+its `container_name`. When NPM gets a request for `stash.shottsserver.com`,
+it forwards to `stash-admin:80` — which works because both containers are
+on the same `shottsproxy` network.
+
+**`external: true`** means Docker won't try to create this network — it
+must already exist on Unraid. If it doesn't exist, `docker compose up`
+will fail with a clear error.
+
+### The Deployment Flow
+
+```
+1. Developer (archpy)
+   └─ git push
+
+2. Unraid (ShottsServer)
+   ├─ ssh unraid
+   ├─ cd /mnt/user/appdata/stash/repo
+   ├─ git pull
+   ├─ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+   │   ├─ Builds backend (3 stages) → production image
+   │   ├─ Builds admin (3 stages) → nginx image
+   │   └─ Starts all 3 containers on shottsproxy network
+   ├─ docker compose exec stash-backend npx prisma migrate deploy
+   │   └─ Applies any new database migrations
+   └─ Verify: curl https://stash-api.shottsserver.com/api/health
+
+3. Access
+   ├─ Admin: https://stash.shottsserver.com
+   ├─ API: https://stash-api.shottsserver.com
+   ├─ Mobile: Expo Go → server URL → Tailscale IP or proxy
+   └─ Database: pgAdmin → 100.122.58.114:5432 (Tailscale only)
+```
+
+### Data Persistence
+
+Docker containers are ephemeral — rebuilding them destroys everything
+inside. Data survives rebuilds because it lives in **volumes**:
+
+```yaml
+volumes:
+  - /mnt/user/appdata/stash/images:/app/data/images
+  - /mnt/user/appdata/stash/qrcodes:/app/data/qrcodes
+  - /mnt/user/appdata/stash/postgres:/var/lib/postgresql/data
+```
+
+The left side (`/mnt/user/appdata/stash/images`) is on the Unraid disk
+array — persistent. The right side (`/app/data/images`) is inside the
+container — ephemeral. Docker maps one to the other, so the container
+reads/writes to the Unraid disk.
+
+### Backup Strategy
+
+PostgreSQL backup via `pg_dump`:
+```bash
+docker compose exec stash-postgres \
+  pg_dump -U stash stash > /mnt/user/appdata/stash/backup-$(date +%Y%m%d).sql
+```
+
+This creates a SQL dump file on Unraid's disk array. Unraid's built-in
+parity and share system provides redundancy. For off-site backup, copy
+the dump file to a cloud provider or another machine.
+
+Photo and QR code files are already on the Unraid disk array and are
+covered by Unraid's parity protection.
+
+### Build Complete
+
+Congratulations — Stash is fully built! Here's what exists:
+
+| Layer | Technology | Status |
+|-------|-----------|--------|
+| Backend API | Express + Prisma | 45+ endpoints |
+| Admin Dashboard | React + Vite | 16 pages, responsive |
+| Mobile App | React Native + Expo | 6 screens |
+| Database | PostgreSQL 16 | 7 models, seeded |
+| Offline Sync | WatermelonDB | Pull/push protocol |
+| 3D Visualization | Three.js | Container viewer |
+| AI Pricing | Claude API | Cached estimates |
+| File Management | Multer + QR generation | Upload + labels |
+| PDF/CSV Export | @react-pdf/renderer | 4 PDFs + CSV |
+| CSV Import | Custom parser | Column mapper |
+| Auth | JWT + bcrypt | Role-based |
+| Deployment | Docker Compose | Dev + prod configs |
+
+### Commands to Explore
+
+```bash
+# Test production build locally (without Unraid)
+docker compose -f docker-compose.yml up -d --build
+# This builds production images and starts all 3 containers
+
+# Check all containers are running
+docker ps | grep stash
+
+# View build logs
+docker compose logs stash-backend
+docker compose logs stash-admin
+
+# Test the production API
+curl http://localhost:3001/api/health
+
+# Test the production admin (served by nginx)
+curl -I http://localhost:3002
+
+# Stop production containers
+docker compose down
+
+# Full Unraid deployment
+ssh unraid
+cd /mnt/user/appdata/stash/repo
+git pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose exec stash-backend npx prisma migrate deploy
+docker compose exec stash-backend npx prisma db seed
+```

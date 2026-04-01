@@ -13,6 +13,7 @@ services:
     volumes:
       - ./packages/backend/src:/app/packages/backend/src
       - ./packages/backend/prisma:/app/packages/backend/prisma
+      - ./packages/backend/public:/app/packages/backend/public
       - ./packages/shared/src:/app/packages/shared/src
       - ${DATA_PATH:-./data}/images:/app/data/images
       - ${DATA_PATH:-./data}/qrcodes:/app/data/qrcodes

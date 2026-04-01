@@ -5,6 +5,18 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-04-01
+
+### Added
+- Backend Dockerfile: copies public/ directory for 3D viewer in production
+- Nginx: client_max_body_size 15m for photo uploads, proxy_read_timeout 30s for Claude API
+- Dev compose: public/ bind mount for 3D viewer hot reload
+- SETUP.md: production user creation, mobile app setup, deployment checklist, backup instructions
+- TEACH.md Steps 15-16: multi-stage Docker builds, nginx production proxy, shottsproxy network, data persistence, backup strategy, full build summary
+
+### Changed
+- Version bumped to 1.0.0 — all features complete, ready for production deployment
+
 ## [0.14.0] - 2026-04-01
 
 ### Added

@@ -49,6 +49,7 @@ COPY packages/shared/package.json ./packages/shared/
 # Copy built backend
 COPY --from=build /app/packages/backend/dist ./packages/backend/dist
 COPY --from=build /app/packages/backend/prisma ./packages/backend/prisma
+COPY --from=build /app/packages/backend/public ./packages/backend/public
 COPY --from=build /app/packages/backend/node_modules/.prisma ./packages/backend/node_modules/.prisma
 
 # Create data directories

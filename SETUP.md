@@ -186,6 +186,22 @@ Add `-v` to also remove volumes (deletes all local data).
     - API (LAN): http://192.168.1.153:3001/api/health
     - API (proxy): https://stash-api.shottsserver.com/api/health
 
+11. **Create production users** (optional — seed creates dev users)
+
+    Login to the admin dashboard at https://stash.shottsserver.com with
+    the seed credentials, then go to Users → Add User to create real accounts:
+    - James: `king_fish2115@hotmail.com` / ADMIN
+    - Savanah: `mama.shotts@gmail.com` / ADMIN
+
+12. **Set up mobile app**
+
+    On each phone:
+    1. Install **Expo Go** from App Store / Play Store
+    2. Open the Stash app via QR code or link
+    3. In Settings, set server URL to `http://100.122.58.114:3001`
+       (or `https://stash-api.shottsserver.com` for proxy access)
+    4. Login with your credentials
+
 ### Updating Production
 
 ```bash
@@ -193,15 +209,36 @@ ssh unraid
 cd /mnt/user/appdata/stash/repo
 git pull
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Run migrations if schema changed:
+docker compose exec stash-backend npx prisma migrate deploy
 ```
+
+### Production Checklist
+
+- [ ] All containers running: `docker ps | grep stash`
+- [ ] API health: `curl https://stash-api.shottsserver.com/api/health`
+- [ ] Admin login works: https://stash.shottsserver.com
+- [ ] Photo upload works (test with one item)
+- [ ] QR code generation works (test with one container)
+- [ ] Mobile app connects via Tailscale
+- [ ] Price estimation works (test "Get Price Estimate" on a sell item)
 
 ### Production Data
 
 All persistent data lives on Unraid at `/mnt/user/appdata/stash/`:
 - `postgres/` — Database files
-- `images/` — Item photos (served by backend API)
-- `qrcodes/` — Generated QR codes
-- `exports/` — CSV/PDF exports
+- `images/` — Item photos (JPEG, PNG, WebP, HEIC; 10 MB limit)
+- `qrcodes/` — Generated QR code PNGs
+- `exports/` — Generated CSV/PDF exports
 - `floorplans/` — Floor plan images
 
 This data is accessible from any device via the API over Tailscale or the proxy domain.
+
+### Backup
+
+Back up the PostgreSQL database regularly:
+```bash
+ssh unraid
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec stash-postgres \
+  pg_dump -U stash stash > /mnt/user/appdata/stash/backup-$(date +%Y%m%d).sql
+```
