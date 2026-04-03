@@ -16,18 +16,21 @@ export function ItemDetailPage() {
   const [form, setForm] = useState<Record<string, any>>({});
   const [priceEstimate, setPriceEstimate] = useState<any>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
+  const [containers, setContainers] = useState<any[]>([]);
+  const [selectedContainerId, setSelectedContainerId] = useState('');
 
   useEffect(() => {
     if (!id) return;
-    api.items.get(id)
-      .then((data) => {
+    Promise.all([
+      api.items.get(id),
+      api.items.getPriceEstimate(id).catch(() => null),
+      api.containers.list(),
+    ])
+      .then(([data, pe, containerList]) => {
         setItem(data);
         setForm(data);
-        // Load existing price estimate if available
-        return api.items.getPriceEstimate(id);
-      })
-      .then((pe) => {
-        if (pe.estimated) setPriceEstimate(pe);
+        if (pe?.estimated) setPriceEstimate(pe);
+        setContainers(containerList);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -82,6 +85,31 @@ export function ItemDetailPage() {
     try {
       const result = await api.items.uploadPhoto(id, file);
       setItem({ ...item, photoPath: result.photoPath });
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
+  async function handlePlaceInContainer() {
+    if (!id || !selectedContainerId) return;
+    try {
+      await api.placements.create(id, selectedContainerId);
+      const updated = await api.items.get(id);
+      setItem(updated);
+      setSelectedContainerId('');
+      setError('');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
+  async function handleRemoveFromContainer(placementId: string) {
+    try {
+      await api.placements.remove(placementId);
+      if (id) {
+        const updated = await api.items.get(id);
+        setItem(updated);
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -287,21 +315,64 @@ export function ItemDetailPage() {
 
           {/* Container Placements */}
           <div className="detail-card">
-            <h3>Container Placements</h3>
-            {item.placements?.length > 0 ? (
-              <div className="placement-list">
-                {item.placements.map((p: any) => (
-                  <div key={p.id} className={`placement-item ${p.removedAt ? 'removed' : ''}`}>
+            <h3>Container</h3>
+
+            {/* Place in container */}
+            {!item.isContainer && (
+              <div className="place-in-container">
+                <select
+                  value={selectedContainerId}
+                  onChange={(e) => setSelectedContainerId(e.target.value)}
+                  className="placement-select"
+                >
+                  <option value="">Select a container...</option>
+                  {containers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.label} — {c.item?.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handlePlaceInContainer}
+                  className="btn btn-primary btn-small"
+                  disabled={!selectedContainerId}
+                >
+                  Place
+                </button>
+              </div>
+            )}
+
+            {/* Current placements */}
+            {item.placements?.filter((p: any) => !p.removedAt).length > 0 && (
+              <div className="placement-list" style={{ marginTop: 10 }}>
+                {item.placements.filter((p: any) => !p.removedAt).map((p: any) => (
+                  <div key={p.id} className="placement-item">
+                    <Link to={`/containers/${p.container?.id}`} className="table-link">
+                      {p.container?.item?.name || 'Unknown'}
+                    </Link>
+                    <button onClick={() => handleRemoveFromContainer(p.id)} className="btn btn-small btn-danger">
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Past placements */}
+            {item.placements?.filter((p: any) => p.removedAt).length > 0 && (
+              <div className="placement-list" style={{ marginTop: 8 }}>
+                <span className="field-label">Previously</span>
+                {item.placements.filter((p: any) => p.removedAt).map((p: any) => (
+                  <div key={p.id} className="placement-item removed">
                     <span>{p.container?.item?.name || 'Unknown'}</span>
                     <span className="placement-date">
-                      {new Date(p.placedAt).toLocaleDateString()}
-                      {p.removedAt && ` → ${new Date(p.removedAt).toLocaleDateString()}`}
+                      {new Date(p.placedAt).toLocaleDateString()} → {new Date(p.removedAt).toLocaleDateString()}
                     </span>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="empty-state">Not in any container</p>
+            )}
+
+            {(!item.placements || item.placements.length === 0) && (
+              <p className="empty-state" style={{ padding: 8 }}>Not in any container</p>
             )}
           </div>
         </div>

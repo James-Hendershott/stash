@@ -54,47 +54,47 @@ async function main() {
   // ── Origin Locations (rooms in current house) ───────────────
   const origins = await Promise.all([
     prisma.location.create({
-      data: { name: 'Living Room', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Main', color: '#3B82F6', sortOrder: 1 },
+      data: { name: 'Living Room', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Main', color: '#3B82F6', sortOrder: 1 },
     }),
     prisma.location.create({
-      data: { name: 'Kitchen', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Main', color: '#F59E0B', sortOrder: 2 },
+      data: { name: 'Kitchen', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Main', color: '#F59E0B', sortOrder: 2 },
     }),
     prisma.location.create({
-      data: { name: 'Master Bedroom', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Upper', color: '#8B5CF6', sortOrder: 3 },
+      data: { name: 'Master Bedroom', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Upper', color: '#8B5CF6', sortOrder: 3 },
     }),
     prisma.location.create({
-      data: { name: 'Office', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Main', color: '#10B981', sortOrder: 4 },
+      data: { name: 'Office', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Main', color: '#10B981', sortOrder: 4 },
     }),
     prisma.location.create({
-      data: { name: 'Garage', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Ground', color: '#6B7280', sortOrder: 5 },
+      data: { name: 'Garage', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Ground', color: '#6B7280', sortOrder: 5 },
     }),
     prisma.location.create({
-      data: { name: 'Guest Bedroom', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Upper', color: '#EC4899', sortOrder: 6 },
+      data: { name: 'Guest Bedroom', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Upper', color: '#EC4899', sortOrder: 6 },
     }),
     prisma.location.create({
-      data: { name: 'Basement', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Lower', color: '#78716C', sortOrder: 7 },
+      data: { name: 'Basement', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Lower', color: '#78716C', sortOrder: 7 },
     }),
     prisma.location.create({
-      data: { name: 'Dining Room', type: LocationType.ORIGIN, house: 'Colorado Home', floor: 'Main', color: '#F97316', sortOrder: 8 },
+      data: { name: 'Dining Room', type: LocationType.ORIGIN, house: 'Eagle Mountain, UT', floor: 'Main', color: '#F97316', sortOrder: 8 },
     }),
   ]);
 
   // ── Destination Locations (rooms in new house) ──────────────
   const destinations = await Promise.all([
     prisma.location.create({
-      data: { name: 'Living Room', type: LocationType.DESTINATION, house: 'North Carolina Home', floor: 'Main', color: '#3B82F6', sortOrder: 1 },
+      data: { name: 'Living Room', type: LocationType.DESTINATION, house: 'NC Property — TBD', floor: 'Main', color: '#3B82F6', sortOrder: 1 },
     }),
     prisma.location.create({
-      data: { name: 'Kitchen', type: LocationType.DESTINATION, house: 'North Carolina Home', floor: 'Main', color: '#F59E0B', sortOrder: 2 },
+      data: { name: 'Kitchen', type: LocationType.DESTINATION, house: 'NC Property — TBD', floor: 'Main', color: '#F59E0B', sortOrder: 2 },
     }),
     prisma.location.create({
-      data: { name: 'Master Bedroom', type: LocationType.DESTINATION, house: 'North Carolina Home', floor: 'Upper', color: '#8B5CF6', sortOrder: 3 },
+      data: { name: 'Master Bedroom', type: LocationType.DESTINATION, house: 'NC Property — TBD', floor: 'Upper', color: '#8B5CF6', sortOrder: 3 },
     }),
     prisma.location.create({
-      data: { name: 'Office', type: LocationType.DESTINATION, house: 'North Carolina Home', floor: 'Main', color: '#10B981', sortOrder: 4 },
+      data: { name: 'Office', type: LocationType.DESTINATION, house: 'NC Property — TBD', floor: 'Main', color: '#10B981', sortOrder: 4 },
     }),
     prisma.location.create({
-      data: { name: 'Garage', type: LocationType.DESTINATION, house: 'North Carolina Home', floor: 'Ground', color: '#6B7280', sortOrder: 5 },
+      data: { name: 'Garage', type: LocationType.DESTINATION, house: 'NC Property — TBD', floor: 'Ground', color: '#6B7280', sortOrder: 5 },
     }),
   ]);
 

@@ -27,7 +27,7 @@ interface FloorData {
 
 export function FloorPlanPage() {
   const [floors, setFloors] = useState<FloorData[]>([]);
-  const [house, setHouse] = useState('Colorado Home');
+  const [house, setHouse] = useState('Eagle Mountain, UT');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,14 +49,14 @@ export function FloorPlanPage() {
         <h2>Floor Plan</h2>
         <div className="floor-plan-house-toggle">
           <button
-            className={`btn ${house === 'Colorado Home' ? 'btn-primary' : ''}`}
-            onClick={() => setHouse('Colorado Home')}
+            className={`btn ${house === 'Eagle Mountain, UT' ? 'btn-primary' : ''}`}
+            onClick={() => setHouse('Eagle Mountain, UT')}
           >
-            Origin (Colorado)
+            Origin (Utah)
           </button>
           <button
-            className={`btn ${house === 'North Carolina Home' ? 'btn-primary' : ''}`}
-            onClick={() => setHouse('North Carolina Home')}
+            className={`btn ${house === 'NC Property — TBD' ? 'btn-primary' : ''}`}
+            onClick={() => setHouse('NC Property — TBD')}
           >
             Destination (NC)
           </button>
