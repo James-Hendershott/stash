@@ -3285,6 +3285,48 @@ the dump file to a cloud provider or another machine.
 Photo and QR code files are already on the Unraid disk array and are
 covered by Unraid's parity protection.
 
+### Lessons from the First Real Build
+
+When we first ran `docker compose up`, two issues surfaced immediately:
+
+**1. Missing `tsconfig.base.json` in Dockerfiles:**
+The shared package's `tsconfig.json` extends `../../tsconfig.base.json`.
+On your local machine, the file is there. Inside the Docker build context,
+we only copied `package.json` files — not the base tsconfig. Fix:
+```dockerfile
+COPY tsconfig.base.json ./    # Add before npm install
+```
+
+**Lesson:** Docker builds start from scratch. Every file the build needs
+must be explicitly `COPY`ed. If it works locally but fails in Docker,
+you're probably missing a `COPY` statement.
+
+**2. JSX in a `.ts` file (pdf.ts → pdf.tsx):**
+`@react-pdf/renderer` uses JSX syntax (`<Document>`, `<Page>`, etc.).
+The file was named `pdf.ts`, but esbuild (used by tsx/nodemon) only
+enables JSX parsing for `.tsx` files. The fix was simply renaming:
+```
+pdf.ts → pdf.tsx
+```
+
+**Lesson:** TypeScript has two file extensions: `.ts` (no JSX) and `.tsx`
+(with JSX). If you use JSX syntax (`<Component />`), the file must end
+in `.tsx`. This applies to both React components and any library that
+uses JSX-like syntax (like @react-pdf/renderer).
+
+**3. Running Prisma commands outside Docker:**
+The seed script failed because `DATABASE_URL` pointed to `stash-postgres:5432`
+(the Docker internal hostname). When running commands from your host machine,
+you need to use the exposed port:
+```bash
+DATABASE_URL="postgresql://stash:stash@localhost:5434/stash" npx prisma db seed
+```
+
+**Lesson:** Docker containers communicate by service name (`stash-postgres`).
+Your host machine communicates by `localhost:5434` (the mapped port). The
+`DATABASE_URL` in `.env` is for containers. Commands run from your terminal
+need the localhost version.
+
 ### Build Complete
 
 Congratulations — Stash is fully built! Here's what exists:

@@ -38,14 +38,18 @@
 5. **Run database migrations**
    ```bash
    cd packages/backend
-   npx prisma migrate dev --name init
+   DATABASE_URL="postgresql://stash:stash@localhost:5434/stash" npx prisma migrate dev --name init
    ```
    This reads `prisma/schema.prisma`, generates a SQL migration file, and
    creates all tables in the local PostgreSQL container.
 
+   > **Note:** The `DATABASE_URL` prefix is needed because Prisma runs on your
+   > host machine and must connect via `localhost:5434` (the Docker-exposed port),
+   > not `stash-postgres:5432` (which only works inside Docker containers).
+
 6. **Seed the database**
    ```bash
-   npx prisma db seed
+   DATABASE_URL="postgresql://stash:stash@localhost:5434/stash" npx prisma db seed
    ```
    Populates the database with dev data: 2 users, locations, categories,
    items, containers, and placements. Default login: `james@stash.local` / `password123`.

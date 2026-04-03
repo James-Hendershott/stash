@@ -5,6 +5,16 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-04-03
+
+### Fixed
+- Both Dockerfiles: added missing `COPY tsconfig.base.json` (shared package extends it)
+- Renamed pdf.ts → pdf.tsx (esbuild requires .tsx extension for JSX syntax)
+- Initial database migration generated and committed
+
+### Added
+- TEACH.md: "Lessons from the First Real Build" section (Docker COPY, .tsx extension, Prisma host)
+
 ## [1.0.0] - 2026-04-01
 
 ### Added
