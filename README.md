@@ -146,6 +146,7 @@ curl http://localhost:3001/api/items -H "Authorization: Bearer <token>"
 
 ## Documentation
 
+- [GUIDE.md](GUIDE.md) — Complete user guide (how to add items, containers, sell, export, etc.)
 - [SETUP.md](SETUP.md) — Local dev and Unraid production setup
 - [TAILSCALE.md](TAILSCALE.md) — Remote access configuration
 - [TEACH.md](TEACH.md) — Step-by-step learning notes
