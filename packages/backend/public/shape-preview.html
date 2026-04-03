@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f1f5f9; overflow: hidden; font-family: -apple-system, sans-serif; }
+  canvas { display: block; }
+  #dims {
+    position: absolute; bottom: 10px; left: 0; right: 0;
+    text-align: center; color: #64748b; font-size: 12px;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="dims"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf1f5f9);
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.5;
+controls.enableZoom = false;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(3, 5, 4);
+scene.add(dirLight);
+
+// Grid
+const grid = new THREE.GridHelper(6, 12, 0xd1d5db, 0xe2e8f0);
+scene.add(grid);
+
+const SHAPE_TYPES = {
+  BOX: 'box',
+  CYLINDER: 'cylinder',
+  SPHERE: 'sphere',
+  L_SHAPE: 'l_shape',
+  PANEL: 'panel',
+};
+
+const FATE_COLORS = {
+  KEEP: 0x16a34a, SELL: 0xf97316, DONATE: 0x7c3aed,
+  TRASH: 0xdc2626, UNDECIDED: 0x94a3b8,
+};
+
+let currentMesh = null;
+let currentEdge = null;
+let dimLabels = [];
+
+const dimsEl = document.getElementById('dims');
+const scale = 0.05; // 1 unit = 20 inches
+
+function clearShape() {
+  if (currentMesh) { scene.remove(currentMesh); currentMesh = null; }
+  if (currentEdge) { scene.remove(currentEdge); currentEdge = null; }
+  dimLabels.forEach(l => scene.remove(l));
+  dimLabels = [];
+}
+
+function createDimLine(from, to, color) {
+  const geo = new THREE.BufferGeometry().setFromPoints([from, to]);
+  const mat = new THREE.LineBasicMaterial({ color, linewidth: 1 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  dimLabels.push(line);
+  return line;
+}
+
+function renderShape(data) {
+  clearShape();
+
+  const l = (data.lengthIn || 18) * scale;
+  const w = (data.widthIn || 18) * scale;
+  const h = (data.heightIn || 18) * scale;
+  const shape = (data.shapeType || 'BOX').toUpperCase();
+  const fate = (data.fate || 'UNDECIDED').toUpperCase();
+  const color = FATE_COLORS[fate] || FATE_COLORS.UNDECIDED;
+
+  let geo;
+
+  switch (shape) {
+    case 'CYLINDER':
+      geo = new THREE.CylinderGeometry(Math.max(l, w) / 2, Math.max(l, w) / 2, h, 24);
+      break;
+    case 'SPHERE':
+      geo = new THREE.SphereGeometry(Math.max(l, w, h) / 2, 24, 16);
+      break;
+    case 'PANEL':
+      // Thin flat panel
+      geo = new THREE.BoxGeometry(l, h, Math.max(w * 0.15, 0.05));
+      break;
+    case 'L_SHAPE': {
+      // Approximate L as two merged boxes
+      const shape2d = new THREE.Shape();
+      shape2d.moveTo(-l/2, -w/2);
+      shape2d.lineTo(l/2, -w/2);
+      shape2d.lineTo(l/2, 0);
+      shape2d.lineTo(0, 0);
+      shape2d.lineTo(0, w/2);
+      shape2d.lineTo(-l/2, w/2);
+      shape2d.lineTo(-l/2, -w/2);
+      geo = new THREE.ExtrudeGeometry(shape2d, { depth: h, bevelEnabled: false });
+      // Rotate so it stands upright
+      geo.rotateX(-Math.PI / 2);
+      break;
+    }
+    default: // BOX
+      geo = new THREE.BoxGeometry(l, h, w);
+  }
+
+  const mat = new THREE.MeshPhongMaterial({
+    color,
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide,
+  });
+  currentMesh = new THREE.Mesh(geo, mat);
+
+  // Position so it sits on the grid
+  if (shape === 'SPHERE') {
+    currentMesh.position.y = Math.max(l, w, h) / 2;
+  } else if (shape === 'L_SHAPE') {
+    currentMesh.position.y = 0;
+  } else {
+    currentMesh.position.y = h / 2;
+  }
+
+  scene.add(currentMesh);
+
+  // Edge wireframe
+  const edgeGeo = new THREE.EdgesGeometry(geo);
+  currentEdge = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0x374151, opacity: 0.5, transparent: true }));
+  currentEdge.position.copy(currentMesh.position);
+  scene.add(currentEdge);
+
+  // Dimension lines
+  const dimColor = 0x94a3b8;
+  const offset = 0.15;
+
+  if (shape !== 'SPHERE') {
+    // Length line (X axis) — front
+    createDimLine(
+      new THREE.Vector3(-l/2, 0, w/2 + offset),
+      new THREE.Vector3(l/2, 0, w/2 + offset),
+      0x3b82f6
+    );
+    // Width line (Z axis) — side
+    createDimLine(
+      new THREE.Vector3(l/2 + offset, 0, -w/2),
+      new THREE.Vector3(l/2 + offset, 0, w/2),
+      0x16a34a
+    );
+    // Height line (Y axis) — side
+    createDimLine(
+      new THREE.Vector3(l/2 + offset, 0, -w/2 - offset),
+      new THREE.Vector3(l/2 + offset, h, -w/2 - offset),
+      0xf97316
+    );
+  }
+
+  // Camera position
+  const maxDim = Math.max(l, w, h);
+  camera.position.set(maxDim * 2, maxDim * 1.5, maxDim * 2);
+  controls.target.set(0, h / 2, 0);
+  controls.update();
+
+  // Dims text
+  const lIn = data.lengthIn || 18;
+  const wIn = data.widthIn || 18;
+  const hIn = data.heightIn || 18;
+  dimsEl.innerHTML = `<span style="color:#3b82f6">${lIn}"L</span> × <span style="color:#16a34a">${wIn}"W</span> × <span style="color:#f97316">${hIn}"H</span>`;
+}
+
+// Default shape
+renderShape({ lengthIn: 18, widthIn: 18, heightIn: 18, shapeType: 'BOX', fate: 'UNDECIDED' });
+
+// Receive updates via postMessage
+window.addEventListener('message', (event) => {
+  try {
+    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    if (data.type === 'shapeUpdate') {
+      renderShape(data);
+    }
+  } catch (e) {
+    console.error('Shape preview error:', e);
+  }
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
