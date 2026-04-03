@@ -37,9 +37,11 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Admin container packing wizard (drag items into containers)
 - [ ] Mobile: auto-sync on app foreground and on connectivity change
 - [ ] Mobile: conflict resolution UI (show both versions, let user pick)
-- [ ] 3D view: click items to see details / highlight
-- [ ] 3D view: drag-and-drop item placement within container
-- [ ] 3D add-item screen: live shape preview while entering dimensions
+- [x] ~~3D view: click items to see details / highlight~~ (done — hover tooltips + click select)
+- [x] ~~3D view: drag-and-drop item placement within container~~ (done — drag, rotate, collision, stacking)
+- [x] ~~3D add-item screen: live shape preview while entering dimensions~~ (done — shape preview on create page)
+- [ ] 3D view: save repositioned item positions to database
+- [ ] 3D view: undo/redo for position changes
 - [ ] Mobile: barcode/UPC scanning with product lookup
 - [ ] Mobile: haptic feedback on fate selection
 - [ ] Mobile: push notifications for sync status

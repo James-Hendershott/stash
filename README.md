@@ -107,8 +107,8 @@ See [SETUP.md](SETUP.md) for detailed local and production setup instructions.
 
 React 18 SPA with responsive sidebar, JWT auth, error boundaries, toast notifications, and pages for:
 - **Dashboard** — Stats overview, fate breakdown bars, recent activity
-- **Items** — Search, filter by fate, card grid with photos, inline edit, photo upload
-- **Containers** — 3D visualization (Three.js), contents table, place/remove items
+- **Items** — Search, filter by fate, card grid with photos, inline edit, photo upload, 3D shape preview on create
+- **Containers** — Interactive 3D view (hover, select, drag, rotate, collision, stacking), contents table
 - **Locations** — Origin/destination rooms with item lists
 - **Floor Plan** — Visual room grid by floor with fate breakdown bars, house toggle
 - **Categories** — Color-coded cards with item counts

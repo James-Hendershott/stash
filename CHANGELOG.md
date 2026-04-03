@@ -5,6 +5,30 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-03
+
+### Added
+- 3D container viewer: hover tooltips (item name, fate, dimensions, weight)
+- 3D container viewer: click-to-select items with highlight
+- 3D container viewer: drag-to-reposition items within container walls
+- 3D container viewer: R key to rotate selected item 90° (swaps L/W)
+- 3D container viewer: AABB collision detection — items cannot overlap
+- 3D container viewer: stacking physics — items sit on top of each other automatically
+- 3D container viewer: red flash + revert when overlap detected on drop/rotate
+- Live 3D shape preview on Add Item page (updates as you type L/W/H)
+- Shape type selector (Box, Cylinder, Sphere, L-Shape, Panel) with colored dimension lines
+- Place in Container UI on item detail page (dropdown + Place/Remove buttons)
+- GUIDE.md — complete user guide covering all workflows
+- Root .dockerignore to exclude data/, node_modules/, .git/ from build context
+
+### Fixed
+- Location names: "Colorado Home" → "Eagle Mountain, UT", "North Carolina Home" → "NC Property — TBD"
+- Vite proxy: BACKEND_HOST env var for Docker (stash-backend vs localhost)
+- Docker admin port conflict: moved ports from base compose to dev/prod overrides
+- Dockerfiles: added tsconfig.base.json COPY for shared package builds
+- pdf.ts → pdf.tsx for JSX support with esbuild
+- Form field order: shape/dimensions moved above category (adjacent to 3D preview)
+
 ## [1.0.1] - 2026-04-03
 
 ### Fixed
