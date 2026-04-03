@@ -35,3 +35,4 @@ services:
       - ./packages/shared/src:/app/packages/shared/src
     environment:
       NODE_ENV: development
+      BACKEND_HOST: stash-backend
