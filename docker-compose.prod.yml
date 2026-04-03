@@ -19,6 +19,8 @@ services:
 
   stash-admin:
     restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-3002}:80"
     environment:
       PUID: ${PUID:-99}
       PGID: ${PGID:-100}

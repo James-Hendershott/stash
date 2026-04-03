@@ -48,8 +48,6 @@ services:
     build:
       context: .
       dockerfile: packages/admin/Dockerfile
-    ports:
-      - "${ADMIN_PORT:-3002}:80"
     depends_on:
       - stash-backend
     networks:
