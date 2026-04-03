@@ -115,6 +115,33 @@ export function ItemCreatePage() {
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
           </div>
 
+          {/* Shape & Dimensions — right below description, next to the 3D preview */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Shape</label>
+              <select value={form.shapeType} onChange={(e) => setForm({ ...form, shapeType: e.target.value })}>
+                {SHAPE_TYPES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Length (in)</label>
+              <input type="number" value={form.lengthIn} onChange={(e) => setForm({ ...form, lengthIn: e.target.value })} placeholder="L" />
+            </div>
+            <div className="form-group">
+              <label>Width (in)</label>
+              <input type="number" value={form.widthIn} onChange={(e) => setForm({ ...form, widthIn: e.target.value })} placeholder="W" />
+            </div>
+            <div className="form-group">
+              <label>Height (in)</label>
+              <input type="number" value={form.heightIn} onChange={(e) => setForm({ ...form, heightIn: e.target.value })} placeholder="H" />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Weight (lbs)</label>
+            <input type="number" value={form.weightLbs} onChange={(e) => setForm({ ...form, weightLbs: e.target.value })} />
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label>Category *</label>
@@ -160,33 +187,6 @@ export function ItemCreatePage() {
                 {destinations.map((l) => <option key={l.id} value={l.id}>{l.name} ({l.floor})</option>)}
               </select>
             </div>
-          </div>
-
-          {/* Shape & Dimensions */}
-          <div className="form-row">
-            <div className="form-group">
-              <label>Shape</label>
-              <select value={form.shapeType} onChange={(e) => setForm({ ...form, shapeType: e.target.value })}>
-                {SHAPE_TYPES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Length (in)</label>
-              <input type="number" value={form.lengthIn} onChange={(e) => setForm({ ...form, lengthIn: e.target.value })} placeholder="L" />
-            </div>
-            <div className="form-group">
-              <label>Width (in)</label>
-              <input type="number" value={form.widthIn} onChange={(e) => setForm({ ...form, widthIn: e.target.value })} placeholder="W" />
-            </div>
-            <div className="form-group">
-              <label>Height (in)</label>
-              <input type="number" value={form.heightIn} onChange={(e) => setForm({ ...form, heightIn: e.target.value })} placeholder="H" />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Weight (lbs)</label>
-            <input type="number" value={form.weightLbs} onChange={(e) => setForm({ ...form, weightLbs: e.target.value })} />
           </div>
 
           <div className="form-group">
