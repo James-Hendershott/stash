@@ -7,7 +7,9 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #1e293b; overflow: hidden; font-family: -apple-system, sans-serif; }
-  canvas { display: block; }
+  canvas { display: block; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+
   #overlay {
     position: absolute; top: 12px; left: 12px;
     color: #e2e8f0; font-size: 13px; pointer-events: none;
@@ -16,6 +18,32 @@
   #overlay .label { color: #94a3b8; font-size: 11px; text-transform: uppercase; }
   #overlay .value { font-size: 18px; font-weight: 700; }
   #overlay .warning { color: #f97316; }
+
+  #tooltip {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.95);
+    color: #e2e8f0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    display: none;
+    max-width: 240px;
+    border: 1px solid #334155;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  #tooltip .tt-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  #tooltip .tt-fate { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; margin-bottom: 6px; }
+  #tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; color: #94a3b8; margin-top: 2px; }
+  #tooltip .tt-val { color: #e2e8f0; font-weight: 500; }
+
+  #help {
+    position: absolute; top: 12px; right: 12px;
+    color: #64748b; font-size: 11px; pointer-events: none; text-align: right;
+  }
+  #help.has-selection { color: #3b82f6; }
+
   #legend {
     position: absolute; bottom: 12px; left: 12px; right: 12px;
     display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none;
@@ -24,9 +52,7 @@
     display: flex; align-items: center; gap: 4px;
     font-size: 11px; color: #94a3b8;
   }
-  .legend-dot {
-    width: 10px; height: 10px; border-radius: 2px;
-  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -40,6 +66,14 @@
     <div class="label">Weight</div>
     <div class="value" id="weight-val">0 lbs</div>
   </div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="help">
+  Hover: item info<br>
+  Click: select item<br>
+  Drag selected: move item
 </div>
 
 <div id="legend"></div>
@@ -74,49 +108,77 @@ controls.dampingFactor = 0.05;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 0.8;
 
-// Lighting
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 8, 5);
 scene.add(dirLight);
 
-// ── Fate Colors ──────────────────────────────────────────
-
 const FATE_COLORS = {
-  KEEP: 0x16a34a,
-  SELL: 0xf97316,
-  DONATE: 0x7c3aed,
-  TRASH: 0xdc2626,
-  UNDECIDED: 0x6b7280,
+  KEEP: 0x16a34a, SELL: 0xf97316, DONATE: 0x7c3aed,
+  TRASH: 0xdc2626, UNDECIDED: 0x6b7280,
 };
+
+const FATE_BG = {
+  KEEP: '#dcfce7', SELL: '#ffedd5', DONATE: '#ede9fe',
+  TRASH: '#fee2e2', UNDECIDED: '#f3f4f6',
+};
+
+const FATE_TEXT = {
+  KEEP: '#16a34a', SELL: '#ea580c', DONATE: '#7c3aed',
+  TRASH: '#dc2626', UNDECIDED: '#6b7280',
+};
+
+// ── Interaction State ────────────────────────────────────
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const itemMeshes = [];      // All item block meshes
+const itemDataMap = new Map(); // Mesh → item data
+let hoveredMesh = null;
+let selectedMesh = null;
+let isDragging = false;
+let dragPlane = new THREE.Plane();
+let dragOffset = new THREE.Vector3();
+let containerBounds = null;  // { minX, maxX, minZ, maxZ }
+const scale = 0.1;
+
+const tooltipEl = document.getElementById('tooltip');
+const helpEl = document.getElementById('help');
 
 // ── Render Container ─────────────────────────────────────
 
 function renderContainer(data) {
-  // Clear previous objects
+  // Clear
   while (scene.children.length > 2) scene.remove(scene.children[scene.children.length - 1]);
+  itemMeshes.length = 0;
+  itemDataMap.clear();
+  selectedMesh = null;
+  hoveredMesh = null;
 
   const { container, items } = data;
   const cL = container.internalLengthIn;
   const cW = container.internalWidthIn;
   const cH = container.internalHeightIn;
-
-  // Scale: 1 unit = 10 inches (keeps numbers manageable)
-  const scale = 0.1;
   const sL = cL * scale;
   const sW = cW * scale;
   const sH = cH * scale;
 
-  // Wireframe container box
+  containerBounds = {
+    minX: -sL / 2, maxX: sL / 2,
+    minZ: -sW / 2, maxZ: sW / 2,
+    maxY: sH,
+  };
+
+  // Wireframe container
   const boxGeo = new THREE.BoxGeometry(sL, sH, sW);
   const wireframe = new THREE.LineSegments(
     new THREE.EdgesGeometry(boxGeo),
-    new THREE.LineBasicMaterial({ color: 0x475569, linewidth: 1 })
+    new THREE.LineBasicMaterial({ color: 0x475569 })
   );
   wireframe.position.set(0, sH / 2, 0);
   scene.add(wireframe);
 
-  // Semi-transparent floor
+  // Floor
   const floorGeo = new THREE.PlaneGeometry(sL, sW);
   const floorMat = new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
   const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -124,21 +186,17 @@ function renderContainer(data) {
   floor.position.y = 0.01;
   scene.add(floor);
 
-  // Grid on the floor
   const grid = new THREE.GridHelper(Math.max(sL, sW), 10, 0x475569, 0x334155);
   scene.add(grid);
 
-  // Place items as colored blocks
+  // Place items
   let totalVolume = 0;
   let totalWeight = 0;
   const containerVolume = cL * cW * cH;
-
-  // Simple stacking: place items in a grid pattern
   let x = -sL / 2 + 0.1;
   let y = 0;
   let z = -sW / 2 + 0.1;
   let rowMaxH = 0;
-
   const legendItems = new Map();
 
   items.forEach((item) => {
@@ -148,106 +206,280 @@ function renderContainer(data) {
     const fate = item.fate || 'UNDECIDED';
     const color = FATE_COLORS[fate] || FATE_COLORS.UNDECIDED;
 
-    // Check if we need to move to next row
-    if (x + iL > sL / 2) {
-      x = -sL / 2 + 0.1;
-      z += rowMaxH + 0.1;
-      rowMaxH = 0;
-    }
-
-    // Check if we need a new layer
-    if (z + iW > sW / 2) {
-      z = -sW / 2 + 0.1;
-      x = -sL / 2 + 0.1;
-      y += rowMaxH + 0.1;
-      rowMaxH = 0;
-    }
+    if (x + iL > sL / 2) { x = -sL / 2 + 0.1; z += rowMaxH + 0.1; rowMaxH = 0; }
+    if (z + iW > sW / 2) { z = -sW / 2 + 0.1; x = -sL / 2 + 0.1; y += rowMaxH + 0.1; rowMaxH = 0; }
 
     const blockGeo = new THREE.BoxGeometry(iL, iH, iW);
-    const blockMat = new THREE.MeshPhongMaterial({
-      color,
-      transparent: true,
-      opacity: 0.85,
-    });
+    const blockMat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.85 });
     const block = new THREE.Mesh(blockGeo, blockMat);
     block.position.set(x + iL / 2, y + iH / 2, z + iW / 2);
     scene.add(block);
 
-    // Wireframe edge on each block
-    const blockEdge = new THREE.LineSegments(
+    // Store original color for hover/select reset
+    block.userData = { originalColor: color, originalOpacity: 0.85 };
+
+    // Edge wireframe
+    const edge = new THREE.LineSegments(
       new THREE.EdgesGeometry(blockGeo),
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 })
     );
-    blockEdge.position.copy(block.position);
-    scene.add(blockEdge);
+    edge.position.copy(block.position);
+    block.userData.edge = edge;
+    scene.add(edge);
+
+    // Track for raycasting
+    itemMeshes.push(block);
+    itemDataMap.set(block, {
+      ...item,
+      scaledL: iL, scaledW: iW, scaledH: iH,
+    });
 
     x += iL + 0.05;
     rowMaxH = Math.max(rowMaxH, iW);
-
     totalVolume += (item.lengthIn || 12) * (item.widthIn || 12) * (item.heightIn || 12);
     totalWeight += item.weightLbs || 0;
-
-    // Track for legend
     if (!legendItems.has(fate)) legendItems.set(fate, 0);
     legendItems.set(fate, legendItems.get(fate) + 1);
   });
 
-  // Camera position based on container size
+  // Camera
   const maxDim = Math.max(sL, sW, sH);
   camera.position.set(maxDim * 1.2, maxDim * 0.9, maxDim * 1.2);
   controls.target.set(0, sH / 3, 0);
   controls.update();
 
-  // Update overlay
+  // Overlay
   const fillPct = containerVolume > 0 ? Math.round((totalVolume / containerVolume) * 100) : 0;
   const fillEl = document.getElementById('fill-pct');
   fillEl.textContent = `${fillPct}%`;
-  if (fillPct >= 85) fillEl.classList.add('warning');
+  fillEl.className = fillPct >= 85 ? 'value warning' : 'value';
 
   const weightEl = document.getElementById('weight-val');
   weightEl.textContent = `${Math.round(totalWeight)} lbs`;
   if (container.maxWeightLbs && totalWeight > container.maxWeightLbs) {
-    weightEl.classList.add('warning');
+    weightEl.className = 'value warning';
     weightEl.textContent += ` / ${container.maxWeightLbs} max`;
+  } else {
+    weightEl.className = 'value';
   }
 
-  // Update legend
+  // Legend
   const legendEl = document.getElementById('legend');
   legendEl.innerHTML = '';
   for (const [fate, count] of legendItems) {
-    const hex = '#' + FATE_COLORS[fate].toString(16).padStart(6, '0');
-    legendEl.innerHTML += `
-      <div class="legend-item">
-        <div class="legend-dot" style="background:${hex}"></div>
-        ${fate} (${count})
-      </div>
-    `;
+    const hex = '#' + (FATE_COLORS[fate] || 0x6b7280).toString(16).padStart(6, '0');
+    legendEl.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${hex}"></div>${fate} (${count})</div>`;
   }
 }
 
+// ── Tooltip ──────────────────────────────────────────────
+
+function showTooltip(mesh, clientX, clientY) {
+  const item = itemDataMap.get(mesh);
+  if (!item) return;
+
+  const fate = item.fate || 'UNDECIDED';
+  const dims = (item.lengthIn && item.widthIn && item.heightIn)
+    ? `${item.lengthIn}" × ${item.widthIn}" × ${item.heightIn}"`
+    : 'No dimensions';
+
+  tooltipEl.innerHTML = `
+    <div class="tt-name">${item.name}</div>
+    <span class="tt-fate" style="background:${FATE_BG[fate]};color:${FATE_TEXT[fate]}">${fate}</span>
+    <div class="tt-row"><span>Dimensions</span><span class="tt-val">${dims}</span></div>
+    ${item.weightLbs ? `<div class="tt-row"><span>Weight</span><span class="tt-val">${item.weightLbs} lbs</span></div>` : ''}
+  `;
+
+  tooltipEl.style.display = 'block';
+
+  // Position tooltip near cursor but keep on screen
+  const pad = 16;
+  let tx = clientX + pad;
+  let ty = clientY + pad;
+  const rect = tooltipEl.getBoundingClientRect();
+  if (tx + rect.width > window.innerWidth) tx = clientX - rect.width - pad;
+  if (ty + rect.height > window.innerHeight) ty = clientY - rect.height - pad;
+  tooltipEl.style.left = tx + 'px';
+  tooltipEl.style.top = ty + 'px';
+}
+
+function hideTooltip() {
+  tooltipEl.style.display = 'none';
+}
+
+// ── Selection ────────────────────────────────────────────
+
+function selectMesh(mesh) {
+  // Deselect previous
+  if (selectedMesh && selectedMesh !== mesh) {
+    const sd = selectedMesh.userData;
+    selectedMesh.material.color.setHex(sd.originalColor);
+    selectedMesh.material.opacity = sd.originalOpacity;
+    if (sd.edge) sd.edge.material.opacity = 0.15;
+  }
+
+  if (mesh === selectedMesh) {
+    // Toggle off
+    const sd = selectedMesh.userData;
+    selectedMesh.material.color.setHex(sd.originalColor);
+    selectedMesh.material.opacity = sd.originalOpacity;
+    if (sd.edge) sd.edge.material.opacity = 0.15;
+    selectedMesh = null;
+    helpEl.className = '';
+    helpEl.innerHTML = 'Hover: item info<br>Click: select item<br>Drag selected: move item';
+    return;
+  }
+
+  selectedMesh = mesh;
+  mesh.material.opacity = 1.0;
+  if (mesh.userData.edge) mesh.userData.edge.material.opacity = 0.6;
+
+  const item = itemDataMap.get(mesh);
+  helpEl.className = 'has-selection';
+  helpEl.innerHTML = `Selected: <strong>${item?.name || 'Unknown'}</strong><br>Drag to reposition`;
+}
+
+// ── Hover Highlight ──────────────────────────────────────
+
+function setHover(mesh) {
+  if (mesh === hoveredMesh) return;
+
+  // Reset previous hover
+  if (hoveredMesh && hoveredMesh !== selectedMesh) {
+    const hd = hoveredMesh.userData;
+    hoveredMesh.material.color.setHex(hd.originalColor);
+    hoveredMesh.material.opacity = hd.originalOpacity;
+    if (hd.edge) hd.edge.material.opacity = 0.15;
+  }
+
+  hoveredMesh = mesh;
+
+  if (mesh && mesh !== selectedMesh) {
+    mesh.material.opacity = 0.95;
+    if (mesh.userData.edge) mesh.userData.edge.material.opacity = 0.4;
+  }
+}
+
+// ── Mouse Events ─────────────────────────────────────────
+
+function getIntersection(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  return raycaster.intersectObjects(itemMeshes);
+}
+
+renderer.domElement.addEventListener('mousemove', (event) => {
+  const hits = getIntersection(event);
+
+  if (isDragging && selectedMesh) {
+    // Drag the selected item along the floor plane
+    const planeIntersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, planeIntersect);
+    if (planeIntersect) {
+      let nx = planeIntersect.x - dragOffset.x;
+      let nz = planeIntersect.z - dragOffset.z;
+      const item = itemDataMap.get(selectedMesh);
+      const halfL = (item?.scaledL || 1.2) / 2;
+      const halfW = (item?.scaledW || 1.2) / 2;
+
+      // Clamp to container bounds
+      if (containerBounds) {
+        nx = Math.max(containerBounds.minX + halfL, Math.min(containerBounds.maxX - halfL, nx));
+        nz = Math.max(containerBounds.minZ + halfW, Math.min(containerBounds.maxZ - halfW, nz));
+      }
+
+      selectedMesh.position.x = nx;
+      selectedMesh.position.z = nz;
+      if (selectedMesh.userData.edge) {
+        selectedMesh.userData.edge.position.x = nx;
+        selectedMesh.userData.edge.position.z = nz;
+      }
+    }
+    return;
+  }
+
+  if (hits.length > 0) {
+    const mesh = hits[0].object;
+    setHover(mesh);
+    showTooltip(mesh, event.clientX, event.clientY);
+    renderer.domElement.style.cursor = 'pointer';
+  } else {
+    setHover(null);
+    hideTooltip();
+    renderer.domElement.style.cursor = isDragging ? 'grabbing' : 'grab';
+  }
+});
+
+renderer.domElement.addEventListener('mousedown', (event) => {
+  const hits = getIntersection(event);
+
+  if (hits.length > 0) {
+    const mesh = hits[0].object;
+
+    if (mesh === selectedMesh) {
+      // Start dragging the selected item
+      isDragging = true;
+      controls.enabled = false;
+      controls.autoRotate = false;
+      renderer.domElement.classList.add('dragging');
+
+      // Create drag plane at item's Y position (horizontal)
+      dragPlane.setFromNormalAndCoplanarPoint(
+        new THREE.Vector3(0, 1, 0),
+        mesh.position
+      );
+
+      // Offset so item doesn't jump to cursor
+      const planeIntersect = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlane, planeIntersect);
+      dragOffset.set(
+        planeIntersect.x - mesh.position.x,
+        0,
+        planeIntersect.z - mesh.position.z
+      );
+
+      hideTooltip();
+    } else {
+      selectMesh(mesh);
+    }
+  } else {
+    // Click empty space — deselect
+    if (selectedMesh) selectMesh(selectedMesh); // toggles off
+  }
+});
+
+renderer.domElement.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    controls.enabled = true;
+    controls.autoRotate = true;
+    renderer.domElement.classList.remove('dragging');
+  }
+});
+
+renderer.domElement.addEventListener('mouseleave', () => {
+  hideTooltip();
+  setHover(null);
+});
+
 // ── Message Handling ─────────────────────────────────────
 
-// Receive data via postMessage (from iframe parent or WebView)
 window.addEventListener('message', (event) => {
   try {
     const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-    if (data.container && data.items) {
-      renderContainer(data);
-    }
+    if (data.container && data.items) renderContainer(data);
   } catch (e) {
     console.error('Failed to parse container data:', e);
   }
 });
 
-// Also check URL params for direct loading
 const params = new URLSearchParams(window.location.search);
 const dataParam = params.get('data');
 if (dataParam) {
-  try {
-    renderContainer(JSON.parse(decodeURIComponent(dataParam)));
-  } catch (e) {
-    console.error('Failed to parse URL data:', e);
-  }
+  try { renderContainer(JSON.parse(decodeURIComponent(dataParam))); }
+  catch (e) { console.error('Failed to parse URL data:', e); }
 }
 
 // ── Animate ──────────────────────────────────────────────
@@ -258,8 +490,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-
-// ── Resize ───────────────────────────────────────────────
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
