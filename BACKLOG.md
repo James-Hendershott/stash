@@ -35,6 +35,7 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Admin responsive layout (mobile sidebar collapse)
 - [ ] Admin item bulk selection and bulk fate update
 - [ ] Admin container packing wizard (drag items into containers)
+- [ ] Mobile: WatermelonDB offline sync (requires custom Expo dev build, not Expo Go)
 - [ ] Mobile: auto-sync on app foreground and on connectivity change
 - [ ] Mobile: conflict resolution UI (show both versions, let user pick)
 - [x] ~~3D view: click items to see details / highlight~~ (done — hover tooltips + click select)

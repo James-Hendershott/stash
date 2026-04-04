@@ -5,6 +5,19 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-04
+
+### Fixed
+- Mobile: removed WatermelonDB dependency (requires native build, crashes Expo Go)
+- Mobile: SyncContext rewritten with SecureStore stub (offline sync re-enabled with dev build)
+- Mobile: added placeholder icon.png, splash.png, adaptive-icon.png assets
+- Mobile: updated @types/react to ~19.1.10, typescript to ~5.3.3 for SDK 54
+- Mobile: removed @types/react-native (included in react-native 0.81+)
+
+### Changed
+- Mobile now fully works in Expo Go for development and testing
+- WatermelonDB offline sync moved to BACKLOG (requires custom Expo dev build)
+
 ## [1.1.0] - 2026-04-03
 
 ### Added

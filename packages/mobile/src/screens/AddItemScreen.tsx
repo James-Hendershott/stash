@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Picker } from 'react-native';
 import { api } from '../lib/api';
 
 export function AddItemScreen({ navigation }: any) {

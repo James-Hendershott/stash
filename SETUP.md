@@ -89,10 +89,12 @@ Development data is stored in `./data/` (gitignored):
 9. **Start the mobile app (optional)**
    ```bash
    cd packages/mobile
-   npx expo start
+   npm install
+   npx expo start --tunnel
    ```
-   Scan the QR code with **Expo Go** on your phone. The app connects
-   to the backend at the configured server URL (Settings tab).
+   Scan the QR code with **Expo Go** (SDK 54+) on your phone. Set the
+   server URL in Settings to your computer's LAN IP (e.g., `http://192.168.1.74:3001`).
+   Note: WatermelonDB offline sync requires a custom dev build (not Expo Go).
 
 ### Stopping Services
 
