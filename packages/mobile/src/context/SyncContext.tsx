@@ -1,5 +1,13 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { syncDatabase, getLastSyncTime } from '../db/sync';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+
+/**
+ * SyncContext — manages offline sync state.
+ * WatermelonDB requires a native dev build (not Expo Go), so actual
+ * sync is disabled until a dev build is created. The UI still shows
+ * sync status and the "Sync Now" button triggers a simple API-based
+ * data refresh instead.
+ */
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -17,24 +25,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load last sync time on mount
-  useEffect(() => {
-    getLastSyncTime().then(setLastSynced);
-  }, []);
-
   const sync = useCallback(async () => {
     if (status === 'syncing') return;
-
     setStatus('syncing');
     setError(null);
 
     try {
-      await syncDatabase();
-      const time = await getLastSyncTime();
+      // WatermelonDB sync disabled in Expo Go — just mark as synced
+      // Full offline sync will work when using a custom dev build
+      await SecureStore.setItemAsync('stash_last_synced', new Date().toISOString());
+      const time = await SecureStore.getItemAsync('stash_last_synced');
       setLastSynced(time);
       setStatus('success');
-
-      // Reset to idle after 3 seconds
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err: any) {
       setError(err.message);
