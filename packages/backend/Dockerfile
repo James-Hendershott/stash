@@ -51,7 +51,9 @@ COPY packages/shared/package.json ./packages/shared/
 COPY --from=build /app/packages/backend/dist ./packages/backend/dist
 COPY --from=build /app/packages/backend/prisma ./packages/backend/prisma
 COPY --from=build /app/packages/backend/public ./packages/backend/public
-COPY --from=build /app/packages/backend/node_modules/.prisma ./packages/backend/node_modules/.prisma
+# npm workspaces hoist deps to the root node_modules; Prisma's generated
+# client lands at /app/node_modules/.prisma, not the per-package path.
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 # Create data directories
 RUN mkdir -p /app/data/images /app/data/qrcodes /app/data/exports /app/data/floorplans
