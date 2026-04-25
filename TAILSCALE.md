@@ -28,7 +28,7 @@ https://stash-api.shottsserver.com
 
 ### Admin Dashboard
 
-Login: `james@stash.local` / `password123` (or your production password)
+Login: the admin email seeded by `prisma db seed` (or whatever you've changed it to via the Users page).
 
 | Method | URL |
 |--------|-----|
@@ -101,7 +101,7 @@ curl http://100.122.58.114:3001/api/health
 # Login
 curl -X POST http://100.122.58.114:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"james@stash.local","password":"<your-password>"}'
+  -d '{"email":"<admin-email>","password":"<your-password>"}'
 
 # Authenticated request (replace TOKEN)
 curl http://100.122.58.114:3001/api/items \

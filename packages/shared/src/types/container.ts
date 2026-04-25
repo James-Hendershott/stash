@@ -1,6 +1,7 @@
 export enum ContainerType {
   UBOX = 'UBOX',
   TOTE_27GAL = 'TOTE_27GAL',
+  TOTE_14GAL = 'TOTE_14GAL',
   BOX_SMALL = 'BOX_SMALL',
   BOX_MEDIUM = 'BOX_MEDIUM',
   BOX_LARGE = 'BOX_LARGE',

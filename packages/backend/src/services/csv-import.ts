@@ -103,12 +103,12 @@ export async function importCsvRows(
   const categories = await prisma.category.findMany();
   const locations = await prisma.location.findMany();
 
-  const categoryMap = new Map(categories.map((c) => [c.name.toLowerCase(), c.id]));
-  const locationMap = new Map(locations.map((l) => [l.name.toLowerCase(), l.id]));
+  const categoryMap = new Map(categories.map((c: { name: string; id: string }) => [c.name.toLowerCase(), c.id]));
+  const locationMap = new Map(locations.map((l: { name: string; id: string }) => [l.name.toLowerCase(), l.id]));
 
   // Defaults
   const defaultCategoryId = categories[0]?.id;
-  const defaultLocationId = locations.find((l) => l.type === 'ORIGIN')?.id || locations[0]?.id;
+  const defaultLocationId = locations.find((l: { type: string }) => l.type === 'ORIGIN')?.id || locations[0]?.id;
 
   let created = 0;
   const errors: { row: number; message: string }[] = [];

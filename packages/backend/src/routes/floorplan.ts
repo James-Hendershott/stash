@@ -14,7 +14,7 @@ router.use(requireAuth);
  * Query: ?house=Colorado Home  (URL-encoded)
  */
 router.get('/:house', async (req: Request, res: Response) => {
-  const house = decodeURIComponent(req.params.house);
+  const house = decodeURIComponent(req.params.house as string);
 
   const locations = await prisma.location.findMany({
     where: { house },

@@ -119,11 +119,11 @@ export function UsersPage() {
             <div className="form-row">
               <div className="form-group">
                 <label>Name</label>
-                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ashley" />
+                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Full name" />
               </div>
               <div className="form-group">
                 <label>Email</label>
-                <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="ashley@stash.local" type="email" />
+                <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="user@example.com" type="email" />
               </div>
             </div>
             <div className="form-row">

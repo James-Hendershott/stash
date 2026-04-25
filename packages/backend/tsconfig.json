@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    // Backend leans on Prisma's inferred types throughout; explicit
+    // annotations on every .map/.filter callback would be noise without
+    // catching real bugs. Other strict checks (null safety, etc.) stay on.
+    "noImplicitAny": false
   },
   "include": ["src"],
   "references": [{ "path": "../shared" }]

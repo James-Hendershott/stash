@@ -7,7 +7,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stash}
       POSTGRES_DB: ${POSTGRES_DB:-stash}
     volumes:
-      - ${DATA_PATH:-./data}/postgres:/var/lib/postgresql/data
+      # POSTGRES_DATA_PATH must point at direct NVMe on Unraid
+      # (/mnt/cache/...), NOT the FUSE/shfs path /mnt/user/. See .env.example
+      # and SETUP.md Section 2 for why.
+      - ${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stash}"]
       interval: 5s

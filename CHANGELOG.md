@@ -5,6 +5,50 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-24
+
+### Added
+- Books: `BookDetails` model (1:1 with Item) — ISBN-10/13, authors, publisher, published year, edition, page count, language, binding, cover image URL, OpenLibrary/Google Books IDs, lookup confidence
+- Books: `BookBinding` enum (HARDBACK / PAPERBACK / EBOOK / AUDIOBOOK / BOXED_SET / UNKNOWN)
+- Books: free metadata lookup via OpenLibrary (primary) and Google Books (fallback) — no API keys, no per-call cost
+- Books: `scripts/enrich-books.mjs` — Node script that reads a `Title | Authors | ISBN` text file, hits the lookup APIs, writes a fully-enriched CSV. Pure HTTP, no AI dependency
+- Books: `POST /api/books/import-csv` — bulk import endpoint that creates Item + BookDetails rows and ItemPlacement rows where `containerLabel` is provided
+- Books: `POST /api/books/lookup` — single-book metadata lookup (ISBN or title+author); no DB write
+- Books: `PATCH /api/books/:itemId` — manual edit of an existing book's details
+- Containers: `TOTE_14GAL` enum value (HDX 14-gallon tote), with HDX-spec internal dimensions (21" × 14" × 11.5", 50 lbs)
+- Containers: corrected `TOTE_27GAL` dimensions to real HDX 27-gallon spec (28.3" × 18.5" × 13.6", 75 lbs)
+- Containers: relabelled defaults — "U-Haul U-Box", "HDX 27-Gal Tote", "HDX 14-Gal Tote"
+- Seed: `SEED_ADMIN_PASSWORD` and `SEED_USER_PASSWORD` env vars for setting initial passwords; placeholder + warning if unset
+- Seed: 32 destination room placeholders sourced from the project's obsidian destination-room-list (17 main floor, 4 basement, 7 outbuildings, 4 property exterior) with real hex colors and TBD dimensions
+- Env: `POSTGRES_DATA_PATH` separate from `DATA_PATH` so Postgres data can land on direct NVMe (`/mnt/cache/...`) while photos/QR/exports stay on the user share
+
+### Changed
+- Seed: rewritten to plant **scaffold only** — 2 real users (James as ADMIN, Savanah as USER), origin rooms, destination room template, 10 category templates. **Removed all fake items, containers, placements, and activity-log entries.**
+- Seed users: real emails (`jameshendershott85@gmail.com`, `mama.shotts@gmail.com`); old `james@stash.local` / `password123` references removed from README, SETUP, TAILSCALE, CLAUDE.md, and admin LoginPage placeholder
+- Docker compose: postgres volume now uses `${POSTGRES_DATA_PATH:-./data/postgres}` instead of `${DATA_PATH:-./data}/postgres`
+- SETUP.md Unraid section: split `mkdir` between `/mnt/cache` (postgres) and `/mnt/user` (everything else); explains FUSE/shfs trap
+
+### Fixed
+- Backend tsconfig: enable `jsx: react-jsx` so `pdf.tsx` compiles; relax `noImplicitAny` (real null checks stay strict)
+- Shared tsconfig: `composite: true` so backend's project reference resolves
+- `req.params.X` cast to `string` in three routes where the latest @types/express infers `string | string[]`
+- JWT signToken: cast `expiresIn` through `SignOptions['expiresIn']` for jsonwebtoken v9 typing
+
+### Removed
+- Books: `POST /api/books/from-photo` and the in-app Claude Haiku vision call (chapter 21 pivot — moved to offline workflow to keep AI cost at $0 for the bulk one-time book ingest). The in-app book-from-photo path can be added back later if useful, but the bulk path is the primary recommendation.
+
+### Fixed
+- Backend tsconfig: enable `jsx: react-jsx` so `pdf.tsx` compiles; relax `noImplicitAny` (real null checks stay strict)
+- Shared tsconfig: `composite: true` so backend's project reference resolves
+- Pinned `@types/express` to `^4.17.21` to match the actual Express 4 runtime; `npm overrides` enforce the same on transitive deps. Resolves the `string | string[]` flood from `@types/express@5`'s widened `ParamsDictionary`
+- JWT signToken: cast `expiresIn` through `SignOptions['expiresIn']` for jsonwebtoken v9 typing
+- `packages/backend/src/types/express.d.ts` — module augmentation that further narrows `ParamsDictionary` index signature back to `string`
+
+### Known Issues
+- Admin build currently fails due to a pre-existing `@types/react` / `react-router-dom` ForwardRef + `bigint` collision; tracked in BACKLOG (pin @types/react or upgrade router)
+- No self-service change-password page in admin yet — admin must change passwords via the Users page (BACKLOG)
+- Admin "Books → Import CSV" UI not yet built — endpoint works (curl-able from an authenticated session), the page is in BACKLOG
+
 ## [1.1.1] - 2026-04-04
 
 ### Fixed

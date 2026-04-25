@@ -51,18 +51,26 @@
    ```bash
    DATABASE_URL="postgresql://stash:stash@localhost:5434/stash" npx prisma db seed
    ```
-   Populates the database with dev data: 2 users, locations, categories,
-   items, containers, and placements. Default login: `james@stash.local` / `password123`.
+   Populates the database with the real scaffold only: 2 users (1 admin, 1
+   user), origin locations (Eagle Mountain, UT), destination room
+   placeholders, and category templates. **No fake items, containers, or
+   placements** — those get added through the UI. The admin user's email is
+   `jameshendershott85@gmail.com`; the regular user is `mama.shotts@gmail.com`.
+
+   Initial passwords come from the `SEED_ADMIN_PASSWORD` and
+   `SEED_USER_PASSWORD` env vars — if unset, the seed uses a placeholder and
+   prints a warning. **Change them via the admin Users page immediately after
+   first login.**
 
 7. **Verify**
    - Backend health: http://localhost:3001/api/health
-   - Admin dashboard: http://localhost:3002 (login: `james@stash.local` / `password123`)
+   - Admin dashboard: http://localhost:3002 (login with the admin email and password from the seed step above)
    - Database (via Prisma Studio): `npx prisma studio` (opens http://localhost:5555)
    - API login test:
      ```bash
      curl -X POST http://localhost:3001/api/auth/login \
        -H "Content-Type: application/json" \
-       -d '{"email":"james@stash.local","password":"password123"}'
+       -d '{"email":"<admin-email>","password":"<your-password>"}'
      ```
 
 8. **Test file uploads (optional)**
@@ -122,20 +130,30 @@ Add `-v` to also remove volumes (deletes all local data).
    ```
 
 2. **Create appdata directories**
+
+   The split between `/mnt/cache` and `/mnt/user` is deliberate. Postgres
+   data MUST live on direct NVMe (`/mnt/cache/...`); the FUSE union path
+   (`/mnt/user/...`) adds catastrophic I/O overhead for database
+   containers. The repo, photos, and exports can stay on the user share.
+
    ```bash
-   mkdir -p /mnt/user/appdata/stash/{postgres,images,qrcodes,exports,floorplans,repo}
+   # Postgres on direct NVMe (no FUSE)
+   mkdir -p /mnt/cache/appdata/stash/postgres
+
+   # Repo + uploaded files on the user share
+   mkdir -p /mnt/user/appdata/stash/{images,qrcodes,exports,floorplans,repo}
    ```
 
 3. **Set permissions**
    ```bash
-   chown -R nobody:users /mnt/user/appdata/stash
-   chmod -R 755 /mnt/user/appdata/stash
+   chown -R nobody:users /mnt/cache/appdata/stash /mnt/user/appdata/stash
+   chmod -R 755 /mnt/cache/appdata/stash /mnt/user/appdata/stash
    ```
 
 4. **Clone the repository**
    ```bash
    cd /mnt/user/appdata/stash/repo
-   git clone git@github.com:james-hendershott/stash.git .
+   git clone https://github.com/James-Hendershott/stash.git .
    ```
 
 5. **Create production environment file**
@@ -145,12 +163,18 @@ Add `-v` to also remove volumes (deletes all local data).
    Update these values in `.env`:
    ```env
    NODE_ENV=production
+
    DATA_PATH=/mnt/user/appdata/stash
+   POSTGRES_DATA_PATH=/mnt/cache/appdata/stash/postgres
+
    POSTGRES_PASSWORD=<strong-password>
    DATABASE_URL=postgresql://stash:<strong-password>@stash-postgres:5432/stash
    JWT_SECRET=<long-random-string>
-   ANTHROPIC_API_KEY=<your-actual-key>
+   ANTHROPIC_API_KEY=<your-actual-key-or-leave-blank>
    BACKEND_URL=https://stash-api.shottsserver.com
+
+   SEED_ADMIN_PASSWORD=<strong-initial-password-for-james>
+   SEED_USER_PASSWORD=<strong-initial-password-for-savanah>
    ```
 
 6. **Start production services**
@@ -192,12 +216,13 @@ Add `-v` to also remove volumes (deletes all local data).
     - API (LAN): http://192.168.1.153:3001/api/health
     - API (proxy): https://stash-api.shottsserver.com/api/health
 
-11. **Create production users** (optional — seed creates dev users)
+11. **Change the seeded passwords**
 
-    Login to the admin dashboard at https://stash.shottsserver.com with
-    the seed credentials, then go to Users → Add User to create real accounts:
-    - James: `king_fish2115@hotmail.com` / ADMIN
-    - Savanah: `mama.shotts@gmail.com` / ADMIN
+    The seed creates two real accounts (James as ADMIN, Savanah as USER)
+    using either `SEED_ADMIN_PASSWORD` / `SEED_USER_PASSWORD` from `.env`
+    or the placeholder password printed by the seed output. Log in at
+    https://stash.shottsserver.com and change them via Users → Reset
+    Password before doing anything else.
 
 12. **Set up mobile app**
 
@@ -231,12 +256,18 @@ docker compose exec stash-backend npx prisma migrate deploy
 
 ### Production Data
 
-All persistent data lives on Unraid at `/mnt/user/appdata/stash/`:
-- `postgres/` — Database files
-- `images/` — Item photos (JPEG, PNG, WebP, HEIC; 10 MB limit)
-- `qrcodes/` — Generated QR code PNGs
-- `exports/` — Generated CSV/PDF exports
-- `floorplans/` — Floor plan images
+Stash persistent data spans two locations on Unraid:
+
+- **`/mnt/cache/appdata/stash/postgres/`** — Postgres data files. Direct
+  NVMe; bypasses Unraid's FUSE/shfs layer for low-latency I/O. NOT
+  parity-protected (NVMe cache pool isn't), so back up regularly.
+- **`/mnt/user/appdata/stash/`** — Everything else (parity-protected via
+  the user share):
+  - `images/` — Item photos (JPEG, PNG, WebP, HEIC; 10 MB limit)
+  - `qrcodes/` — Generated QR code PNGs
+  - `exports/` — Generated CSV/PDF exports
+  - `floorplans/` — Floor plan images
+  - `repo/` — Cloned source code (rebuilt from `git pull` on each deploy)
 
 This data is accessible from any device via the API over Tailscale or the proxy domain.
 

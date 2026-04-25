@@ -43,7 +43,7 @@ export function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="james@stash.local"
+              placeholder="you@example.com"
               required
               autoFocus
             />

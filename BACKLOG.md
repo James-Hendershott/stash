@@ -19,7 +19,14 @@ Future enhancements and ideas. Not prioritized — revisit after v1.0.
 - [ ] Image compression / WebP conversion on upload for storage savings
 - [ ] Batch price estimation (estimate all SELL items at once)
 - [ ] Price comparison (show owner's estimate vs AI estimate side by side)
-- [ ] LLM-powered item description generation from photos (vision API)
+- [x] ~~Books schema (`BookDetails` 1:1 with Item, `BookBinding` enum)~~ (v1.2.0)
+- [x] ~~Free book metadata lookup helpers (OpenLibrary + Google Books)~~ (v1.2.0)
+- [x] ~~Offline enrichment script `scripts/enrich-books.mjs`~~ (v1.2.0)
+- [x] ~~Bulk CSV import endpoint `POST /api/books/import-csv` with placement columns~~ (v1.2.0)
+- [ ] **Admin "Books → Import CSV" page** — drag-drop CSV upload, preview top rows, confirm, show results table
+- [ ] **Admin Books list filters** — by ISBN, author, binding, edition; book-aware columns in the items list
+- [ ] Book CSV export with bibliographic columns (round-trip the import format)
+- [ ] LLM-powered item description generation from photos for non-book items (Sonnet vision, when ANTHROPIC_API_KEY is configured)
 - [ ] Push notifications for sync conflicts
 - [ ] Shared packing list views for helpers
 - [ ] Facebook Marketplace / OfferUp API integration for listings

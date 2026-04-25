@@ -1,0 +1,2933 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BUILD_LOG.md</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e0e10;
+    --surface: #161618;
+    --border: #2a2a2e;
+    --fg: #eaeaea;
+    --muted: #8d8d94;
+    --accent: #6c8cff;
+    --code-bg: #1a1a1d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell {
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static !important; height: auto !important; max-height: none !important; border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem 2rem;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .sidebar h1 { margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--fg); }
+  .sidebar .subtitle { margin: 0 0 1.4rem; font-size: 0.78rem; color: var(--muted); }
+  .sidebar input[type="search"] {
+    width: 100%;
+    padding: 0.4rem 0.55rem;
+    margin-bottom: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--code-bg);
+    color: var(--fg);
+    font-size: 0.85rem;
+  }
+  .toc { display: flex; flex-direction: column; gap: 0.15rem; }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.25rem 0.35rem;
+    border-radius: 3px;
+    border-left: 2px solid transparent;
+    transition: background 0.08s, color 0.08s;
+  }
+  .toc a:hover { color: var(--fg); background: rgba(108, 140, 255, 0.08); }
+  .toc a.active { color: var(--fg); border-left-color: var(--accent); background: rgba(108, 140, 255, 0.12); }
+  .toc a.toc-l2 { padding-left: 0.35rem; font-weight: 600; }
+  .toc a.toc-l3 { padding-left: 1rem; font-weight: 400; color: var(--muted); }
+  .toc a.hidden { display: none; }
+
+  .content { padding: 2.5rem 3rem 5rem; max-width: 920px; width: 100%; }
+  @media (max-width: 900px) { .content { padding: 1.5rem 1.25rem 3rem; } }
+
+  h1 { font-size: 1.85rem; line-height: 1.2; margin: 2.5rem 0 0.8rem; }
+  h1:first-child { margin-top: 0; }
+  h2 { font-size: 1.4rem; line-height: 1.25; margin: 2.3rem 0 0.7rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; line-height: 1.3; margin: 1.7rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 1.3rem 0 0.4rem; }
+  h1, h2, h3, h4 { scroll-margin-top: 1rem; }
+
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  ul li, ol li { margin-bottom: 0.25rem; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    padding: 0.1em 0.35em;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    line-height: 1.55;
+    font-size: 0.87rem;
+    margin: 0 0 1rem;
+  }
+  pre code { padding: 0; border: 0; background: transparent; font-size: inherit; }
+
+  blockquote {
+    margin: 0 0 1rem;
+    padding: 0.35rem 1rem;
+    border-left: 3px solid var(--accent);
+    background: rgba(108, 140, 255, 0.06);
+    color: var(--fg);
+  }
+  blockquote p { margin: 0.3rem 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 0 0 1rem; font-size: 0.9rem; }
+  table th, table td { border: 1px solid var(--border); padding: 0.4rem 0.65rem; text-align: left; vertical-align: top; }
+  table th { background: var(--code-bg); font-weight: 600; }
+  table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+
+  strong { color: var(--fg); font-weight: 700; }
+  em { color: #dcdce2; }
+
+  .foot {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .foot code { font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <h1>BUILD_LOG.md</h1>
+    <p class="subtitle">teach-as-you-build wiki</p>
+    <input id="search" type="search" placeholder="Filter sections…" autocomplete="off" />
+    <nav class="toc" id="toc">
+        <a class="toc-l2" href="#how-to-read-this">How to read this</a>
+        <a class="toc-l2" href="#table-of-contents">Table of contents</a>
+        <a class="toc-l2" href="#the-ask">The ask</a>
+        <a class="toc-l2" href="#what39s-the-actual-problem">What&amp;#39;s the actual problem</a>
+        <a class="toc-l2" href="#researching-prior-art">Researching prior art</a>
+        <a class="toc-l2" href="#the-design-that-fell-out">The design that fell out</a>
+        <a class="toc-l2" href="#chapter-takeaways">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-2">The ask</a>
+        <a class="toc-l2" href="#the-plan">The plan</a>
+        <a class="toc-l2" href="#step-1-the-four-packages">Step 1: The four packages</a>
+        <a class="toc-l2" href="#step-2-docker-compose-layering">Step 2: Docker Compose layering</a>
+        <a class="toc-l2" href="#step-3-the-ts-config">Step 3: The TS config</a>
+        <a class="toc-l2" href="#chapter-takeaways-2">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-3">The ask</a>
+        <a class="toc-l2" href="#the-plan-2">The plan</a>
+        <a class="toc-l2" href="#step-1-the-item-container-split">Step 1: The Item / Container split</a>
+        <a class="toc-l2" href="#step-2-soft-delete">Step 2: Soft delete</a>
+        <a class="toc-l2" href="#step-3-indexes">Step 3: Indexes</a>
+        <a class="toc-l2" href="#step-4-seed-data">Step 4: Seed data</a>
+        <a class="toc-l2" href="#bugs-we-hit">Bugs we hit</a>
+        <a class="toc-l2" href="#verifying">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-3">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-4">The ask</a>
+        <a class="toc-l2" href="#the-plan-3">The plan</a>
+        <a class="toc-l2" href="#step-1-auth-middleware">Step 1: Auth middleware</a>
+        <a class="toc-l2" href="#step-2-validation-middleware">Step 2: Validation middleware</a>
+        <a class="toc-l2" href="#step-3-the-item-list-endpoint-as-a-template">Step 3: The item list endpoint, as a template</a>
+        <a class="toc-l2" href="#step-4-referential-integrity">Step 4: Referential integrity</a>
+        <a class="toc-l2" href="#step-5-transactional-container-creation">Step 5: Transactional container creation</a>
+        <a class="toc-l2" href="#step-6-global-error-handler">Step 6: Global error handler</a>
+        <a class="toc-l2" href="#verifying-2">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-4">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-5">The ask</a>
+        <a class="toc-l2" href="#the-plan-4">The plan</a>
+        <a class="toc-l2" href="#step-1-multer-setup">Step 1: Multer setup</a>
+        <a class="toc-l2" href="#step-2-static-serving">Step 2: Static serving</a>
+        <a class="toc-l2" href="#step-3-qr-code-generation">Step 3: QR code generation</a>
+        <a class="toc-l2" href="#chapter-takeaways-5">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-6">The ask</a>
+        <a class="toc-l2" href="#the-plan-5">The plan</a>
+        <a class="toc-l2" href="#step-1-the-api-client">Step 1: The API client</a>
+        <a class="toc-l2" href="#step-2-auth-context">Step 2: Auth context</a>
+        <a class="toc-l2" href="#step-3-nested-routes">Step 3: Nested routes</a>
+        <a class="toc-l2" href="#step-4-url-params-as-ui-state">Step 4: URL params as UI state</a>
+        <a class="toc-l2" href="#step-5-vite-dev-proxy">Step 5: Vite dev proxy</a>
+        <a class="toc-l2" href="#chapter-takeaways-6">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-7">The ask</a>
+        <a class="toc-l2" href="#the-plan-6">The plan</a>
+        <a class="toc-l2" href="#step-1-the-prompt">Step 1: The prompt</a>
+        <a class="toc-l2" href="#step-2-parse-validate">Step 2: Parse + validate</a>
+        <a class="toc-l2" href="#step-3-cache-on-the-item-row">Step 3: Cache on the Item row</a>
+        <a class="toc-l2" href="#chapter-takeaways-7">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-8">The ask</a>
+        <a class="toc-l2" href="#the-plan-7">The plan</a>
+        <a class="toc-l2" href="#step-1-why-expo-not-bare-react-native">Step 1: Why Expo, not bare React Native</a>
+        <a class="toc-l2" href="#step-2-the-server-url-problem">Step 2: The server URL problem</a>
+        <a class="toc-l2" href="#step-3-qr-scan-navigate">Step 3: QR scan → navigate</a>
+        <a class="toc-l2" href="#chapter-takeaways-8">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-9">The ask</a>
+        <a class="toc-l2" href="#the-plan-8">The plan</a>
+        <a class="toc-l2" href="#step-1-the-pull-protocol">Step 1: The pull protocol</a>
+        <a class="toc-l2" href="#step-2-push-with-missing-record-tolerance">Step 2: Push with missing-record tolerance</a>
+        <a class="toc-l2" href="#chapter-takeaways-9">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-10">The ask</a>
+        <a class="toc-l2" href="#the-plan-9">The plan</a>
+        <a class="toc-l2" href="#step-1-the-threejs-trinity">Step 1: The Three.js trinity</a>
+        <a class="toc-l2" href="#step-2-wireframe-container-solid-items">Step 2: Wireframe container + solid items</a>
+        <a class="toc-l2" href="#step-3-postmessage-bridge">Step 3: postMessage bridge</a>
+        <a class="toc-l2" href="#chapter-takeaways-10">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-11">The ask</a>
+        <a class="toc-l2" href="#step-1-react-components-for-pdfs">Step 1: React components for PDFs</a>
+        <a class="toc-l2" href="#step-2-authenticated-blob-download">Step 2: Authenticated blob download</a>
+        <a class="toc-l2" href="#step-3-csv-escaping">Step 3: CSV escaping</a>
+        <a class="toc-l2" href="#chapter-takeaways-11">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-12">The ask</a>
+        <a class="toc-l2" href="#the-plan-10">The plan</a>
+        <a class="toc-l2" href="#step-1-a-csv-parser-that-handles-reality">Step 1: A CSV parser that handles reality</a>
+        <a class="toc-l2" href="#step-2-auto-mapping">Step 2: Auto-mapping</a>
+        <a class="toc-l2" href="#step-3-row-level-error-tolerance">Step 3: Row-level error tolerance</a>
+        <a class="toc-l2" href="#chapter-takeaways-12">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-13">The ask</a>
+        <a class="toc-l2" href="#the-plan-11">The plan</a>
+        <a class="toc-l2" href="#step-1-groupby-for-counts">Step 1: groupBy for counts</a>
+        <a class="toc-l2" href="#step-2-stacked-bar-in-css">Step 2: Stacked bar in CSS</a>
+        <a class="toc-l2" href="#chapter-takeaways-13">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-14">The ask</a>
+        <a class="toc-l2" href="#the-plan-12">The plan</a>
+        <a class="toc-l2" href="#step-1-the-safety-guards">Step 1: The safety guards</a>
+        <a class="toc-l2" href="#step-2-mustchangepassword">Step 2: mustChangePassword</a>
+        <a class="toc-l2" href="#chapter-takeaways-14">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-15">The ask</a>
+        <a class="toc-l2" href="#the-plan-13">The plan</a>
+        <a class="toc-l2" href="#step-1-why-class-components-for-error-boundaries">Step 1: Why class components for error boundaries</a>
+        <a class="toc-l2" href="#step-2-toast-pattern">Step 2: Toast pattern</a>
+        <a class="toc-l2" href="#step-3-responsive-sidebar">Step 3: Responsive sidebar</a>
+        <a class="toc-l2" href="#chapter-takeaways-15">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-16">The ask</a>
+        <a class="toc-l2" href="#the-plan-14">The plan</a>
+        <a class="toc-l2" href="#step-1-multi-stage-dockerfile-backend">Step 1: Multi-stage Dockerfile (backend)</a>
+        <a class="toc-l2" href="#step-2-nginx-tweaks-for-the-admin-container">Step 2: nginx tweaks for the admin container</a>
+        <a class="toc-l2" href="#step-3-data-persistence">Step 3: Data persistence</a>
+        <a class="toc-l2" href="#chapter-takeaways-16">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-17">The ask</a>
+        <a class="toc-l2" href="#bugs-we-hit-2">Bugs we hit</a>
+        <a class="toc-l3" href="#bug-1-missing-copy-tsconfigbasejson">Bug 1: Missing COPY tsconfig.base.json</a>
+        <a class="toc-l3" href="#bug-2-pdfts-vs-pdftsx">Bug 2: pdf.ts vs pdf.tsx</a>
+        <a class="toc-l3" href="#bug-3-prisma-database_url-mismatch">Bug 3: Prisma DATABASE_URL mismatch</a>
+        <a class="toc-l2" href="#chapter-takeaways-17">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-18">The ask</a>
+        <a class="toc-l2" href="#the-plan-15">The plan</a>
+        <a class="toc-l2" href="#step-1-hover-click-via-raycasting">Step 1: Hover + click via raycasting</a>
+        <a class="toc-l2" href="#step-2-aabb-collision">Step 2: AABB collision</a>
+        <a class="toc-l2" href="#step-3-stacking-physics">Step 3: Stacking physics</a>
+        <a class="toc-l2" href="#step-4-rotation-with-revert">Step 4: Rotation with revert</a>
+        <a class="toc-l2" href="#the-infra-fixes-not-glamorous-essential">The infra fixes (not glamorous, essential)</a>
+        <a class="toc-l2" href="#chapter-takeaways-18">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-19">The ask</a>
+        <a class="toc-l2" href="#bugs-we-hit-3">Bugs we hit</a>
+        <a class="toc-l3" href="#bug-watermelondb-native-modules-crash-expo-go">Bug: WatermelonDB native modules crash Expo Go</a>
+        <a class="toc-l3" href="#also-expo-go-asset-requirements">Also: Expo Go asset requirements</a>
+        <a class="toc-l2" href="#what-we-kept-and-what-we-threw-away">What we kept and what we threw away</a>
+        <a class="toc-l2" href="#chapter-takeaways-19">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-20">The ask</a>
+        <a class="toc-l2" href="#investigating-before-changing">Investigating before changing</a>
+        <a class="toc-l2" href="#the-plan-16">The plan</a>
+        <a class="toc-l2" href="#step-1-the-14-gallon-enum-migration">Step 1: The 14-gallon enum migration</a>
+        <a class="toc-l2" href="#step-2-real-hdx-dimensions">Step 2: Real HDX dimensions</a>
+        <a class="toc-l2" href="#step-3-scaffold-only-seed">Step 3: Scaffold-only seed</a>
+        <a class="toc-l2" href="#step-4-the-data-path-split">Step 4: The data-path split</a>
+        <a class="toc-l2" href="#verifying-3">Verifying</a>
+        <a class="toc-l2" href="#bugs-we-hit-4">Bugs we hit</a>
+        <a class="toc-l2" href="#chapter-takeaways-20">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-21">The ask</a>
+        <a class="toc-l2" href="#the-plan-17">The plan</a>
+        <a class="toc-l2" href="#step-1-the-sidecar-table">Step 1: The sidecar table</a>
+        <a class="toc-l2" href="#step-2-reading-covers-with-claude-haiku">Step 2: Reading covers with Claude Haiku</a>
+        <a class="toc-l2" href="#step-3-authoritative-metadata-from-free-apis">Step 3: Authoritative metadata from free APIs</a>
+        <a class="toc-l2" href="#step-4-the-route-one-transaction-creates-item-bookdetails">Step 4: The route — one transaction creates Item + BookDetails</a>
+        <a class="toc-l2" href="#bugs-we-hit-the-pre-existing-strict-mode-tax">Bugs we hit (the pre-existing strict-mode tax)</a>
+        <a class="toc-l3" href="#bug-1-shared-package-wasn39t-a-composite-project">Bug 1: shared package wasn&amp;#39;t a composite project</a>
+        <a class="toc-l3" href="#bug-2-pdftsx-had-jsx-but-tsc-wasn39t-told-about-it">Bug 2: pdf.tsx had JSX, but tsc wasn&amp;#39;t told about it</a>
+        <a class="toc-l3" href="#bug-3-30-implicit-any-errors-in-pre-existing-files">Bug 3: ~30 implicit-any errors in pre-existing files</a>
+        <a class="toc-l3" href="#bug-4-express-type-tightening-on-reqparams">Bug 4: Express type tightening on req.params</a>
+        <a class="toc-l3" href="#bug-5-jsonwebtoken-v9-expiresin-typing">Bug 5: jsonwebtoken v9 expiresIn typing</a>
+        <a class="toc-l2" href="#verifying-4">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-21">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-redirect">The redirect</a>
+        <a class="toc-l2" href="#what-changed-in-the-code">What changed in the code</a>
+        <a class="toc-l2" href="#the-user39s-actual-workflow">The user&amp;#39;s actual workflow</a>
+        <a class="toc-l2" href="#why-this-is-honestly-better-than-what-chapter-20-designed">Why this is honestly better than what Chapter 20 designed</a>
+        <a class="toc-l2" href="#bugs-we-hit-5">Bugs we hit</a>
+        <a class="toc-l3" href="#bug-1-typesexpress-v5-widened-paramsdictionary">Bug 1: @types/express v5 widened ParamsDictionary</a>
+        <a class="toc-l3" href="#bug-2-map-type-inference-under-noimplicitany-false">Bug 2: Map type inference under noImplicitAny: false</a>
+        <a class="toc-l2" href="#verifying-5">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-22">Chapter takeaways</a>
+    </nav>
+  </aside>
+  <main class="content" id="content">
+    <h1 id="build_logmd-how-stash-got-built-step-by-step">BUILD_LOG.md — How Stash Got Built, Step by Step</h1>
+<p>A chronological build log. Each chapter covers one version (one
+commit — or a cluster of closely related commits — in the project&#39;s
+git history) and walks through what we built, the decisions we made,
+the syntax and patterns we used, and any bugs we hit along the way.</p>
+<p><strong>Audience:</strong> someone with little or no experience who wants to learn
+how a real software project actually comes together. Read top to
+bottom — each chapter assumes you&#39;ve read the ones before it.</p>
+<p><strong>Companion documents:</strong></p>
+<ul>
+<li><a href="LEARN.md"><code>LEARN.md</code></a> — topical reference (&quot;here&#39;s how to think about X&quot;).</li>
+<li><a href="TEACH.md"><code>TEACH.md</code></a> — deep per-step tutorial content written during
+the original build. BUILD_LOG is the shorter narrative map over the
+same journey; when you want a section unpacked, TEACH.md is the next
+stop.</li>
+</ul>
+<blockquote>
+<p><strong>About this backfill.</strong> Chapters 0–18 were written <strong>after</strong> the
+fact, from the git history, <code>CHANGELOG.md</code>, and the source tree. The
+&quot;The ask&quot; and &quot;The plan&quot; sections reconstruct what the original
+request probably looked like based on commit messages and code
+— they are educated paraphrases, not verbatim transcripts. From
+Chapter 19 onward, the log is written in real time.</p>
+</blockquote>
+<hr>
+<h2 id="how-to-read-this">How to read this</h2>
+<ol>
+<li><strong>Read sequentially.</strong> Skipping chapters means missing context.</li>
+<li><strong>Open the files alongside.</strong> Path references are real — open them
+in your editor while you read.</li>
+<li><strong>Try the commands yourself.</strong> Code blocks marked <code>bash</code> are
+commands you can run.</li>
+<li><strong>It&#39;s OK to not understand everything on first pass.</strong> The
+topical unpacking lives in <code>LEARN.md</code> and <code>TEACH.md</code>.</li>
+<li><strong>Glossary at the end.</strong> Anytime a term appears in <strong>bold italic</strong>,
+it&#39;s defined in the glossary.</li>
+</ol>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="#chapter-0--before-any-code-the-moving-box-problem">Chapter 0 — Before any code: the moving-box problem</a></li>
+<li><a href="#chapter-1--v010-monorepo-scaffolding">Chapter 1 — v0.1.0: Monorepo scaffolding</a></li>
+<li><a href="#chapter-2--v020-the-database-designed-in-one-file">Chapter 2 — v0.2.0: The database, designed in one file</a></li>
+<li><a href="#chapter-3--v030-giving-the-server-a-voice-rest--jwt--zod">Chapter 3 — v0.3.0: Giving the server a voice (REST + JWT + Zod)</a></li>
+<li><a href="#chapter-4--v040-photos-on-disk-qr-codes-in-bytes">Chapter 4 — v0.4.0: Photos on disk, QR codes in bytes</a></li>
+<li><a href="#chapter-5--v050-a-dashboard-to-see-it-all">Chapter 5 — v0.5.0: A dashboard to see it all</a></li>
+<li><a href="#chapter-6--v060-asking-claude-whats-this-worth">Chapter 6 — v0.6.0: Asking Claude &quot;what&#39;s this worth?&quot;</a></li>
+<li><a href="#chapter-7--v070-a-phone-in-every-pocket">Chapter 7 — v0.7.0: A phone in every pocket</a></li>
+<li><a href="#chapter-8--v080-offline-first-with-watermelondb">Chapter 8 — v0.8.0: Offline-first with WatermelonDB</a></li>
+<li><a href="#chapter-9--v090-seeing-the-box-in-3d">Chapter 9 — v0.9.0: Seeing the box in 3D</a></li>
+<li><a href="#chapter-10--v0100-paper-is-forever-pdf--csv-export">Chapter 10 — v0.10.0: Paper is forever (PDF + CSV export)</a></li>
+<li><a href="#chapter-11--v0110-bulk-data-in-csv-import-wizard">Chapter 11 — v0.11.0: Bulk data in (CSV import wizard)</a></li>
+<li><a href="#chapter-12--v0120-the-floor-plan-view">Chapter 12 — v0.12.0: The floor plan view</a></li>
+<li><a href="#chapter-13--v0130-users-and-safety-guards">Chapter 13 — v0.13.0: Users and safety guards</a></li>
+<li><a href="#chapter-14--v0140-polish--the-last-10-is-90-of-the-work">Chapter 14 — v0.14.0: Polish — the last 10% is 90% of the work</a></li>
+<li><a href="#chapter-15--v100-shipping-to-unraid">Chapter 15 — v1.0.0: Shipping to Unraid</a></li>
+<li><a href="#chapter-16--v101-lessons-from-the-first-real-build">Chapter 16 — v1.0.1: Lessons from the first real build</a></li>
+<li><a href="#chapter-17--v110-a-3d-viewer-you-can-actually-play-with">Chapter 17 — v1.1.0: A 3D viewer you can actually play with</a></li>
+<li><a href="#chapter-18--v111-expo-go-takes-its-native-modules-back">Chapter 18 — v1.1.1: Expo Go takes its native modules back</a></li>
+<li><a href="#chapter-19--v120-cleaning-the-seed-and-untangling-the-data-path">Chapter 19 — v1.2.0: Cleaning the seed and untangling the data path</a></li>
+<li><a href="#chapter-20--v120-a-book-is-just-an-item-with-a-sidecar">Chapter 20 — v1.2.0: A book is just an item with a sidecar</a></li>
+<li><a href="#chapter-21--v120-the-bulk-path-wins">Chapter 21 — v1.2.0: The bulk path wins</a></li>
+<li><a href="#glossary">Glossary</a></li>
+</ul>
+<hr>
+<h1 id="chapter-0-before-any-code-the-moving-box-problem">Chapter 0 — Before any code: the moving-box problem</h1>
+<h2 id="the-ask">The ask</h2>
+<p>Stash exists to answer one question: <strong>&quot;Where is this thing?&quot;</strong></p>
+<p>The concrete scenario driving the project: a household move from
+Eagle Mountain, UT to a new property in North Carolina. Cross-country
+moves generate a specific kind of anxiety — you&#39;ve packed a box, you
+know <em>something</em> important is in it, you don&#39;t know which box. You
+also need to decide, for each object, whether it&#39;s worth moving at
+all: Keep, Sell, Donate, or Trash (<strong>KSDT</strong>).</p>
+<p>The off-the-shelf options — spreadsheets, note apps, generic
+inventory SaaS — got each part of this wrong in a different way:</p>
+<ul>
+<li>Spreadsheets don&#39;t do photos, and a text row for &quot;that weird lamp&quot;
+is nearly useless six weeks later.</li>
+<li>SaaS inventory tools want you to scan barcodes on products you
+purchased new. Household stuff doesn&#39;t have barcodes.</li>
+<li>Nothing understood <strong>containers</strong> — a U-Box is itself an item you
+own, but also a thing other items go <em>inside</em>.</li>
+</ul>
+<h2 id="what39s-the-actual-problem">What&#39;s the actual problem</h2>
+<p>Two problems wearing a trenchcoat:</p>
+<ol>
+<li><strong>Before the move</strong>: triage. Go room by room, decide each item&#39;s
+fate, price the sell pile, make lists for donation and trash.</li>
+<li><strong>During and after the move</strong>: placement. Every item gets put in
+a container; every container gets a label; on the other end, you
+unpack and confirm each item landed in its destination room.</li>
+</ol>
+<p>After the move, the inventory doesn&#39;t go away — it becomes a
+<strong>permanent property inventory</strong>. Useful for insurance, for the next
+move, for &quot;did we actually keep that thing?&quot;</p>
+<h2 id="researching-prior-art">Researching prior art</h2>
+<ul>
+<li><strong>Sortly / Itemtopia</strong> — pretty, mobile-first, but require a
+monthly subscription and store your data on their servers.</li>
+<li><strong>Google Sheets</strong> — infinitely flexible, zero structure; no photos
+without a plugin, no relationships.</li>
+<li><strong>Notion</strong> — databases plus photos, but sluggish for hundreds of
+rows and no offline on mobile.</li>
+</ul>
+<p>The verdict: build a small, self-hosted app that runs on the home
+server already in the house (an Unraid box named <strong>ShottsServer</strong>),
+exposes a web admin for desk work and a mobile app for
+photo-on-the-fly, and stores everything in a real database we
+control.</p>
+<h2 id="the-design-that-fell-out">The design that fell out</h2>
+<p><strong>Stack:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Storage</td>
+<td>PostgreSQL 16</td>
+<td>Strong typing, relations, JSON when needed, mature</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>Prisma</td>
+<td>Single schema file → SQL + types + client</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Node 20 + Express + Zod</td>
+<td>Small surface, easy to reason about</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>React 18 + Vite</td>
+<td>Fast dev server, no framework overhead</td>
+</tr>
+<tr>
+<td>Mobile</td>
+<td>React Native + Expo (SDK 54)</td>
+<td>Share <code>@stash/shared</code> types with admin</td>
+</tr>
+<tr>
+<td>Deploy</td>
+<td>Docker Compose on Unraid</td>
+<td>Home-server-friendly, declarative</td>
+</tr>
+<tr>
+<td>Remote</td>
+<td>Tailscale</td>
+<td>Phones on the road still reach the server</td>
+</tr>
+<tr>
+<td>LLM</td>
+<td>Claude API (for price estimates on Sell)</td>
+<td>One non-obvious power feature</td>
+</tr>
+<tr>
+<td>3D</td>
+<td>Three.js</td>
+<td>&quot;Will this fit in the U-Box?&quot; is a real question</td>
+</tr>
+</tbody></table>
+<p><strong>Three architectural decisions that will shape everything:</strong></p>
+<ol>
+<li><strong>Monorepo with npm workspaces.</strong> <code>@stash/shared</code> holds types,
+enums, and constants used by backend, admin, and mobile. One source
+of truth for <code>Fate</code>, <code>ContainerType</code>, fate colors, default box
+sizes.</li>
+<li><strong>Containers are Items.</strong> A U-Box is not a separate model — it&#39;s
+an <code>Item</code> with <code>isContainer=true</code> plus a companion <code>Container</code> row
+holding internal dimensions. This means a container can be tracked
+(photographed, labeled, given a fate) exactly like any other
+object.</li>
+<li><strong>Soft delete everywhere.</strong> Items are never hard-deleted.
+<code>deletedAt</code> is the tombstone. This matters for the mobile app&#39;s
+offline sync (you need to tell the phone the item was deleted),
+for the audit log, and for &quot;oops, undelete that.&quot;</li>
+</ol>
+<h2 id="chapter-takeaways">Chapter takeaways</h2>
+<ul>
+<li>The real problem wasn&#39;t &quot;track objects&quot; — it was <strong>&quot;decide KSDT +
+place items in containers + find them again later.&quot;</strong> Picking the
+right problem is the first design decision.</li>
+<li>A monorepo is the right call when three packages share vocabulary.
+Prematurely monorepo-ing three unrelated things is a mistake; here,
+every package imports from <code>@stash/shared</code> on day one.</li>
+<li>Home-server self-hosting is a deployment choice with design
+consequences — no public URL, so you need a VPN (Tailscale) and a
+way to expose the API to phones on LTE.</li>
+</ul>
+<hr>
+<h1 id="chapter-1-v010-monorepo-scaffolding">Chapter 1 — v0.1.0: Monorepo scaffolding</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> npm <strong><em>workspaces</em></strong>, TypeScript
+project references, Docker Compose layering (base + dev + prod),
+what each of the four packages exists to do.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>078e70b</code> — &quot;Step 1: Project scaffolding — monorepo
+structure, shared types, backend/admin/mobile packages&quot;</p>
+<h2 id="the-ask-2">The ask</h2>
+<p>Get the skeleton in place so feature work can start the next day.
+Four packages, one lockfile, Docker-first dev, config that works
+identically on the dev laptop and on the Unraid home server.</p>
+<h2 id="the-plan">The plan</h2>
+<ul>
+<li>Root <code>package.json</code> with <code>workspaces: [&quot;packages/shared&quot;, &quot;packages/backend&quot;, &quot;packages/admin&quot;, &quot;packages/mobile&quot;]</code>.</li>
+<li>Each package has its own <code>package.json</code> and <code>tsconfig.json</code>.</li>
+<li><code>tsconfig.base.json</code> at the root for shared compiler options;
+package configs <code>extends</code> it.</li>
+<li>Three Docker Compose files:<ul>
+<li><code>docker-compose.yml</code> — the base, production-shaped.</li>
+<li><code>docker-compose.dev.yml</code> — overrides for local dev (port maps,
+bind mounts, dev Dockerfile stages).</li>
+<li><code>docker-compose.prod.yml</code> — overrides for Unraid (production
+volumes, no bind mounts).</li>
+</ul>
+</li>
+<li>A dev-data directory convention: <code>DATA_PATH=./data</code> locally,
+<code>DATA_PATH=/mnt/user/appdata/stash</code> on Unraid. Every file path in
+code is relative to <code>DATA_PATH</code>.</li>
+</ul>
+<h2 id="step-1-the-four-packages">Step 1: The four packages</h2>
+<pre><code>packages/
+├── shared/    # TS types + enums + constants (fate colors, default box sizes)
+├── backend/   # Express + Prisma server
+├── admin/     # React + Vite SPA
+└── mobile/    # React Native + Expo app
+</code></pre>
+<p>Only <strong>shared</strong> has no runtime dependencies — it compiles to plain
+JS and <code>.d.ts</code> files. Everything else imports from it via
+<code>@stash/shared</code> (the <code>&quot;name&quot;</code> field in <code>packages/shared/package.json</code>).</p>
+<p><strong>Why workspaces and not a lerna/nx/turbo setup?</strong> npm workspaces are
+built in, have no extra config, and we have four packages — not
+forty. The moment we need shared build caching or task graphs we can
+layer something on top.</p>
+<h2 id="step-2-docker-compose-layering">Step 2: Docker Compose layering</h2>
+<p>The three-file pattern is important enough to call out explicitly.
+The base file is <strong>production-shaped</strong>:</p>
+<pre><code class="language-yaml"># docker-compose.yml (base)
+services:
+  stash-postgres:
+    image: postgres:16
+    # …no ports exposed to host — only inside the stash_network
+  stash-backend:
+    build: {context: ., dockerfile: packages/backend/Dockerfile}
+    ports: [&quot;${BACKEND_PORT:-3001}:3001&quot;]
+  stash-admin:
+    build: {context: ., dockerfile: packages/admin/Dockerfile}
+    # …no ports exposed; prod adds them
+</code></pre>
+<p>Dev and prod then <strong>override</strong> only what changes:</p>
+<ul>
+<li>Dev exposes postgres on <code>5434:5432</code> so Prisma can run from the host.</li>
+<li>Dev targets the <code>development</code> build stage of each Dockerfile (hot
+reload).</li>
+<li>Dev bind-mounts <code>packages/*/src</code> into the container.</li>
+</ul>
+<p><strong>Why base-shaped-like-prod?</strong> Because prod is the destination. Dev
+is the detour. If you make base dev-shaped you end up with scary
+prod-only config that only appears in one file.</p>
+<h2 id="step-3-the-ts-config">Step 3: The TS config</h2>
+<p><code>tsconfig.base.json</code> is thirty lines of conservative settings:
+<code>strict: true</code>, <code>target: ES2022</code>, <code>module: commonjs</code>,
+<code>esModuleInterop</code>, <code>skipLibCheck</code>. Package configs extend it and add
+<code>rootDir</code> / <code>outDir</code>.</p>
+<p>The admin package <strong>doesn&#39;t</strong> extend the base — it has its own
+Vite-compatible config (<code>module: ESNext</code>, React JSX). The base fits
+Node packages; forcing React into <code>commonjs</code> would break Vite.</p>
+<h2 id="chapter-takeaways-2">Chapter takeaways</h2>
+<ul>
+<li>Start with the deployment target&#39;s shape, not the dev environment&#39;s.</li>
+<li><code>@stash/shared</code> is the spine of the monorepo. Any type or constant
+used by two of backend/admin/mobile belongs there.</li>
+<li>TS project configs are a tree: one base, four package configs
+extending (or intentionally not extending) it.</li>
+</ul>
+<hr>
+<h1 id="chapter-2-v020-the-database-designed-in-one-file">Chapter 2 — v0.2.0: The database, designed in one file</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Prisma <strong><em>schema</em></strong> syntax,
+<strong><em>enums</em></strong>, one-to-many and one-to-one relations, indexes, soft
+deletes via <code>deletedAt</code>, the <strong>Item is also a Container</strong> pattern.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>daebc19</code> — &quot;Step 2: Prisma schema, seed script, and
+documentation&quot;</p>
+<h2 id="the-ask-3">The ask</h2>
+<p>Before any routes exist, model the domain end-to-end. Every table we
+need, every relation, every enum — all in one file so we can see
+them together.</p>
+<h2 id="the-plan-2">The plan</h2>
+<p>Seven models:</p>
+<ul>
+<li><code>User</code> — login + audit trail authorship.</li>
+<li><code>Location</code> — rooms, tagged as <code>ORIGIN</code> or <code>DESTINATION</code>.</li>
+<li><code>Category</code> — Furniture, Electronics, Kitchen, etc.</li>
+<li><code>Item</code> — the central entity. Has a <code>Fate</code>, dimensions, condition,
+photo path.</li>
+<li><code>Container</code> — a companion row for items that <em>hold</em> other items.
+1:1 with <code>Item</code> via <code>itemId</code>.</li>
+<li><code>ItemPlacement</code> — temporal log of which item is in which container,
+with <code>placedAt</code>/<code>removedAt</code>.</li>
+<li><code>ActivityLog</code> — who changed what, when.</li>
+</ul>
+<p>Plus six enums: <code>Role</code>, <code>Condition</code>, <code>Fate</code>, <code>ShapeType</code>,
+<code>ContainerType</code>, <code>LocationType</code>.</p>
+<h2 id="step-1-the-item-container-split">Step 1: The Item / Container split</h2>
+<p>The defining decision. A U-Box is, conceptually, two things: a <em>thing
+you own</em> (with a fate, a photo, a location) and a <em>bucket other things
+go into</em> (with internal dimensions). We could cram all that into one
+model; instead:</p>
+<pre><code class="language-prisma">model Item {
+  id          String  @id @default(uuid())
+  // …all the &quot;thing you own&quot; fields…
+  isContainer Boolean @default(false)
+  container   Container?  // 1:1 back-relation
+}
+
+model Container {
+  id     String @id @default(uuid())
+  itemId String @unique        // the 1:1
+  internalLengthIn Float
+  internalWidthIn  Float
+  internalHeightIn Float
+  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+</code></pre>
+<p><strong>Why two tables instead of nullable columns on Item?</strong> Nullable
+columns would mean <code>Item</code> has <code>internalLengthIn: Float?</code> everywhere —
+and every query returning items would waste bytes on fields that are
+null 90% of the time. Splitting also enforces the invariant that a
+container has inner dimensions <em>at all</em> (they are non-nullable in
+<code>Container</code>).</p>
+<p>The cost: any write that creates a container does two inserts; we
+wrap those in a <strong><em>transaction</em></strong> (see Chapter 3).</p>
+<h2 id="step-2-soft-delete">Step 2: Soft delete</h2>
+<pre><code class="language-prisma">model Item {
+  // …
+  deletedAt DateTime?
+  @@index([deletedAt])
+}
+</code></pre>
+<p><code>deletedAt: null</code> means alive. Every list query must filter
+<code>{ deletedAt: null }</code>. Restores are trivial. The mobile sync
+endpoint (Chapter 8) reports soft-deleted items as <code>deleted</code> so the
+phone can remove them locally.</p>
+<p><strong>Alternative considered:</strong> a hard delete with a separate <code>deleted_items</code>
+table. Rejected: twice the tables, harder to undelete, and Prisma
+can&#39;t express &quot;this foreign key might point at the archive.&quot;</p>
+<h2 id="step-3-indexes">Step 3: Indexes</h2>
+<p>Prisma auto-indexes <code>@id</code> and <code>@unique</code> columns. Everything else
+that&#39;s filtered or sorted on gets an explicit <code>@@index</code>:</p>
+<pre><code class="language-prisma">@@index([categoryId])
+@@index([originLocationId])
+@@index([destinationLocationId])
+@@index([fate])
+@@index([deletedAt])
+</code></pre>
+<p>No <code>@@index([createdAt])</code> yet — the default sort is <code>createdAt desc</code>
+but the table is small enough that a sequential scan is fine. If the
+item table ever exceeds ~100k rows we revisit.</p>
+<h2 id="step-4-seed-data">Step 4: Seed data</h2>
+<p><code>prisma/seed.ts</code> creates realistic dev data: 2 users (james + savanah),
+13 locations (origin rooms + destination rooms), 10 categories, 22
+items, 3 containers, 4 placements. Running <code>prisma db seed</code> is the
+fastest way to get the admin dashboard looking like something real.</p>
+<p>The seed script uses <code>upsert</code> where possible so re-running it is
+idempotent.</p>
+<h2 id="bugs-we-hit">Bugs we hit</h2>
+<p>None on this commit — Prisma was happy with the schema on first
+compile. The first real build errors come in Chapter 16.</p>
+<h2 id="verifying">Verifying</h2>
+<pre><code class="language-bash">cd packages/backend
+DATABASE_URL=&quot;postgresql://stash:stash@localhost:5434/stash&quot; \
+  npx prisma migrate dev --name init
+DATABASE_URL=&quot;…&quot; npx prisma db seed
+DATABASE_URL=&quot;…&quot; npx prisma studio   # http://localhost:5555
+</code></pre>
+<h2 id="chapter-takeaways-3">Chapter takeaways</h2>
+<ul>
+<li>Design the whole data model before any routes. The schema is the
+contract the rest of the system is built on top of.</li>
+<li><strong>Items-as-Containers</strong> is the kind of invariant that would be a
+pain to retrofit. Get it right in Chapter 2.</li>
+<li><code>deletedAt: DateTime?</code> is one line of schema and saves the mobile
+sync protocol from needing a separate tombstone table.</li>
+<li>Always index the columns you filter on. Always. <code>@@index([fate])</code>
+costs nothing at insert time and makes fate-filtered list queries
+fly.</li>
+</ul>
+<hr>
+<h1 id="chapter-3-v030-giving-the-server-a-voice-rest-jwt-zod">Chapter 3 — v0.3.0: Giving the server a voice (REST + JWT + Zod)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Express <strong><em>Router</em></strong>, middleware
+pipeline, JWT <strong><em>auth</em></strong> flow, Zod <strong><em>schema validation</em></strong>,
+referential integrity guards, HTTP status codes as contract.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>3721c42</code> — &quot;Step 3: Backend API routes — REST endpoints,
+JWT auth, Zod validation&quot;</p>
+<h2 id="the-ask-4">The ask</h2>
+<p>Turn the schema into an HTTP API. Eight resource groups (auth, items,
+containers, locations, categories, placements, activity, stats).
+Everything behind authentication. Every mutating endpoint validated.</p>
+<h2 id="the-plan-3">The plan</h2>
+<ul>
+<li>One <code>Router</code> per resource in <code>src/routes/*.ts</code>.</li>
+<li><code>src/index.ts</code> mounts them under <code>/api/&lt;resource&gt;</code>.</li>
+<li>All routers (except <code>auth</code>) call <code>router.use(requireAuth)</code> at the
+top — authentication is not opt-in.</li>
+<li>Zod validators live in <code>src/validators/*.ts</code>. A generic
+<code>validate(schema)</code> middleware runs them.</li>
+<li>The Prisma client is a singleton exported from <code>src/lib/prisma.ts</code>.</li>
+</ul>
+<h2 id="step-1-auth-middleware">Step 1: Auth middleware</h2>
+<pre><code class="language-ts">// packages/backend/src/middleware/auth.ts
+export function requireAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith(&#39;Bearer &#39;)) {
+    return res.status(401).json({ error: &#39;…&#39; });
+  }
+  const token = header.slice(7);
+  try {
+    req.user = jwt.verify(token, config.jwtSecret) as AuthPayload;
+    next();
+  } catch {
+    res.status(401).json({ error: &#39;Invalid or expired token&#39; });
+  }
+}
+
+export function requireAdmin(req, res, next) {
+  if (req.user?.role !== &#39;ADMIN&#39;) {
+    return res.status(403).json({ error: &#39;Admin access required&#39; });
+  }
+  next();
+}
+</code></pre>
+<p><code>requireAdmin</code> must come <strong>after</strong> <code>requireAuth</code> — it reads
+<code>req.user.role</code>. Middleware order is API contract.</p>
+<p><strong>Why JWT and not sessions?</strong> Mobile. The React Native app stores the
+token in <code>expo-secure-store</code> and sends it on every request. A
+cookie-based session would require RN cookie plumbing that Expo
+doesn&#39;t love.</p>
+<h2 id="step-2-validation-middleware">Step 2: Validation middleware</h2>
+<pre><code class="language-ts">// src/middleware/validate.ts
+export const validate = (schema: ZodSchema) =&gt;
+  (req, res, next) =&gt; {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error.flatten() });
+    }
+    req.body = result.data;   // ← important: replace with the parsed value
+    next();
+  };
+</code></pre>
+<p>Replacing <code>req.body</code> with <code>result.data</code> matters because Zod <strong>coerces
+and strips</strong>. If a field is <code>.default(1)</code>, Zod fills it in; if the
+client sends unknown keys, Zod drops them. You want the parsed copy.</p>
+<h2 id="step-3-the-item-list-endpoint-as-a-template">Step 3: The item list endpoint, as a template</h2>
+<p>Every route follows the same rhythm: parse query, build <code>where</code>
+object, query Prisma, respond.</p>
+<pre><code class="language-ts">router.get(&#39;/&#39;, async (req, res) =&gt; {
+  const { fate, categoryId, search } = req.query;
+  const where: Record&lt;string, unknown&gt; = { deletedAt: null };
+
+  if (fate) where.fate = fate;
+  if (categoryId) where.categoryId = categoryId;
+  if (search) {
+    where.OR = [
+      { name:        { contains: search, mode: &#39;insensitive&#39; } },
+      { description: { contains: search, mode: &#39;insensitive&#39; } },
+      { notes:       { contains: search, mode: &#39;insensitive&#39; } },
+    ];
+  }
+
+  const items = await prisma.item.findMany({
+    where,
+    include: { category: true, originLocation: true, /* … */ },
+    orderBy: { createdAt: &#39;desc&#39; },
+  });
+  res.json(items);
+});
+</code></pre>
+<p>The <code>deletedAt: null</code> filter appears on every list query. If you ever
+see a list query that doesn&#39;t filter it, that&#39;s a bug.</p>
+<h2 id="step-4-referential-integrity">Step 4: Referential integrity</h2>
+<p>Locations and categories have item counts. Deleting one while items
+still reference it would orphan them. Rather than rely on Postgres to
+scream at us, we check explicitly and return a clean 409:</p>
+<pre><code class="language-ts">const itemCount = await prisma.item.count({
+  where: { categoryId: id, deletedAt: null },
+});
+if (itemCount &gt; 0) {
+  return res.status(409).json({
+    error: `Cannot delete — ${itemCount} items reference this category.`,
+  });
+}
+</code></pre>
+<p><strong>409 Conflict</strong> is the right status code here — the request is
+well-formed, the server understood it, but the current state forbids
+it. Save 400 for &quot;your input was garbage.&quot;</p>
+<h2 id="step-5-transactional-container-creation">Step 5: Transactional container creation</h2>
+<p>Creating a container is two inserts: the <code>Item</code> row plus the
+<code>Container</code> row. If the second fails, the first must be rolled back.</p>
+<pre><code class="language-ts">const { item, container } = await prisma.$transaction(async (tx) =&gt; {
+  const item = await tx.item.create({ data: { …, isContainer: true } });
+  const container = await tx.container.create({
+    data: { itemId: item.id, …dims },
+  });
+  return { item, container };
+});
+</code></pre>
+<p>Prisma&#39;s <code>$transaction</code> with a callback gives you a transactional
+client — anything that throws inside rolls everything back.</p>
+<h2 id="step-6-global-error-handler">Step 6: Global error handler</h2>
+<pre><code class="language-ts">// src/index.ts (tail)
+app.use((err, _req, res, _next) =&gt; {
+  console.error(&#39;Unhandled error:&#39;, err);
+  res.status(500).json({
+    error: config.nodeEnv === &#39;production&#39; ? &#39;Internal server error&#39; : err.message,
+  });
+});
+</code></pre>
+<p>In dev you get the error text so you can fix it. In prod you get
+&quot;Internal server error&quot; so you don&#39;t leak stack traces to users.</p>
+<h2 id="verifying-2">Verifying</h2>
+<pre><code class="language-bash"># Login
+curl -X POST http://localhost:3001/api/auth/login \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;email&quot;:&quot;james@stash.local&quot;,&quot;password&quot;:&quot;password123&quot;}&#39;
+# → { &quot;token&quot;: &quot;eyJ…&quot;, &quot;user&quot;: { … } }
+
+curl http://localhost:3001/api/items -H &quot;Authorization: Bearer &lt;token&gt;&quot;
+</code></pre>
+<h2 id="chapter-takeaways-4">Chapter takeaways</h2>
+<ul>
+<li>Apply <code>requireAuth</code> at the top of each router. Auth is not per-route;
+it&#39;s a blanket default with <code>auth</code> itself as the only exception.</li>
+<li>Replace <code>req.body</code> with the Zod-parsed value so defaults and coerced
+types reach your handler.</li>
+<li>Use <code>$transaction</code> any time two writes must succeed or fail together.</li>
+<li>Use HTTP status codes as part of the contract: 400 bad input,
+401 unauthenticated, 403 authenticated-but-forbidden, 404 not found,
+409 state conflict. Don&#39;t just spray 500s.</li>
+</ul>
+<hr>
+<h1 id="chapter-4-v040-photos-on-disk-qr-codes-in-bytes">Chapter 4 — v0.4.0: Photos on disk, QR codes in bytes</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> <code>multipart/form-data</code>, <strong><em>Multer</em></strong>
+disk storage, MIME filtering, static file serving, the <code>qrcode</code>
+library, error correction levels.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>39fcbc1</code> — &quot;Step 4: Image upload and QR code generation&quot;</p>
+<h2 id="the-ask-5">The ask</h2>
+<p>Items need photos. Containers need scannable labels. Serve both as
+static files from the same <code>DATA_PATH</code> we already configured.</p>
+<h2 id="the-plan-4">The plan</h2>
+<ul>
+<li>Multer middleware for photo uploads, max 10 MB, filter to
+JPEG/PNG/WebP/HEIC.</li>
+<li><code>qrcode</code> library for QR generation — both as PNG on disk (for PDF
+label sheets) and as base64 data URLs (for inline in admin UI).</li>
+<li>Photos live under <code>DATA_PATH/images</code>, QR codes under
+<code>DATA_PATH/qrcodes</code>, served at <code>/api/files/images/*</code> and
+<code>/api/files/qrcodes/*</code>.</li>
+</ul>
+<h2 id="step-1-multer-setup">Step 1: Multer setup</h2>
+<pre><code class="language-ts">// src/middleware/upload.ts
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) =&gt; cb(null, config.imagesPath),
+  filename: (_req, file, cb) =&gt; {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${crypto.randomUUID()}${ext}`);
+  },
+});
+
+export const uploadImage = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) =&gt; {
+    const ok = /jpeg|png|webp|heic/.test(file.mimetype);
+    cb(ok ? null : new Error(&#39;Unsupported image type&#39;), ok);
+  },
+});
+</code></pre>
+<p>Timestamp-prefixed UUID filenames give us:</p>
+<ul>
+<li>Human-scannable ordering in the file manager.</li>
+<li>No collisions even with concurrent uploads.</li>
+<li>No information leak from the original filename.</li>
+</ul>
+<h2 id="step-2-static-serving">Step 2: Static serving</h2>
+<pre><code class="language-ts">// src/index.ts
+app.use(&#39;/api/files&#39;, express.static(path.resolve(config.dataPath)));
+</code></pre>
+<p>Note <code>/api/files</code>, not <code>/files</code> — keeping everything under <code>/api/*</code>
+means nginx can proxy the backend with a single <code>location /api/</code>
+block in production (Chapter 15).</p>
+<h2 id="step-3-qr-code-generation">Step 3: QR code generation</h2>
+<pre><code class="language-ts">// src/services/qrcode.ts
+export async function generateQRForItem(itemId: string) {
+  const url = `${config.backendUrl}/api/items/${itemId}`;
+  const filePath = path.join(config.qrCodesPath, `item-${itemId}.png`);
+  await QRCode.toFile(filePath, url, {
+    width: 300,
+    errorCorrectionLevel: &#39;M&#39;,
+  });
+  return filePath;
+}
+</code></pre>
+<p><code>errorCorrectionLevel: &#39;M&#39;</code> (medium, ~15%) is the sweet spot — H is
+nice if you expect the label to be partially scuffed in a dusty
+garage, but the dense pattern is harder to print at small sizes.</p>
+<p>QR payload is the API URL, not a custom scheme. Scanning in a
+generic QR app opens <code>/api/items/xxx</code> in the browser; scanning in
+the mobile app (Chapter 7) parses the item ID out of the URL and
+navigates directly.</p>
+<h2 id="chapter-takeaways-5">Chapter takeaways</h2>
+<ul>
+<li>Multer&#39;s <code>diskStorage</code> + <code>fileFilter</code> + <code>limits</code> is three small
+pieces doing the boring part of file uploads.</li>
+<li>Timestamp-UUID filenames are a cheap, correct default.</li>
+<li>Encode URLs in QR codes. Generic scanners just work; your app
+still parses the ID.</li>
+</ul>
+<hr>
+<h1 id="chapter-5-v050-a-dashboard-to-see-it-all">Chapter 5 — v0.5.0: A dashboard to see it all</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> React 18 function components,
+<code>useState</code>/<code>useEffect</code>, <strong><em>React Router</em></strong> nested routes,
+context-based auth, Vite&#39;s dev proxy, URL params as UI state.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>5fe8b2f</code> — &quot;Step 5: Admin dashboard frontend — React
+SPA with full CRUD UI&quot;</p>
+<h2 id="the-ask-6">The ask</h2>
+<p>A browser-based admin dashboard. Every REST endpoint has a UI.
+Sidebar navigation. Protected routes. No alert dialogs (Chapter 14
+replaces the last of them).</p>
+<h2 id="the-plan-5">The plan</h2>
+<ul>
+<li>Single <code>api.ts</code> client with JWT token management.</li>
+<li><code>AuthContext</code> in localStorage; auto-validates on mount.</li>
+<li><code>ProtectedRoute</code> wrapper redirects to <code>/login</code> when no token.</li>
+<li>Nested routes: one top-level <code>&lt;Layout&gt;</code> outlet, all authenticated
+pages as children.</li>
+<li>CSS from scratch. No Tailwind, no component library — the admin
+UI is small enough that custom CSS is faster to ship than wiring a
+framework.</li>
+</ul>
+<h2 id="step-1-the-api-client">Step 1: The API client</h2>
+<pre><code class="language-ts">// src/lib/api.ts
+const API_BASE = &#39;/api&#39;;
+
+function getToken() { return localStorage.getItem(&#39;stash_token&#39;); }
+
+async function request&lt;T&gt;(path: string, opts: RequestInit = {}): Promise&lt;T&gt; {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...opts,
+    headers: {
+      &#39;Content-Type&#39;: &#39;application/json&#39;,
+      ...(token &amp;&amp; { Authorization: `Bearer ${token}` }),
+      ...opts.headers,
+    },
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json();
+}
+
+export const api = {
+  items:      { list: (q?: string) =&gt; request&lt;Item[]&gt;(`/items${q ?? &#39;&#39;}`), … },
+  containers: { … },
+  // etc.
+};
+</code></pre>
+<p>One function (<code>request</code>) does the token/header/error boilerplate.
+Every resource is a thin namespace on top.</p>
+<h2 id="step-2-auth-context">Step 2: Auth context</h2>
+<pre><code class="language-tsx">// src/context/AuthContext.tsx
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState&lt;User | null&gt;(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    const token = localStorage.getItem(&#39;stash_token&#39;);
+    if (!token) { setLoading(false); return; }
+    api.auth.me().then(setUser).catch(() =&gt; {
+      localStorage.removeItem(&#39;stash_token&#39;);
+    }).finally(() =&gt; setLoading(false));
+  }, []);
+
+  return (
+    &lt;AuthContext.Provider value={{ user, login, logout }}&gt;
+      {loading ? &lt;Spinner/&gt; : children}
+    &lt;/AuthContext.Provider&gt;
+  );
+}
+</code></pre>
+<p>On mount we try the stored token. If <code>/auth/me</code> rejects, we nuke the
+token and land on <code>/login</code>. The <code>loading</code> state prevents a flash of
+&quot;you are logged out&quot; while we check.</p>
+<h2 id="step-3-nested-routes">Step 3: Nested routes</h2>
+<pre><code class="language-tsx">&lt;Routes&gt;
+  &lt;Route path=&quot;/login&quot; element={&lt;LoginPage/&gt;} /&gt;
+  &lt;Route element={&lt;ProtectedRoute&gt;&lt;Layout/&gt;&lt;/ProtectedRoute&gt;}&gt;
+    &lt;Route path=&quot;/&quot; element={&lt;DashboardPage/&gt;} /&gt;
+    &lt;Route path=&quot;/items&quot; element={&lt;ItemListPage/&gt;} /&gt;
+    &lt;Route path=&quot;/items/:id&quot; element={&lt;ItemDetailPage/&gt;} /&gt;
+    {/* etc. */}
+  &lt;/Route&gt;
+&lt;/Routes&gt;
+</code></pre>
+<p><code>&lt;Layout&gt;</code> contains the sidebar and an <code>&lt;Outlet/&gt;</code>. All authenticated
+pages render into that outlet. The sidebar is always visible, no
+per-page layout duplication.</p>
+<h2 id="step-4-url-params-as-ui-state">Step 4: URL params as UI state</h2>
+<p>The item list filter is in the URL:</p>
+<pre><code>/items?fate=SELL&amp;categoryId=abc
+</code></pre>
+<p><strong>Why in the URL and not component state?</strong> Sharing, bookmarking,
+browser back-button. &quot;Can you send me the Sell list?&quot; becomes a URL,
+not &quot;click Items, click the fate dropdown, click Sell.&quot;</p>
+<h2 id="step-5-vite-dev-proxy">Step 5: Vite dev proxy</h2>
+<pre><code class="language-ts">// packages/admin/vite.config.ts
+server: {
+  proxy: {
+    &#39;/api&#39;: { target: `http://${process.env.BACKEND_HOST || &#39;localhost&#39;}:3001` },
+  },
+},
+</code></pre>
+<p>In dev, the admin server (<code>:3002</code>) proxies <code>/api/*</code> to the backend
+(<code>:3001</code>). That means the admin code can use relative URLs
+(<code>fetch(&#39;/api/items&#39;)</code>) and works identically in dev and prod —
+nginx will do the same proxying in production.</p>
+<p>The <code>BACKEND_HOST</code> env var exists for Docker dev: inside the admin
+container, <code>localhost</code> is the admin container itself. The backend is
+reachable at <code>stash-backend</code>. <code>BACKEND_HOST=stash-backend</code> in
+<code>docker-compose.dev.yml</code> fixes this — but this only landed after we
+hit the bug in Chapter 17. On first commit it was hardcoded
+<code>localhost</code> and broke inside Docker.</p>
+<h2 id="chapter-takeaways-6">Chapter takeaways</h2>
+<ul>
+<li>One <code>request()</code> function + per-resource namespaces is enough. You
+don&#39;t need React Query for a self-hosted app with one user.</li>
+<li>Nested routes + <code>&lt;Outlet/&gt;</code> = zero layout duplication.</li>
+<li>URL params are the correct storage for &quot;state the user might want
+to share or bookmark.&quot;</li>
+</ul>
+<hr>
+<h1 id="chapter-6-v060-asking-claude-quotwhat39s-this-worthquot">Chapter 6 — v0.6.0: Asking Claude &quot;what&#39;s this worth?&quot;</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> The <strong><em>Anthropic SDK</em></strong>, prompt
+engineering for structured output, JSON parsing with guardrails,
+response caching, cost discipline.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>d235cb2</code> — &quot;Step 6: Claude LLM integration — AI-powered
+price estimation&quot;</p>
+<h2 id="the-ask-7">The ask</h2>
+<p>For SELL items, suggest a realistic secondhand price and recommended
+platforms (Facebook Marketplace, OfferUp, eBay, …). Don&#39;t call the
+LLM on every page load.</p>
+<h2 id="the-plan-6">The plan</h2>
+<ul>
+<li><code>packages/backend/src/services/pricing.ts</code> wraps the Anthropic SDK.</li>
+<li>Prompt demands JSON-only output, no markdown fences.</li>
+<li>Results cache to four columns on <code>Item</code>: <code>llmPriceSuggestion</code>,
+<code>llmPriceRationale</code>, <code>llmPricePlatforms[]</code>, <code>llmPriceGeneratedAt</code>.</li>
+<li><code>GET /api/items/:id/price-estimate</code> returns the cached row.</li>
+<li><code>POST /api/items/:id/price-estimate</code> forces a refresh.</li>
+<li>If <code>ANTHROPIC_API_KEY</code> is unset, return <strong>503 Service Unavailable</strong>,
+not 500 — the feature is optional.</li>
+</ul>
+<h2 id="step-1-the-prompt">Step 1: The prompt</h2>
+<pre><code class="language-ts">const prompt = `You are helping someone sell household items during a
+cross-country move. Based on the item details below, provide a realistic
+selling price for the US secondhand market (2026).
+
+${details}
+
+Respond with ONLY a JSON object (no markdown, no code fences) in this exact format:
+{
+  &quot;suggestedPrice&quot;: &lt;number&gt;,
+  &quot;rationale&quot;: &quot;&lt;2-3 sentences explaining the price based on condition, brand, age, and market demand&gt;&quot;,
+  &quot;platforms&quot;: [&quot;&lt;best&gt;&quot;, &quot;&lt;second&gt;&quot;, &quot;&lt;third&gt;&quot;]
+}
+
+For platforms, choose from: Facebook Marketplace, OfferUp, Craigslist,
+eBay, Poshmark, Mercari, Nextdoor, Consignment Shop, Garage Sale.
+
+Be realistic — used items typically sell for 20-50% of retail, less for
+commodity items, more for premium brands in good condition.`;
+</code></pre>
+<p>Three things this prompt does deliberately:</p>
+<ol>
+<li><strong>Context framing.</strong> &quot;Selling during a cross-country move&quot; makes
+the LLM prioritize fast turnover over maximum price.</li>
+<li><strong>Format discipline.</strong> &quot;JSON object, no markdown, no code fences.&quot;
+Without that, Claude sometimes wraps JSON in <code>```json</code>
+fences.</li>
+<li><strong>Closed enum for platforms.</strong> Otherwise the model invents
+platforms like &quot;Trove&quot; that don&#39;t exist here.</li>
+</ol>
+<h2 id="step-2-parse-validate">Step 2: Parse + validate</h2>
+<pre><code class="language-ts">const textBlock = message.content.find(b =&gt; b.type === &#39;text&#39;);
+let estimate: PriceEstimate;
+try { estimate = JSON.parse(textBlock.text); }
+catch { throw new Error(`Failed to parse Claude response: ${textBlock.text}`); }
+
+if (typeof estimate.suggestedPrice !== &#39;number&#39; ||
+    typeof estimate.rationale     !== &#39;string&#39; ||
+    !Array.isArray(estimate.platforms)) {
+  throw new Error(&#39;Invalid response shape from Claude&#39;);
+}
+</code></pre>
+<p>The LLM is a data source like any other — <strong>don&#39;t trust its output
+shape, check it at the boundary.</strong> If the parse or shape check fails,
+throw and let the global error handler return a 500 with a useful
+message in dev.</p>
+<h2 id="step-3-cache-on-the-item-row">Step 3: Cache on the Item row</h2>
+<pre><code class="language-ts">await prisma.item.update({
+  where: { id: itemId },
+  data: {
+    llmPriceSuggestion:  estimate.suggestedPrice,
+    llmPriceRationale:   estimate.rationale,
+    llmPricePlatforms:   estimate.platforms,
+    llmPriceGeneratedAt: new Date(),
+  },
+});
+</code></pre>
+<p>The cache lives with the item, not in a separate table. A price
+estimate is a property of the item, not a first-class entity.</p>
+<p><strong>Cost sanity check:</strong> 22 seed items × one sonnet-4-6 call each
+during dev = pennies. In production, user decides when to refresh;
+default is never auto-refresh.</p>
+<h2 id="chapter-takeaways-7">Chapter takeaways</h2>
+<ul>
+<li>Prompt for JSON, verify the shape, cache the result. That&#39;s the
+LLM-as-a-data-source pattern in three lines.</li>
+<li>Service-level feature flags via env vars (<code>ANTHROPIC_API_KEY</code> →
+503 when absent) keep the app runnable without every integration
+configured.</li>
+<li>Cost is easy to reason about when calls are user-triggered and
+results are cached. Auto-refreshing would be a footgun.</li>
+</ul>
+<hr>
+<h1 id="chapter-7-v070-a-phone-in-every-pocket">Chapter 7 — v0.7.0: A phone in every pocket</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> React Native vs React, <strong><em>Expo</em></strong>,
+<code>expo-camera</code>, QR scanning, <strong><em>SecureStore</em></strong>, bottom tab + nested
+stack navigation, <code>FlatList</code>.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>766dcb5</code> — &quot;Step 7: React Native mobile app — screens,
+camera, QR scanner, iPhone guide&quot;</p>
+<h2 id="the-ask-8">The ask</h2>
+<p>A phone app for on-the-fly cataloguing: take a photo, mark fate,
+scan a QR to jump to an item in the physical world.</p>
+<h2 id="the-plan-7">The plan</h2>
+<ul>
+<li>Expo SDK 54. Run in <strong><em>Expo Go</em></strong> on the phone during dev — no
+Xcode/Android Studio needed.</li>
+<li>Three tabs: Items, Scan, Settings. Items tab has a nested stack
+(list → detail → add).</li>
+<li>JWT lives in <code>expo-secure-store</code> (encrypted, not AsyncStorage).</li>
+<li>Settings screen has a <strong>server URL</strong> field — the user configures
+LAN IP / Tailscale IP / proxy domain themselves.</li>
+</ul>
+<h2 id="step-1-why-expo-not-bare-react-native">Step 1: Why Expo, not bare React Native</h2>
+<p>Expo gives you:</p>
+<ul>
+<li><code>expo-camera</code>, <code>expo-image-picker</code>, <code>expo-secure-store</code>,
+<code>expo-status-bar</code> — curated, versioned together.</li>
+<li>OTA updates via <code>eas update</code> (deferred — not used yet).</li>
+<li>The Go app, which runs our code without a native build.</li>
+</ul>
+<p>The tradeoff: certain native modules (WatermelonDB) don&#39;t work in Go.
+We found this the hard way in Chapter 18.</p>
+<h2 id="step-2-the-server-url-problem">Step 2: The server URL problem</h2>
+<p>The mobile app needs to talk to the backend. There are three
+addresses:</p>
+<ul>
+<li><code>http://192.168.1.153:3001</code> (LAN IP of the Unraid box)</li>
+<li><code>http://100.122.58.114:3001</code> (Tailscale IP)</li>
+<li><code>https://stash-api.shottsserver.com</code> (nginx proxy)</li>
+</ul>
+<p>Rather than hardcode one, the Settings screen lets the user paste the
+URL and saves it to SecureStore. The API client reads it back on
+every request.</p>
+<h2 id="step-3-qr-scan-navigate">Step 3: QR scan → navigate</h2>
+<pre><code class="language-ts">function onBarCodeScanned({ data }: BarCodeScanningResult) {
+  // data is the QR payload — an API URL like
+  // http://…/api/items/abc123
+  const match = data.match(/\/api\/(items|containers)\/([a-f0-9-]+)/);
+  if (!match) return;
+  const [, kind, id] = match;
+  navigation.navigate(kind === &#39;items&#39; ? &#39;ItemDetail&#39; : &#39;ContainerDetail&#39;, { id });
+}
+</code></pre>
+<p>The QR payload is the same API URL the web browser would hit
+(Chapter 4). The mobile app just parses the ID out.</p>
+<h2 id="chapter-takeaways-8">Chapter takeaways</h2>
+<ul>
+<li>Expo is the default for &quot;I want to ship a React Native app this
+week.&quot; You can always eject later.</li>
+<li>SecureStore &gt; AsyncStorage for anything that acts as a credential.</li>
+<li>Let the user configure the server URL. Home-server apps run on
+many addresses depending on whether the phone is at home, on
+Tailscale, or on LTE.</li>
+</ul>
+<hr>
+<h1 id="chapter-8-v080-offline-first-with-watermelondb">Chapter 8 — v0.8.0: Offline-first with WatermelonDB</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Offline-first architecture,
+<strong><em>WatermelonDB</em></strong> vs raw SQLite, pull-then-push sync protocol,
+timestamps for incremental sync, denormalization for mobile reads.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>aebf787</code> — &quot;Step 8: WatermelonDB offline-first sync —
+local DB + pull/push protocol&quot;</p>
+<blockquote>
+<p><strong>Heads-up:</strong> this whole chapter was partially reverted in Chapter 18
+because WatermelonDB&#39;s native modules don&#39;t run in Expo Go. The
+backend endpoints and the design remain; the mobile-side code is
+currently a SecureStore stub until a custom Expo dev build is done.
+Read this chapter for the design; see Chapter 18 for the rollback.</p>
+</blockquote>
+<h2 id="the-ask-9">The ask</h2>
+<p>The phone must work in a basement with no WiFi. Changes sync when
+it&#39;s online again.</p>
+<h2 id="the-plan-8">The plan</h2>
+<ul>
+<li>Mirror four Prisma models (items, containers, locations,
+categories) into a local WatermelonDB schema on the phone.</li>
+<li>Denormalize where it hurts to join on the phone — item rows carry
+<code>categoryName</code> and <code>categoryColor</code> inline.</li>
+<li><code>POST /api/sync/pull</code> returns changes since <code>lastPulledAt</code>.</li>
+<li><code>POST /api/sync/push</code> applies local creates/updates/deletes to
+Postgres.</li>
+<li>WatermelonDB&#39;s <code>synchronize()</code> function orchestrates pull-then-push.</li>
+</ul>
+<h2 id="step-1-the-pull-protocol">Step 1: The pull protocol</h2>
+<pre><code class="language-ts">// backend routes/sync.ts
+router.post(&#39;/pull&#39;, async (req, res) =&gt; {
+  const { lastPulledAt } = req.body;
+  const since = lastPulledAt ? new Date(lastPulledAt) : new Date(0);
+
+  const changedItems = await prisma.item.findMany({
+    where: { updatedAt: { gt: since } },
+    include: { category: { select: { name: true, color: true } }, /* … */ },
+  });
+
+  const active  = changedItems.filter(i =&gt; !i.deletedAt);
+  const deleted = changedItems.filter(i =&gt;  i.deletedAt);
+
+  res.json({
+    changes: {
+      items: {
+        created: active.filter(i =&gt; i.createdAt &gt; since),
+        updated: active.filter(i =&gt; i.createdAt &lt;= since),
+        deleted: deleted.map(i =&gt; i.id),
+      },
+      /* containers, locations, categories … */
+    },
+    timestamp: Date.now(),
+  });
+});
+</code></pre>
+<p>First sync (<code>lastPulledAt == null</code>) returns everything as <code>created</code>.
+Subsequent syncs return only rows whose <code>updatedAt &gt; lastPulledAt</code>,
+split into <code>created</code> (new since last sync) vs <code>updated</code> (existed
+before, changed since).</p>
+<p><strong>Soft-deleted items ride in the same result set</strong> — they&#39;re filtered
+into the <code>deleted</code> array so the phone knows to remove them locally.
+This is the payoff of the <code>deletedAt</code> column from Chapter 2.</p>
+<h2 id="step-2-push-with-missing-record-tolerance">Step 2: Push with missing-record tolerance</h2>
+<pre><code class="language-ts">for (const local of changes.items.updated ?? []) {
+  const exists = await prisma.item.findUnique({ where: { id: local.id } });
+  if (!exists) continue;   // someone else deleted it — skip silently
+  await prisma.item.update({ where: { id: local.id }, data: local });
+}
+</code></pre>
+<p>Missing records on push are common: the phone edited an item that
+someone deleted on another device since last sync. The server wins —
+skip, don&#39;t error.</p>
+<h2 id="chapter-takeaways-9">Chapter takeaways</h2>
+<ul>
+<li>Offline-first is a protocol decision, not a library choice.
+Pull-then-push with a timestamp is the standard pattern.</li>
+<li>Denormalize fields the mobile UI shows in lists. Save the join for
+detail views.</li>
+<li>The server is the arbiter of truth. Conflict resolution = &quot;server
+wins, skip silently.&quot;</li>
+<li>Don&#39;t couple your design to a specific offline DB. WatermelonDB
+didn&#39;t work out; the protocol stays valid for whatever replaces it.</li>
+</ul>
+<hr>
+<h1 id="chapter-9-v090-seeing-the-box-in-3d">Chapter 9 — v0.9.0: Seeing the box in 3D</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> <strong><em>Three.js</em></strong> scene / camera /
+renderer trio, wireframe vs solid geometry, <code>MeshPhongMaterial</code>,
+<strong><em>OrbitControls</em></strong>, <code>postMessage</code> for cross-platform data flow.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>0bb9dc4</code> — &quot;Step 9: Three.js 3D container visualization&quot;</p>
+<h2 id="the-ask-10">The ask</h2>
+<p>&quot;Will this stuff actually fit in a U-Box?&quot; A 3D view of the container
+with every item as a colored block (by fate), inside a wireframe of
+the container.</p>
+<h2 id="the-plan-9">The plan</h2>
+<ul>
+<li>Single standalone HTML file <code>packages/backend/public/container-3d.html</code>.</li>
+<li>Loads Three.js from CDN. No build step, no npm install in that
+file&#39;s lineage.</li>
+<li>Data arrives via <code>postMessage</code> from the parent — either an admin
+iframe or a mobile WebView.</li>
+<li>Backend endpoint <code>GET /api/containers/:id/3d</code> returns container
+dims + array of items with dims + fates.</li>
+</ul>
+<p><strong>Why a standalone HTML file, not a React component?</strong> Cross-platform.
+A single renderer runs in both the admin iframe and the mobile
+WebView. Zero build config on the mobile side. Zero &quot;threejs + React
+Native&quot; frustration.</p>
+<h2 id="step-1-the-threejs-trinity">Step 1: The Three.js trinity</h2>
+<pre><code class="language-js">const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+  50, width / height, 0.1, 1000
+);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(width, height);
+document.body.appendChild(renderer.domElement);
+</code></pre>
+<p>Three objects, one line each. Scene is the world. Camera is where
+you look from. Renderer turns scene+camera into pixels in a
+<code>&lt;canvas&gt;</code>.</p>
+<h2 id="step-2-wireframe-container-solid-items">Step 2: Wireframe container + solid items</h2>
+<pre><code class="language-js">// Container wireframe
+const boxGeom = new THREE.BoxGeometry(L, H, W);
+const edges   = new THREE.EdgesGeometry(boxGeom);
+const line    = new THREE.LineSegments(edges,
+  new THREE.LineBasicMaterial({ color: 0x888888 }));
+scene.add(line);
+
+// Item blocks — one per item, colored by fate
+for (const item of items) {
+  const geom = new THREE.BoxGeometry(item.L, item.H, item.W);
+  const mat  = new THREE.MeshPhongMaterial({
+    color: FATE_COLORS[item.fate], transparent: true, opacity: 0.7,
+  });
+  scene.add(new THREE.Mesh(geom, mat));
+}
+</code></pre>
+<p><code>MeshPhongMaterial</code> needs a light; <code>MeshBasicMaterial</code> doesn&#39;t but
+looks flat. Phong + one ambient + one directional light gives
+convincing depth.</p>
+<h2 id="step-3-postmessage-bridge">Step 3: postMessage bridge</h2>
+<pre><code class="language-js">window.addEventListener(&#39;message&#39;, (ev) =&gt; {
+  if (ev.data?.type === &#39;container-data&#39;) renderContainer(ev.data.payload);
+});
+</code></pre>
+<p>Admin iframe:</p>
+<pre><code class="language-tsx">iframe.contentWindow.postMessage({ type: &#39;container-data&#39;, payload }, &#39;*&#39;);
+</code></pre>
+<p>Mobile WebView:</p>
+<pre><code class="language-tsx">&lt;WebView
+  source={{ uri: `${API}/api/public/container-3d.html` }}
+  injectedJavaScript={`window.postMessage(${JSON.stringify(msg)}, &#39;*&#39;);`}
+/&gt;
+</code></pre>
+<p>Same renderer, two hosts. This is the single biggest lever in the
+whole project for code reuse.</p>
+<h2 id="chapter-takeaways-10">Chapter takeaways</h2>
+<ul>
+<li><code>scene + camera + renderer</code> is the whole Three.js model. Everything
+else is geometries and materials hanging off the scene.</li>
+<li>A standalone HTML file with a <code>postMessage</code> data contract is a
+powerful cross-platform primitive. Better than wrestling any 3D
+library into both React and React Native.</li>
+<li>Wireframe for the fixed container, opaque-ish solids for the items.</li>
+</ul>
+<hr>
+<h1 id="chapter-10-v0100-paper-is-forever-pdf-csv-export">Chapter 10 — v0.10.0: Paper is forever (PDF + CSV export)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> <code>@react-pdf/renderer</code> (React for
+PDFs), server-side buffer rendering, PDF Flexbox layout, CSV
+escaping rules, authenticated blob downloads.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>1cda1f8</code> — &quot;Step 10: PDF &amp; CSV export — manifests, QR
+labels, sell/donate lists&quot;</p>
+<h2 id="the-ask-11">The ask</h2>
+<p>Four PDFs + a CSV:</p>
+<ol>
+<li><strong>Container manifest</strong> — what&#39;s in this box, printed and taped
+to the lid.</li>
+<li><strong>QR label sheet</strong> — 2-up QR labels for every container.</li>
+<li><strong>Sell list</strong> — all SELL items with price estimates.</li>
+<li><strong>Donate list</strong> — all DONATE items (for the charity receipt).</li>
+<li><strong>Full inventory CSV</strong> — filterable.</li>
+</ol>
+<h2 id="step-1-react-components-for-pdfs">Step 1: React components for PDFs</h2>
+<pre><code class="language-tsx">// src/services/pdf.tsx
+import { Document, Page, Text, View, StyleSheet, pdf } from &#39;@react-pdf/renderer&#39;;
+
+const styles = StyleSheet.create({
+  page: { padding: 40 },
+  row:  { flexDirection: &#39;row&#39;, borderBottom: &#39;1 solid #ccc&#39; },
+  cell: { flex: 1, padding: 6 },
+});
+
+export async function renderContainerManifest(container) {
+  const doc = (
+    &lt;Document&gt;
+      &lt;Page size=&quot;LETTER&quot; style={styles.page}&gt;
+        &lt;Text&gt;Manifest — {container.label}&lt;/Text&gt;
+        {container.items.map(item =&gt; (
+          &lt;View key={item.id} style={styles.row}&gt;
+            &lt;Text style={styles.cell}&gt;{item.name}&lt;/Text&gt;
+            &lt;Text style={styles.cell}&gt;{item.fate}&lt;/Text&gt;
+          &lt;/View&gt;
+        ))}
+      &lt;/Page&gt;
+    &lt;/Document&gt;
+  );
+  return pdf(doc).toBuffer();
+}
+</code></pre>
+<p>This is why <code>pdf.ts</code> is actually <code>pdf.tsx</code> — JSX needs the <code>.tsx</code>
+extension to parse (more on that in Chapter 16).</p>
+<h2 id="step-2-authenticated-blob-download">Step 2: Authenticated blob download</h2>
+<p>The client can&#39;t just set <code>window.location = &#39;/api/export/manifest&#39;</code> —
+that misses the Authorization header. Instead:</p>
+<pre><code class="language-ts">async function download(path: string, filename: string) {
+  const res = await fetch(path, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  const blob = await res.blob();
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement(&#39;a&#39;);
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+</code></pre>
+<p>Fetch with auth → blob → object URL → hidden <code>&lt;a&gt;</code> click → revoke.
+The browser saves the file. No auth leaks, no new window.</p>
+<h2 id="step-3-csv-escaping">Step 3: CSV escaping</h2>
+<pre><code class="language-ts">function csvEscape(v: unknown): string {
+  const s = String(v ?? &#39;&#39;);
+  if (/[&quot;,\n\r]/.test(s)) return `&quot;${s.replace(/&quot;/g, &#39;&quot;&quot;&#39;)}&quot;`;
+  return s;
+}
+</code></pre>
+<p>Three rules, memorize them: if the value contains a comma, a quote,
+or a newline, wrap it in double quotes and escape interior quotes by
+doubling them. Anything less and Excel opens your file as garbage
+when an item name has a comma.</p>
+<h2 id="chapter-takeaways-11">Chapter takeaways</h2>
+<ul>
+<li><code>@react-pdf/renderer</code> lets you use your React mental model to
+build PDFs. StyleSheet uses Flexbox.</li>
+<li>Authenticated download = fetch + blob + object URL + hidden <code>&lt;a&gt;</code>.</li>
+<li>Every CSV generator needs exactly the same 4-line escape function.</li>
+</ul>
+<hr>
+<h1 id="chapter-11-v0110-bulk-data-in-csv-import-wizard">Chapter 11 — v0.11.0: Bulk data in (CSV import wizard)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Two-phase import, CSV parsing
+edge cases, auto-mapping, name-to-ID resolution, wizard UIs,
+row-level error tolerance.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>ea85515</code> — &quot;Step 11: CSV import with column mapper&quot;</p>
+<h2 id="the-ask-12">The ask</h2>
+<p>Let someone paste in a spreadsheet of items — columns we don&#39;t
+control — and import them.</p>
+<h2 id="the-plan-10">The plan</h2>
+<p>Two phases:</p>
+<ol>
+<li><strong>Parse + preview.</strong> Upload file, backend parses, returns headers<ul>
+<li>first 5 rows + our list of mappable fields.</li>
+</ul>
+</li>
+<li><strong>Map + execute.</strong> User picks which CSV column maps to which
+Stash field. Backend batch-creates items, returning per-row
+success/error.</li>
+</ol>
+<h2 id="step-1-a-csv-parser-that-handles-reality">Step 1: A CSV parser that handles reality</h2>
+<pre><code class="language-ts">// src/services/csv-import.ts
+function parseLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = &#39;&#39;, inQuotes = false;
+  for (let i = 0; i &lt; line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === &#39;&quot;&#39; &amp;&amp; line[i+1] === &#39;&quot;&#39;) { cur += &#39;&quot;&#39;; i++; }
+      else if (c === &#39;&quot;&#39;) inQuotes = false;
+      else cur += c;
+    } else {
+      if (c === &#39;,&#39;) { out.push(cur); cur = &#39;&#39;; }
+      else if (c === &#39;&quot;&#39; &amp;&amp; cur === &#39;&#39;) inQuotes = true;
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+</code></pre>
+<p>Why not use a library? Because the library choice (papaparse vs
+csv-parse vs fast-csv) would rathole the import further than this
+50-line parser. It handles quoted fields, escaped quotes, and
+Windows <code>\r\n</code> endings — that&#39;s enough for human-produced
+spreadsheets.</p>
+<h2 id="step-2-auto-mapping">Step 2: Auto-mapping</h2>
+<pre><code class="language-ts">const AUTO_MAP: Record&lt;string, keyof ImportableField&gt; = {
+  &#39;name&#39;:        &#39;name&#39;,
+  &#39;item name&#39;:   &#39;name&#39;,
+  &#39;description&#39;: &#39;description&#39;,
+  &#39;category&#39;:    &#39;categoryName&#39;,
+  &#39;room&#39;:        &#39;locationName&#39;,
+  /* … */
+};
+
+for (const header of csvHeaders) {
+  const normalized = header.toLowerCase().trim();
+  if (AUTO_MAP[normalized]) mapping[header] = AUTO_MAP[normalized];
+}
+</code></pre>
+<p>Users see a pre-filled mapping and only adjust the weird columns.
+Small thing; huge UX win.</p>
+<h2 id="step-3-row-level-error-tolerance">Step 3: Row-level error tolerance</h2>
+<pre><code class="language-ts">const results = { created: 0, errors: [] as Array&lt;{ row: number; error: string }&gt; };
+for (let i = 0; i &lt; rows.length; i++) {
+  try {
+    await prisma.item.create({ data: buildItem(rows[i], mapping) });
+    results.created++;
+  } catch (e) {
+    results.errors.push({ row: i + 2, error: (e as Error).message });
+  }
+}
+</code></pre>
+<p>One bad row doesn&#39;t abort the import. The user sees &quot;created 847,
+failed 3, here are the three rows&quot; and can fix them and re-import.</p>
+<p><strong>Row number is <code>i + 2</code></strong> — row 1 was the header, rows start from 2.
+This matches what the user sees in Excel.</p>
+<h2 id="chapter-takeaways-12">Chapter takeaways</h2>
+<ul>
+<li>Two-phase imports (preview → map → execute) give the user a chance
+to bail before committing 1000 rows.</li>
+<li>Auto-mapping on normalized header names covers 80% of real
+spreadsheets.</li>
+<li>Don&#39;t abort on the first bad row. Collect and report per-row
+errors.</li>
+</ul>
+<hr>
+<h1 id="chapter-12-v0120-the-floor-plan-view">Chapter 12 — v0.12.0: The floor plan view</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Prisma <code>groupBy</code>, stacked bar
+rendering, <code>v1 grid → v2 image overlay</code> progressive enhancement,
+CSS grid.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>6541799</code> — &quot;Step 12: Floor plan view — room grid with
+fate breakdown bars&quot;</p>
+<h2 id="the-ask-13">The ask</h2>
+<p>Show every room with a fate bar so you can see at a glance which
+rooms are done (mostly KEEP/DONATE/TRASH triaged) versus untouched
+(mostly UNDECIDED).</p>
+<h2 id="the-plan-11">The plan</h2>
+<ul>
+<li><code>GET /api/floorplan/:house</code> returns rooms plus item counts per
+fate per room in one query.</li>
+<li>v1: CSS grid layout, rooms as cards.</li>
+<li>v2 (deferred): overlay room cards on an actual floor plan image
+using <code>floorPlanX/Y/Width/Height</code> (already on the <code>Location</code>
+model from Chapter 2).</li>
+</ul>
+<h2 id="step-1-groupby-for-counts">Step 1: groupBy for counts</h2>
+<pre><code class="language-ts">const rooms = await prisma.location.findMany({
+  where: { type: house === &#39;origin&#39; ? &#39;ORIGIN&#39; : &#39;DESTINATION&#39; },
+  orderBy: [{ floor: &#39;asc&#39; }, { sortOrder: &#39;asc&#39; }],
+});
+
+const counts = await prisma.item.groupBy({
+  by: [&#39;originLocationId&#39;, &#39;fate&#39;],
+  where: { deletedAt: null, originLocation: { type: /* … */ } },
+  _count: true,
+});
+
+// Pivot: { [roomId]: { KEEP: n, SELL: n, … } }
+const byRoom: Record&lt;string, Record&lt;Fate, number&gt;&gt; = {};
+for (const c of counts) {
+  byRoom[c.originLocationId] ??= {} as any;
+  byRoom[c.originLocationId][c.fate] = c._count;
+}
+
+res.json(rooms.map(r =&gt; ({ ...r, fateCounts: byRoom[r.id] ?? {} })));
+</code></pre>
+<p>One query for rooms, one groupBy for counts, pivot in memory.
+Alternative (N+1 count queries per room) would be much simpler code
+but much more Postgres round-trips.</p>
+<h2 id="step-2-stacked-bar-in-css">Step 2: Stacked bar in CSS</h2>
+<pre><code class="language-tsx">&lt;div className=&quot;fate-bar&quot;&gt;
+  {Object.entries(room.fateCounts).map(([fate, count]) =&gt; (
+    &lt;div
+      key={fate}
+      className=&quot;fate-bar-segment&quot;
+      style={{
+        flex: count,
+        backgroundColor: FATE_COLORS[fate],
+      }}
+      title={`${fate}: ${count}`}
+    /&gt;
+  ))}
+&lt;/div&gt;
+</code></pre>
+<p>Flexbox with <code>flex: &lt;count&gt;</code> on each segment. Proportions fall out
+automatically. Title attribute gives hover tooltips without extra JS.</p>
+<h2 id="chapter-takeaways-13">Chapter takeaways</h2>
+<ul>
+<li><code>prisma.groupBy</code> + pivot-in-memory beats N+1 count queries.</li>
+<li>Ship v1 with simple CSS; leave schema hooks (<code>floorPlanX/Y/Width/Height</code>)
+for v2. Don&#39;t delete the columns just because v1 doesn&#39;t use them.</li>
+<li>Flexbox <code>flex: &lt;n&gt;</code> gives you proportional stacked bars for free.</li>
+</ul>
+<hr>
+<h1 id="chapter-13-v0130-users-and-safety-guards">Chapter 13 — v0.13.0: Users and safety guards</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Role-based access control, the
+<strong><em>safety guard</em></strong> pattern, password reset flow, admin UI
+conventions.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>8a9e015</code> — &quot;Step 13: Users management — admin CRUD with
+safety guards&quot;</p>
+<h2 id="the-ask-14">The ask</h2>
+<p>Admins need to add, promote, demote, delete other users. Safely.</p>
+<h2 id="the-plan-12">The plan</h2>
+<ul>
+<li><code>/api/users/*</code> behind <code>requireAuth + requireAdmin</code>.</li>
+<li>Password reset sets <code>mustChangePassword: true</code>; login flow
+redirects to a change-password page when that&#39;s set.</li>
+<li>Before any destructive write, check invariants.</li>
+</ul>
+<h2 id="step-1-the-safety-guards">Step 1: The safety guards</h2>
+<pre><code class="language-ts">router.delete(&#39;/:id&#39;, requireAdmin, async (req, res) =&gt; {
+  if (req.params.id === req.user.userId) {
+    return res.status(400).json({ error: &quot;Can&#39;t delete yourself&quot; });
+  }
+
+  const adminCount = await prisma.user.count({ where: { role: &#39;ADMIN&#39; } });
+  const victim = await prisma.user.findUnique({ where: { id: req.params.id }});
+  if (victim.role === &#39;ADMIN&#39; &amp;&amp; adminCount &lt;= 1) {
+    return res.status(400).json({ error: &quot;Can&#39;t delete the last admin&quot; });
+  }
+
+  // Reassign victim&#39;s items to the requesting admin, then delete
+  await prisma.$transaction([
+    prisma.item.updateMany({
+      where: { addedById: victim.id },
+      data:  { addedById: req.user.userId },
+    }),
+    prisma.user.delete({ where: { id: victim.id } }),
+  ]);
+  // …
+});
+</code></pre>
+<p>Three guards in sequence: self-delete, last-admin, item
+reassignment. The reassignment happens in the same transaction as
+the delete so we never have orphaned items.</p>
+<p><strong>Safety guards are not errors — they&#39;re business rules.</strong> Use 400
+when the rule would be violated, not 500. Return a human-readable
+message the admin UI can just display.</p>
+<h2 id="step-2-mustchangepassword">Step 2: mustChangePassword</h2>
+<pre><code class="language-ts">// login route
+if (user.mustChangePassword) {
+  return res.json({ token, user, requireChange: true });
+}
+</code></pre>
+<p>The admin UI sees <code>requireChange: true</code> and routes to a
+change-password form on first login. The form hits a dedicated
+<code>PATCH /api/auth/password</code> endpoint that clears the flag.</p>
+<h2 id="chapter-takeaways-14">Chapter takeaways</h2>
+<ul>
+<li>Safety guards are 400s, not 500s. The admin needs to read them.</li>
+<li>Reassignment-before-deletion is a transactional pattern worth
+memorizing — any &quot;delete an owner&quot; operation needs one.</li>
+<li>&quot;First login must change password&quot; is a two-line flag on the user<ul>
+<li>a check in login response. Don&#39;t over-engineer it.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h1 id="chapter-14-v0140-polish-the-last-10-is-90-of-the-work">Chapter 14 — v0.14.0: Polish — the last 10% is 90% of the work</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> <strong><em>Error boundaries</em></strong> (why class
+components), toast notifications via context, responsive sidebar
+with CSS transforms, media queries, reusable components.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>403ed56</code> — &quot;Step 14: Polish — error boundary, toasts,
+responsive layout, UI components&quot;</p>
+<h2 id="the-ask-15">The ask</h2>
+<p>Remove all remaining <code>alert()</code> calls. Make the UI usable on a phone
+browser. Catch render crashes gracefully.</p>
+<h2 id="the-plan-13">The plan</h2>
+<ul>
+<li><code>ErrorBoundary</code> class component wrapping the app.</li>
+<li><code>ToastContext</code> with <code>success/error/info</code> variants, auto-dismiss,
+stacking, slide-in animation.</li>
+<li>Sidebar collapses to a hamburger on <code>&lt; 768px</code>.</li>
+<li>Extract <code>Spinner</code> and <code>EmptyState</code> so no page has to reinvent a
+loading indicator or empty-list card.</li>
+</ul>
+<h2 id="step-1-why-class-components-for-error-boundaries">Step 1: Why class components for error boundaries</h2>
+<p>Function components <strong>can&#39;t</strong> implement error boundaries. React&#39;s
+error-boundary API is lifecycle methods <code>componentDidCatch</code> and
+<code>getDerivedStateFromError</code>. There&#39;s no hook equivalent (2026 status:
+still none). This is the one place in the app that&#39;s not a function
+component.</p>
+<pre><code class="language-tsx">export class ErrorBoundary extends React.Component&lt;Props, State&gt; {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(err, info) { console.error(err, info); }
+  render() {
+    if (this.state.hasError) return &lt;RecoveryCard/&gt;;
+    return this.props.children;
+  }
+}
+</code></pre>
+<p>It wraps the entire <code>&lt;App&gt;</code>. If any page render throws, the user
+sees the recovery card with a &quot;Go to Dashboard&quot; button instead of a
+white screen.</p>
+<h2 id="step-2-toast-pattern">Step 2: Toast pattern</h2>
+<pre><code class="language-tsx">const ToastContext = createContext&lt;{ push: (t: Toast) =&gt; void }&gt;(null!);
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState&lt;Toast[]&gt;([]);
+  const push = useCallback((t: Toast) =&gt; {
+    const id = crypto.randomUUID();
+    setToasts(ts =&gt; [...ts, { ...t, id }]);
+    setTimeout(() =&gt; setToasts(ts =&gt; ts.filter(x =&gt; x.id !== id)), 4000);
+  }, []);
+  return (
+    &lt;ToastContext.Provider value={{ push }}&gt;
+      {children}
+      &lt;ToastOverlay toasts={toasts}/&gt;
+    &lt;/ToastContext.Provider&gt;
+  );
+}
+</code></pre>
+<p>Any component calls <code>useToasts().push({ kind: &#39;success&#39;, text: &#39;…&#39; })</code>.
+The overlay lives at the end of the provider&#39;s children so it floats
+above everything. No portals needed.</p>
+<h2 id="step-3-responsive-sidebar">Step 3: Responsive sidebar</h2>
+<pre><code class="language-css">.sidebar {
+  transform: translateX(0);
+  transition: transform 200ms ease;
+}
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 20;
+    transform: translateX(-100%);
+  }
+  .sidebar.open { transform: translateX(0); }
+}
+</code></pre>
+<p>A transform+transition gives the slide animation for free. The
+overlay backdrop is a sibling <code>&lt;div&gt;</code> with its own transition.</p>
+<h2 id="chapter-takeaways-15">Chapter takeaways</h2>
+<ul>
+<li>Error boundaries are the only place you still write class
+components. Accept it, move on.</li>
+<li>Toasts + context + auto-dismiss + stacking = 50 lines that replace
+every <code>alert()</code> you will ever write.</li>
+<li>Mobile-responsive sidebar is CSS, not JS. <code>translateX</code> +
+transition is the whole pattern.</li>
+</ul>
+<hr>
+<h1 id="chapter-15-v100-shipping-to-unraid">Chapter 15 — v1.0.0: Shipping to Unraid</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Multi-stage Docker builds,
+production nginx, body size + timeouts, bind-mount volumes, nginx
+proxy manager, deployment checklists.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>88ba952</code> — &quot;Steps 15-16: Docker production build +
+Unraid deployment — v1.0.0&quot;</p>
+<h2 id="the-ask-16">The ask</h2>
+<p>Get this running on ShottsServer at <code>/mnt/user/appdata/stash/</code>
+behind Nginx Proxy Manager, with HTTPS.</p>
+<h2 id="the-plan-14">The plan</h2>
+<ul>
+<li>Multi-stage Dockerfile for each container: <code>deps → build → dev</code>
+and <code>deps → build → prod</code>.</li>
+<li>Admin prod image is nginx serving the built Vite bundle.</li>
+<li>Backend prod image is Node running the TypeScript-compiled JS.</li>
+<li>Nginx Proxy Manager on Unraid fronts both containers with
+Let&#39;s Encrypt certs.</li>
+</ul>
+<h2 id="step-1-multi-stage-dockerfile-backend">Step 1: Multi-stage Dockerfile (backend)</h2>
+<pre><code class="language-dockerfile"># packages/backend/Dockerfile (simplified)
+FROM node:20 AS deps
+WORKDIR /app
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY packages/shared/package.json   packages/shared/
+COPY packages/backend/package.json  packages/backend/
+RUN npm ci
+
+FROM deps AS build
+COPY packages/shared   packages/shared
+COPY packages/backend  packages/backend
+RUN npm run build:shared &amp;&amp; npm run build -w packages/backend
+
+FROM node:20-slim AS prod
+WORKDIR /app
+COPY --from=deps  /app/node_modules        node_modules
+COPY --from=build /app/packages/shared/dist packages/shared/dist
+COPY --from=build /app/packages/backend/dist packages/backend/dist
+COPY packages/backend/prisma packages/backend/prisma
+COPY packages/backend/public packages/backend/public
+CMD [&quot;node&quot;, &quot;packages/backend/dist/index.js&quot;]
+
+FROM build AS development
+CMD [&quot;npm&quot;, &quot;run&quot;, &quot;dev&quot;, &quot;-w&quot;, &quot;packages/backend&quot;]
+</code></pre>
+<ul>
+<li><code>deps</code> layer caches <code>npm ci</code> until a package.json changes.</li>
+<li><code>build</code> layer does <code>tsc</code>.</li>
+<li><code>prod</code> layer is slim — no source, no dev deps, no TypeScript.</li>
+<li><code>development</code> targets get selected by the dev compose override.</li>
+</ul>
+<h2 id="step-2-nginx-tweaks-for-the-admin-container">Step 2: nginx tweaks for the admin container</h2>
+<pre><code class="language-nginx">server {
+  listen 80;
+  client_max_body_size 15m;           # photo uploads
+  proxy_read_timeout   30s;           # Claude API calls
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # SPA fallback — React Router needs every URL to serve index.html
+  location / {
+    try_files $uri /index.html;
+  }
+}
+</code></pre>
+<ul>
+<li><code>client_max_body_size 15m</code> matches the backend&#39;s 10 MB upload
+limit with headroom for multipart overhead.</li>
+<li><code>proxy_read_timeout 30s</code> gives the Claude pricing call enough
+time. Nginx&#39;s default 60s is actually fine; we set it explicitly
+so it&#39;s obvious.</li>
+<li>SPA fallback (<code>try_files</code>) means refreshing on <code>/items/abc123</code>
+serves <code>index.html</code> instead of 404ing.</li>
+</ul>
+<h2 id="step-3-data-persistence">Step 3: Data persistence</h2>
+<pre><code class="language-yaml">volumes:
+  - ${DATA_PATH}/postgres:/var/lib/postgresql/data
+  - ${DATA_PATH}/images:/app/data/images
+  - ${DATA_PATH}/qrcodes:/app/data/qrcodes
+  - ${DATA_PATH}/exports:/app/data/exports
+  - ${DATA_PATH}/floorplans:/app/data/floorplans
+</code></pre>
+<p>Five volumes, all mapped to <code>/mnt/user/appdata/stash/*</code> on Unraid.
+Nothing the app cares about lives inside a container.</p>
+<h2 id="chapter-takeaways-16">Chapter takeaways</h2>
+<ul>
+<li>Multi-stage builds are how you get a 200 MB prod image that
+contains no source, no dev deps, no TypeScript.</li>
+<li>SPA + nginx = remember the <code>try_files $uri /index.html</code> line.</li>
+<li>All persistent state goes on the host. Containers are cattle.</li>
+</ul>
+<hr>
+<h1 id="chapter-16-v101-lessons-from-the-first-real-build">Chapter 16 — v1.0.1: Lessons from the first real build</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> The three kinds of errors you
+get on first build: missing COPY, wrong extension, wrong host.</p>
+</blockquote>
+<p><strong>Commit:</strong> <code>5ffe77b</code> — &quot;Fix: Dockerfile tsconfig, pdf.tsx rename,
+initial migration&quot;</p>
+<h2 id="the-ask-17">The ask</h2>
+<p>None from a user. This is the &quot;first build on a clean machine fails&quot;
+chapter.</p>
+<h2 id="bugs-we-hit-2">Bugs we hit</h2>
+<h3 id="bug-1-missing-copy-tsconfigbasejson">Bug 1: Missing COPY tsconfig.base.json</h3>
+<p><strong>Symptom:</strong> <code>tsc</code> inside the backend container fails with
+<code>Cannot read file /app/tsconfig.base.json</code>.</p>
+<p><strong>Root cause:</strong> The package-level <code>tsconfig.json</code> does
+<code>&quot;extends&quot;: &quot;../../tsconfig.base.json&quot;</code>. The Dockerfile copied
+<code>packages/backend</code> and <code>packages/shared</code> but not the root
+<code>tsconfig.base.json</code>. Worked locally because local filesystem has
+the whole repo.</p>
+<p><strong>Fix:</strong> <code>COPY tsconfig.base.json ./</code> in both backend and admin
+Dockerfiles.</p>
+<p><strong>Lesson:</strong> If you <code>extends</code> a file outside the package, the Docker
+build context needs to include that file.</p>
+<h3 id="bug-2-pdfts-vs-pdftsx">Bug 2: pdf.ts vs pdf.tsx</h3>
+<p><strong>Symptom:</strong> <code>tsc</code> fails parsing <code>pdf.ts</code> with
+<code>Unexpected token &#39;&lt;&#39;</code>.</p>
+<p><strong>Root cause:</strong> <code>@react-pdf/renderer</code> uses JSX. esbuild/tsc parses
+JSX only in <code>.tsx</code> files. The file extension <em>is</em> the trigger.</p>
+<p><strong>Fix:</strong> <code>git mv pdf.ts pdf.tsx</code>. Nothing else changes.</p>
+<p><strong>Lesson:</strong> JSX-bearing files end in <code>.tsx</code>. It&#39;s not a stylistic
+preference, it&#39;s how the compiler knows.</p>
+<h3 id="bug-3-prisma-database_url-mismatch">Bug 3: Prisma DATABASE_URL mismatch</h3>
+<p><strong>Symptom:</strong> <code>prisma migrate dev</code> from the dev laptop fails
+connecting to <code>stash-postgres:5432</code>.</p>
+<p><strong>Root cause:</strong> Prisma runs on the host, not in Docker. From the
+host, the postgres container is reachable at <code>localhost:5434</code> (the
+mapped port from <code>docker-compose.dev.yml</code>), not at its internal
+hostname.</p>
+<p><strong>Fix:</strong> Prefix all Prisma host-side commands:</p>
+<pre><code class="language-bash">DATABASE_URL=&quot;postgresql://stash:stash@localhost:5434/stash&quot; \
+  npx prisma migrate dev
+</code></pre>
+<p><strong>Lesson:</strong> Understand who&#39;s running where. If the tool is on the
+host and the service is in Docker, you need the host-side address.</p>
+<h2 id="chapter-takeaways-17">Chapter takeaways</h2>
+<ul>
+<li>First-build bugs are almost always about <strong>where files/services
+actually live</strong> — file extensions, build contexts, network
+hostnames.</li>
+<li>Fix the root cause, don&#39;t paper over it. &quot;Rename <code>.ts</code> to <code>.tsx</code>&quot;
+is the right fix; <code>// @ts-ignore</code> would be paper.</li>
+<li>Document the fixes in TEACH.md — these exact three bugs will bite
+the next person setting up from scratch.</li>
+</ul>
+<hr>
+<h1 id="chapter-17-v110-a-3d-viewer-you-can-actually-play-with">Chapter 17 — v1.1.0: A 3D viewer you can actually play with</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Raycasting for hover/click,
+axis-aligned bounding box (<strong><em>AABB</em></strong>) collision detection,
+stacking physics by scanning lower-Y neighbours, rotation with
+revert.</p>
+</blockquote>
+<p><strong>Commits (clustered):</strong></p>
+<ul>
+<li><code>5a05ccd</code> — 3D viewer v2: hover, select, drag</li>
+<li><code>b6ed1e6</code> — Live shape preview on item create</li>
+<li><code>34a97d1</code> — Reorder form fields</li>
+<li><code>03a1ce8</code> — Rotation, collision, stacking</li>
+<li><code>f52b415</code> — Utah/NC location names, Place in Container UI</li>
+<li><code>3d074b9</code> — Vite proxy via BACKEND_HOST</li>
+<li><code>ea95e07</code> — Docker admin port conflict</li>
+<li><code>d231f76</code> — GUIDE.md</li>
+<li><code>5714fed</code> — Docs update to v1.1.0</li>
+</ul>
+<h2 id="the-ask-18">The ask</h2>
+<p>The 3D viewer from Chapter 9 was read-only. Users want to grab
+items, rearrange them, rotate. And they want a live preview on the
+Add Item page so they can see the shape as they type dimensions.</p>
+<h2 id="the-plan-15">The plan</h2>
+<p>Three distinct things shipped under v1.1.0:</p>
+<ol>
+<li><strong>Interactive 3D viewer</strong> — hover tooltips, click to select, drag
+to reposition, R to rotate, collision detection, stacking.</li>
+<li><strong>Shape preview on Add Item</strong> — separate <code>shape-preview.html</code>
+that reacts to L/W/H/shape/fate changes in real time.</li>
+<li><strong>Infra fixes</strong> — Docker port conflict, Vite proxy in Docker,
+seed location names.</li>
+</ol>
+<h2 id="step-1-hover-click-via-raycasting">Step 1: Hover + click via raycasting</h2>
+<pre><code class="language-js">const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; {
+  const r = canvas.getBoundingClientRect();
+  mouse.x =  ((e.clientX - r.left) / r.width)  * 2 - 1;
+  mouse.y = -((e.clientY - r.top)  / r.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(itemMeshes);
+  setHovered(hits[0]?.object ?? null);
+});
+</code></pre>
+<p>Normalized device coords <code>[-1, 1]</code> for both axes — that&#39;s what
+Three.js&#39;s raycaster expects, regardless of canvas size.</p>
+<h2 id="step-2-aabb-collision">Step 2: AABB collision</h2>
+<pre><code class="language-js">function overlaps(a, b, eps = 0.01) {
+  return (
+    a.min.x + eps &lt; b.max.x &amp;&amp; a.max.x - eps &gt; b.min.x &amp;&amp;
+    a.min.y + eps &lt; b.max.y &amp;&amp; a.max.y - eps &gt; b.min.y &amp;&amp;
+    a.min.z + eps &lt; b.max.z &amp;&amp; a.max.z - eps &gt; b.min.z
+  );
+}
+</code></pre>
+<p>Six comparisons. The <code>eps</code> (epsilon) tolerance lets items <em>touch</em>
+edge-to-edge without being called a collision. Without it, floating
+point noise would flag every adjacency.</p>
+<h2 id="step-3-stacking-physics">Step 3: Stacking physics</h2>
+<pre><code class="language-js">function findStackHeight(item, others) {
+  let y = 0; // container floor
+  for (const o of others) {
+    if (o === item) continue;
+    if (!overlapsXZ(item, o)) continue;   // no shadow beneath this item
+    y = Math.max(y, o.position.y + o.height);
+  }
+  return y;
+}
+</code></pre>
+<p>Scan every other item. If its XZ footprint overlaps ours, we must
+sit at or above its top. Max over all such items = our Y.</p>
+<p>This runs during drag (every mousemove), after rotate, and on
+initial layout. O(n) per item; n &lt; 50 in practice — fast enough.</p>
+<h2 id="step-4-rotation-with-revert">Step 4: Rotation with revert</h2>
+<pre><code class="language-js">function rotateSelected() {
+  const saved = { L: item.L, W: item.W };
+  [item.L, item.W] = [item.W, item.L];
+  rebuildGeometry(item);
+  if (overlapsAny(item, others)) {
+    // Revert
+    [item.L, item.W] = [saved.L, saved.W];
+    rebuildGeometry(item);
+    flashBlocked();
+  }
+}
+</code></pre>
+<p>Swap dims, rebuild mesh, check. If blocked, swap back. &quot;Try-and-revert&quot;
+is cheaper than &quot;compute whether it would fit&quot; because the collision
+check already does the hard part.</p>
+<h2 id="the-infra-fixes-not-glamorous-essential">The infra fixes (not glamorous, essential)</h2>
+<ul>
+<li><strong><code>ea95e07</code> — Docker port conflict.</strong> Base compose mapped
+<code>3002:80</code>, dev override mapped <code>3002:3002</code>. Docker Compose
+<strong>merges</strong> port arrays instead of replacing. Both bindings fought
+for host port 3002. Fix: remove ports from base, let each
+environment override add them.</li>
+<li><strong><code>3d074b9</code> — Vite proxy host.</strong> Admin container&#39;s Vite proxy was
+<code>localhost:3001</code>, which inside the container is the admin
+container itself. Added <code>BACKEND_HOST</code> env var defaulting to
+<code>localhost</code> for non-Docker dev, set to <code>stash-backend</code> in the dev
+override.</li>
+<li><strong>Root <code>.dockerignore</code>.</strong> The build context was trying to include
+<code>data/postgres/</code> and failing on permissions. Exclude <code>data/</code>,
+<code>node_modules/</code>, <code>.git/</code>.</li>
+</ul>
+<h2 id="chapter-takeaways-18">Chapter takeaways</h2>
+<ul>
+<li>Three.js raycasting is five lines of code for hover/click. Learn
+it; don&#39;t hand-roll hit detection.</li>
+<li>AABB with epsilon + XZ-overlap stacking = believable physics
+without a physics engine.</li>
+<li>Docker Compose <code>ports</code> arrays merge, they don&#39;t replace. Put
+environment-specific port maps in overrides.</li>
+<li>Vite&#39;s dev proxy needs to know the backend hostname, which differs
+between &quot;local dev on host&quot; and &quot;local dev in Docker.&quot; Env var it.</li>
+</ul>
+<hr>
+<h1 id="chapter-18-v111-expo-go-takes-its-native-modules-back">Chapter 18 — v1.1.1: Expo Go takes its native modules back</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> The Expo Go vs custom dev build
+trade-off, how to back out a bad library choice without destroying
+the feature around it.</p>
+</blockquote>
+<p><strong>Commits (clustered):</strong></p>
+<ul>
+<li><code>d891e6b</code> — Remove WatermelonDB, add placeholder assets</li>
+<li><code>4187c9c</code> — Delete <code>src/db/</code>, update docs</li>
+<li><code>6b5a1e1</code> — Add package-lock.json</li>
+</ul>
+<h2 id="the-ask-19">The ask</h2>
+<p>&quot;The mobile app crashes on launch in Expo Go.&quot;</p>
+<h2 id="bugs-we-hit-3">Bugs we hit</h2>
+<h3 id="bug-watermelondb-native-modules-crash-expo-go">Bug: WatermelonDB native modules crash Expo Go</h3>
+<p><strong>Symptom:</strong> App launches, then crashes in Expo Go with a native
+module error referencing <code>WMDatabase</code> (WatermelonDB&#39;s native
+bridge).</p>
+<p><strong>Root cause:</strong> WatermelonDB requires native iOS/Android modules
+that are <em>not</em> in the Expo Go bundle. To use WatermelonDB you need a
+<strong>custom Expo dev build</strong> (<code>eas build --profile development</code>). Expo
+Go alone can&#39;t load it.</p>
+<p><strong>Fix:</strong> Rip out WatermelonDB from the mobile package. Keep the
+backend sync endpoints (they&#39;re fine). Replace <code>SyncContext</code>&#39;s real
+sync logic with a SecureStore-based stub that just reports &quot;idle.&quot;
+Document in BACKLOG.md that full offline sync returns when we do a
+custom dev build.</p>
+<p><strong>Why this was a design miss:</strong> Chapter 8 picked WatermelonDB without
+verifying it runs in Expo Go. The feature (offline sync) was good;
+the library choice required a toolchain we weren&#39;t ready for.</p>
+<h3 id="also-expo-go-asset-requirements">Also: Expo Go asset requirements</h3>
+<p>Expo requires <code>icon.png</code>, <code>splash.png</code>, <code>adaptive-icon.png</code> to exist
+or bundling fails. Added placeholder assets so the app builds.</p>
+<h2 id="what-we-kept-and-what-we-threw-away">What we kept and what we threw away</h2>
+<table>
+<thead>
+<tr>
+<th>Kept</th>
+<th>Threw away</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Backend <code>/api/sync/pull</code> and <code>/api/sync/push</code> endpoints</td>
+<td>WatermelonDB schema, models, sync code on mobile</td>
+</tr>
+<tr>
+<td>The pull-then-push protocol design</td>
+<td>The <code>synchronize()</code> call that used it</td>
+</tr>
+<tr>
+<td><code>SyncContext</code> (rewritten as a stub)</td>
+<td>The &quot;syncing&quot; UI states it managed</td>
+</tr>
+</tbody></table>
+<h2 id="chapter-takeaways-19">Chapter takeaways</h2>
+<ul>
+<li><strong>Verify library compatibility with your runtime before building
+a feature around it.</strong> &quot;Does this run in Expo Go?&quot; is a 60-second
+check that would have saved this whole detour.</li>
+<li>When backing out a bad choice, don&#39;t nuke the feature around it.
+The sync protocol is reusable; only the client implementation
+changed.</li>
+<li>Write down the deferred work (BACKLOG.md) so a future you knows
+what&#39;s intentional vs what&#39;s broken.</li>
+</ul>
+<hr>
+<h1 id="chapter-19-v120-cleaning-the-seed-and-untangling-the-data-path">Chapter 19 — v1.2.0: Cleaning the seed and untangling the data path</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Reading your homelab docs as the
+source of truth, the difference between scaffold data and fixture
+data, the Unraid <strong><em>FUSE/shfs</em></strong> trap for database containers, and
+Postgres enum migrations.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-04-24. First chapter written in real time (chapters 0–18
+were a backfill from git history; see the preamble).</p>
+<h2 id="the-ask-20">The ask</h2>
+<p>Three things, said back-to-back:</p>
+<ol>
+<li>&quot;Remove any fake data that was added.&quot;</li>
+<li>&quot;We were supposed to be using my unraid server for the database and
+everything else we could.&quot;</li>
+<li>&quot;Ensure that there are pre-generated containers for 27-gallon HDX
+totes, 14-gallon HDX totes, the U-Haul U-Box for now.&quot;</li>
+</ol>
+<p>A fourth — the AI book-scanner feature — was explicitly deferred to
+the next session.</p>
+<h2 id="investigating-before-changing">Investigating before changing</h2>
+<p>Before touching anything I checked four things:</p>
+<ol>
+<li><p><strong>Is anything actually running?</strong> <code>docker ps</code> against the local box
+failed (Docker Desktop off). <code>ssh unraid</code> succeeded; <code>docker ps | grep stash</code> returned no rows. The appdata directories at
+<code>/mnt/cache/appdata/stash/{postgres,images,qrcodes,exports,floorplans,repo}</code>
+existed but were <strong>empty</strong> — created Mar 26, never used. So the
+&quot;fake data&quot; wasn&#39;t on any disk yet; it was only the seed script.</p>
+</li>
+<li><p><strong>What does the user&#39;s homelab doc say about Unraid storage?</strong> From
+<code>D:/James_Journey/areas/homelab/storage-and-paths.md</code>:</p>
+<blockquote>
+<p>Container appdata must use direct NVMe paths. Always mount appdata
+from <code>/mnt/cache/appdata/</code> or <code>/mnt/data_main/appdata/</code> — NEVER
+from <code>/mnt/user/appdata/</code>. The <code>/mnt/user/</code> path goes through
+Unraid&#39;s FUSE layer (shfs), which adds catastrophic I/O overhead
+for database-heavy containers.</p>
+</blockquote>
+<p>Stash&#39;s <code>SETUP.md</code> and <code>.env.example</code> both told you to do exactly
+the wrong thing — point everything at <code>/mnt/user/appdata/stash</code>.
+The Plex hub had gone 70s → 1s after a similar fix. We were lucky
+we hadn&#39;t deployed yet.</p>
+</li>
+<li><p><strong>What does the user actually want for destination rooms?</strong> The
+obsidian note <code>stash-destination-room-list.md</code> had a structured
+list of 32 rooms (17 main floor + 4 basement + 7 outbuildings + 4
+property exterior) with real intent (James&#39;s Office, Savanah&#39;s
+Studio, Woodshop, Barn/Forge…) and real hex colors, but TBD
+dimensions because no NC property is under contract yet.</p>
+</li>
+<li><p><strong>Container types — what&#39;s missing?</strong> <code>ContainerType</code> had
+<code>TOTE_27GAL</code> but no <code>TOTE_14GAL</code>. The 27-gal dimensions in the seed
+(<code>24 × 16 × 14</code>, 50 lbs) were also undersized for actual
+27-gallon-of-volume.</p>
+</li>
+</ol>
+<h2 id="the-plan-16">The plan</h2>
+<p><strong>Phase 1 — Seed cleanup + container templates.</strong></p>
+<ul>
+<li>Add <code>TOTE_14GAL</code> to the <code>ContainerType</code> enum and ship a Prisma
+migration for it.</li>
+<li>Update <code>@stash/shared/constants/container-defaults.ts</code> with HDX-spec
+dims and rename labels to match the real products.</li>
+<li>Rewrite <code>seed.ts</code> to plant <strong>only the real scaffold</strong>: 2 user
+accounts (1 admin + 1 user, real emails), origin rooms (Eagle
+Mountain, UT — keep what&#39;s there), 32 destination rooms
+(placeholder template from obsidian), 10 category templates. <strong>Zero
+items, containers, placements, or activity logs.</strong></li>
+<li>Strip <code>james@stash.local</code> / <code>password123</code> from every doc and the
+<code>LoginPage</code> placeholder.</li>
+</ul>
+<p><strong>Phase 2 — Untangle the data path.</strong></p>
+<ul>
+<li>Split <code>DATA_PATH</code> (uploaded files; user share) from
+<code>POSTGRES_DATA_PATH</code> (DB files; cache pool).</li>
+<li>Update <code>docker-compose.yml</code>, <code>.env.example</code>, and the <code>SETUP.md</code>
+Unraid section.</li>
+</ul>
+<p><strong>Phase 3 (deferred):</strong> actual deploy + the book-scanner feature.</p>
+<h2 id="step-1-the-14-gallon-enum-migration">Step 1: The 14-gallon enum migration</h2>
+<p>Adding an enum value in Postgres is its own little story.
+<code>enum_add_value</code> requires a committed transaction before the new
+value can be <strong>used</strong> in queries. <code>prisma migrate deploy</code> handles this
+correctly because it runs migrations in their own transactions.</p>
+<pre><code class="language-sql">-- packages/backend/prisma/migrations/20260424160000_add_tote_14gal/migration.sql
+ALTER TYPE &quot;ContainerType&quot; ADD VALUE &#39;TOTE_14GAL&#39;;
+</code></pre>
+<p>One line. Additive — no existing rows reference it, so nothing breaks.</p>
+<h2 id="step-2-real-hdx-dimensions">Step 2: Real HDX dimensions</h2>
+<p>The original 27-gal entry was <code>24 × 16 × 14, 50 lbs</code>. A real HDX
+27-gallon tote (per Home Depot&#39;s spec sheet) is closer to
+<code>28.3 × 18.5 × 13.6</code> internal with a 75 lb capacity. The new entry
+matches the real product; it&#39;ll matter the moment the 3D fill
+calculator is used.</p>
+<pre><code class="language-ts">[ContainerType.TOTE_27GAL]: {
+  label: &#39;HDX 27-Gal Tote&#39;,
+  lengthIn: 28.3, widthIn: 18.5, heightIn: 13.6,
+  maxWeightLbs: 75,
+},
+[ContainerType.TOTE_14GAL]: {
+  label: &#39;HDX 14-Gal Tote&#39;,
+  lengthIn: 21, widthIn: 14, heightIn: 11.5,
+  maxWeightLbs: 50,
+},
+</code></pre>
+<p>Numbers are from manufacturer specs. They&#39;re the right starting
+point; if they&#39;re off when measured, edit one file and re-build
+shared.</p>
+<h2 id="step-3-scaffold-only-seed">Step 3: Scaffold-only seed</h2>
+<p>The biggest mental shift in the rewrite: <strong>distinguish scaffold from
+fixture.</strong></p>
+<ul>
+<li><strong>Scaffold</strong> is data the app is unusable without — at least one
+admin account, the rooms you&#39;re packing from, the rooms you&#39;re
+packing to, the categories you&#39;re going to tag items with.</li>
+<li><strong>Fixture</strong> is dev-only data: a sectional sofa, a 65&quot; Samsung TV, a
+KitchenAid stand mixer. None of it real, all of it would have to be
+manually deleted in production.</li>
+</ul>
+<p>The old seed mixed both. The new one keeps only the scaffold:</p>
+<pre><code>Users:        2 (James as ADMIN, Savanah as USER)
+Origin:       8 rooms (Eagle Mountain, UT)
+Destination: 32 rooms (NC Property — TBD; placeholder template)
+Categories:  10 (templates)
+Items:        0
+Containers:   0
+Placements:   0
+Activity:     0
+</code></pre>
+<p>Real emails (<code>jameshendershott85@gmail.com</code>,
+<code>mama.shotts@gmail.com</code>). Initial passwords from <code>SEED_ADMIN_PASSWORD</code>
+/ <code>SEED_USER_PASSWORD</code> env vars; if unset, the seed uses a
+placeholder and prints a loud warning. Savanah gets
+<code>mustChangePassword: true</code>; James doesn&#39;t (because there&#39;s no
+self-service change-password UI yet — that&#39;s a BACKLOG item).</p>
+<p>The destination rooms are a <strong>template</strong> — they encode the <em>concepts</em>
+(James&#39;s Office, Savanah&#39;s Studio, Woodshop, Livestock Barn) plus
+real hex colors that survive any property choice. Once a property is
+under contract, you rename rooms via the Locations UI and the colors
+stay valid.</p>
+<h2 id="step-4-the-data-path-split">Step 4: The data-path split</h2>
+<p><code>docker-compose.yml</code> had one volume:</p>
+<pre><code class="language-yaml">- ${DATA_PATH:-./data}/postgres:/var/lib/postgresql/data
+</code></pre>
+<p>If a user followed <code>SETUP.md</code> and set <code>DATA_PATH=/mnt/user/appdata/stash</code>,
+Postgres data files would have landed at <code>/mnt/user/appdata/stash/postgres</code>
+— the FUSE union path — and stash-postgres would have been the slowest
+service in the homelab.</p>
+<p>The fix:</p>
+<pre><code class="language-yaml">- ${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data
+</code></pre>
+<p>Local default still works (<code>./data/postgres</code>). <code>.env.example</code> documents
+the prod values:</p>
+<pre><code class="language-env">DATA_PATH=/mnt/user/appdata/stash               # photos, QR, exports — fine on user share
+POSTGRES_DATA_PATH=/mnt/cache/appdata/stash/postgres   # DB — direct NVMe
+</code></pre>
+<p>The cost: cache-pool isn&#39;t parity-protected, so <code>pg_dump</code> backups
+matter more. The benefit: Postgres stops fighting shfs for every
+WAL fsync.</p>
+<h2 id="verifying-3">Verifying</h2>
+<ul>
+<li><code>npm run build:shared</code> succeeds with the new enum value.</li>
+<li>The new migration file is structurally identical to other Prisma
+migrations in the directory (timestamped folder, <code>migration.sql</code>).</li>
+<li>Searched the repo for <code>james@stash.local</code> and <code>password123</code> —
+remaining matches are in <code>TEACH.md</code> (historical teaching content)
+and earlier BUILD_LOG chapters (historical narrative). Anything
+current-tense is updated.</li>
+<li>Did <strong>not</strong> run <code>prisma db seed</code> against any database. The seed
+rewrite is verified by reading; it executes against fresh Postgres
+on the next deploy.</li>
+</ul>
+<h2 id="bugs-we-hit-4">Bugs we hit</h2>
+<p>None this round — every change was additive or a rename. Real bugs
+will surface when we actually deploy in Phase 3.</p>
+<h2 id="chapter-takeaways-20">Chapter takeaways</h2>
+<ul>
+<li><strong>Read the homelab docs before you write deployment docs.</strong> The
+vault had a flashing red warning about FUSE/shfs and Postgres that
+the Stash setup doc cheerfully ignored.</li>
+<li><strong>Scaffold ≠ fixture.</strong> Seed scripts should plant scaffold (the
+thing the app needs to be usable) and nothing else. Fixtures are a
+separate, optional step (<code>npm run db:seed:demo</code> if you want one).</li>
+<li><strong>Adding a Postgres enum value is a real migration.</strong> Not zero-cost,
+but additive — no existing rows reference the new value.</li>
+<li><strong>Templates beat blanks.</strong> A &quot;TBD&quot; destination room with the right
+hex color and the right concept is more useful than a blank list,
+because it captures intent.</li>
+</ul>
+<hr>
+<h1 id="chapter-20-v120-a-book-is-just-an-item-with-a-sidecar">Chapter 20 — v1.2.0: A book is just an item with a sidecar</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> The <strong><em>sidecar table</em></strong> pattern,
+two-phase AI pipelines (vision + lookup), why you don&#39;t trust an LLM
+with ISBNs, picking Haiku over Sonnet on cost, fighting a
+pre-existing strict-mode debt, and Postgres enum migrations.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-04-24, same session as Chapter 19. The user has thousands
+of books and was clear: the AI book scanner is the headline feature for
+v1.2.</p>
+<h2 id="the-ask-21">The ask</h2>
+<blockquote>
+<p>&quot;Add a &#39;book&#39; specific button. It asks you to take a picture of the book
+and then the AI should find the details for that book. you can review
+it to confirm but it should have the cover art, the main details
+including the ISBN number, hardback/paperback option, condition, and
+also the edition if able.&quot;</p>
+</blockquote>
+<p>Two design questions decided up-front before writing any code:</p>
+<ol>
+<li><strong>Where does book data live?</strong> A separate <code>BookDetails</code> table 1:1 with
+<code>Item</code>, vs. a JSON blob on <code>Item</code>. We picked the table — same pattern
+as <code>Container</code>, queryable, less to regret.</li>
+<li><strong>Which AI?</strong> Claude Haiku 4.5 for the vision call (cost-optimal at
+~$0.003/book), keep Sonnet 4.6 for the existing sell-price feature
+(where reasoning matters more than cost).</li>
+</ol>
+<h2 id="the-plan-17">The plan</h2>
+<p>A two-phase pipeline:</p>
+<pre><code>            ┌──────────────────────────────────────────┐
+            │ User snaps a photo of the book cover     │
+            └──────────────────┬───────────────────────┘
+                               │
+            ┌──────────────────▼───────────────────────┐
+   Phase 1  │ Claude Haiku 4.5 — &quot;read the cover&quot;      │  ~$0.003
+            │ Returns: title, authors, edition guess,  │
+            │ binding guess, visible-ISBN if any,      │
+            │ confidence score                         │
+            └──────────────────┬───────────────────────┘
+                               │
+            ┌──────────────────▼───────────────────────┐
+   Phase 2  │ OpenLibrary search → Google Books fallbk │  free
+            │ Returns: canonical ISBN-10/13, publisher,│
+            │ year, page count, official cover URL     │
+            └──────────────────┬───────────────────────┘
+                               │
+            ┌──────────────────▼───────────────────────┐
+            │ Transaction: create Item + BookDetails    │
+            │ Activity log entry tags it as &#39;book&#39;      │
+            └───────────────────────────────────────────┘
+</code></pre>
+<p>The split matters: Claude is great at <em>reading what&#39;s on the cover</em>
+(an OCR/vision task it does cheaply). It&#39;s terrible at <em>recalling
+specific ISBN numbers</em> — it would hallucinate them. So we let Claude
+read the photo, then we hit databases for the authoritative values.</p>
+<h2 id="step-1-the-sidecar-table">Step 1: The sidecar table</h2>
+<pre><code class="language-prisma">model BookDetails {
+  id               String      @id @default(uuid())
+  itemId           String      @unique
+
+  isbn10           String?
+  isbn13           String?
+  title            String
+  authors          String[]
+  publisher        String?
+  publishedYear    Int?
+  edition          String?
+  pageCount        Int?
+  language         String?
+  binding          BookBinding @default(UNKNOWN)
+  coverImageUrl    String?
+  openLibraryId    String?
+  googleBooksId    String?
+  lookupSource     String?     // &quot;openlibrary&quot; | &quot;google-books&quot; | &quot;claude-only&quot; | &quot;manual&quot;
+  lookupConfidence Float?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  item             Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([isbn13])
+  @@index([isbn10])
+  @@map(&quot;book_details&quot;)
+}
+
+enum BookBinding {
+  HARDBACK
+  PAPERBACK
+  EBOOK
+  AUDIOBOOK
+  BOXED_SET
+  UNKNOWN
+}
+</code></pre>
+<p>This is the same <strong><em>sidecar table</em></strong> pattern as <code>Container</code> from
+Chapter 2. A book is still an <code>Item</code> with a fate, a room, a photo, a
+container — that part of the world stays consistent. The book-specific
+fields hang off in their own table, indexed on ISBN for fast &quot;do we
+already have this book?&quot; lookups.</p>
+<p>The migration is one CREATE TYPE + one CREATE TABLE + three indexes +
+a foreign key. Boring, additive. Nothing existing references it.</p>
+<h2 id="step-2-reading-covers-with-claude-haiku">Step 2: Reading covers with Claude Haiku</h2>
+<p><code>packages/backend/src/services/book-lookup.ts</code> does the vision call.
+The prompt is opinionated:</p>
+<pre><code>Respond with ONLY a JSON object (no markdown, no code fences) in this
+exact shape:
+{
+  &quot;title&quot;: &quot;&lt;book title&gt;&quot;,
+  &quot;authors&quot;: [&quot;&lt;author 1&gt;&quot;, &quot;&lt;author 2&gt;&quot;],
+  &quot;edition&quot;: &lt;&quot;1st edition&quot; | &quot;Revised&quot; | … or null&gt;,
+  &quot;bindingGuess&quot;: &quot;&lt;HARDBACK | PAPERBACK | UNKNOWN&gt;&quot;,
+  &quot;visibleIsbn&quot;: &quot;&lt;ISBN if printed visibly, else null&gt;&quot;,
+  &quot;rawConfidence&quot;: &lt;0.0–1.0&gt;
+}
+
+Rules:
+- Do NOT invent ISBNs. Only return one if you can literally read it.
+- Do NOT guess publisher or year — that&#39;s looked up separately.
+- If blurry, set rawConfidence &lt; 0.5 and still return your best guess.
+</code></pre>
+<p>Three things this prompt does deliberately:</p>
+<ol>
+<li><strong>Forbids the LLM from inventing data we&#39;ll get authoritatively.</strong>
+ISBNs and publishers come from APIs. Claude only reports what it
+<em>sees</em>.</li>
+<li><strong>Confidence as a first-class output.</strong> A blurry photo of &quot;The
+Stand&quot; gets <code>rawConfidence: 0.3</code> and a guess; the UI can route low-
+confidence extractions to a manual-fix screen instead of saving
+silently.</li>
+<li><strong>Closed enum on bindingGuess.</strong> Without it, Claude would invent
+&quot;softbound&quot; or &quot;trade paperback&quot; — fine for humans, useless for a
+typed column.</li>
+</ol>
+<p>Sending an image to Claude is a multi-block message:</p>
+<pre><code class="language-ts">await anthropic.messages.create({
+  model: &#39;claude-haiku-4-5&#39;,
+  max_tokens: 512,
+  messages: [{
+    role: &#39;user&#39;,
+    content: [
+      { type: &#39;image&#39;, source: { type: &#39;base64&#39;, media_type, data: base64 } },
+      { type: &#39;text&#39;, text: VISION_PROMPT },
+    ],
+  }],
+});
+</code></pre>
+<p>Cost per call (per Anthropic&#39;s published rates as of Jan 2026):</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Tokens</th>
+<th>$/M</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Input — phone photo, resized</td>
+<td>~1,600</td>
+<td>0.80</td>
+<td>$0.0013</td>
+</tr>
+<tr>
+<td>Input — prompt text</td>
+<td>~500</td>
+<td>0.80</td>
+<td>$0.0004</td>
+</tr>
+<tr>
+<td>Output — JSON response</td>
+<td>~300</td>
+<td>4.00</td>
+<td>$0.0012</td>
+</tr>
+<tr>
+<td><strong>Total per book</strong></td>
+<td></td>
+<td></td>
+<td><strong>~$0.003</strong></td>
+</tr>
+</tbody></table>
+<p>A thousand books → about $3. A library-sized 5,000 → $15.</p>
+<h2 id="step-3-authoritative-metadata-from-free-apis">Step 3: Authoritative metadata from free APIs</h2>
+<p>Two database lookups, both free, both no-API-key:</p>
+<p><strong>OpenLibrary</strong> (<code>openlibrary.org/search.json</code>):</p>
+<ul>
+<li>ISBN search, title+author search, returns rich metadata</li>
+<li>Polite, slow, sometimes thin on recent books</li>
+<li>Cover image URL pattern: <code>https://covers.openlibrary.org/b/id/{cover_i}-L.jpg</code></li>
+</ul>
+<p><strong>Google Books</strong> (<code>googleapis.com/books/v1/volumes</code>):</p>
+<ul>
+<li>Same query language (<code>isbn:</code>, <code>intitle:</code>, <code>inauthor:</code>)</li>
+<li>Faster and stronger on contemporary titles</li>
+<li>Cover thumbnails come back as <code>http://</code>; we rewrite to <code>https:</code> to
+avoid mixed-content blocks in the admin SPA</li>
+</ul>
+<p>The service tries OpenLibrary first (richer for older books) and falls
+back to Google Books if no hit:</p>
+<pre><code class="language-ts">export async function lookupByISBN(isbn: string) {
+  return (await searchOpenLibrary({ isbn })) ?? (await searchGoogleBooks({ isbn }));
+}
+</code></pre>
+<p>The result from either is normalized into a single <code>BookLookupResult</code>
+shape — the route handler doesn&#39;t care which one answered.</p>
+<h2 id="step-4-the-route-one-transaction-creates-item-bookdetails">Step 4: The route — one transaction creates Item + BookDetails</h2>
+<p><code>POST /api/books/from-photo</code> is multipart (the photo) + form fields
+(originLocationId, optional categoryId/destinationLocationId/notes).
+Flow:</p>
+<ol>
+<li>Multer saves the photo to <code>DATA_PATH/images/&lt;timestamp&gt;-&lt;name&gt;</code>.</li>
+<li>We call <code>extractFromPhoto()</code> (Claude). If <code>title</code> comes back empty,
+we 422 and return the extraction so the user can hand-fill instead.</li>
+<li>We call <code>lookupByISBN()</code> if Claude saw an ISBN, else
+<code>lookupByTitleAuthor()</code>.</li>
+<li>We resolve the category — defaults to &quot;Books &amp; Media&quot; (the seed
+creates this; if it&#39;s been renamed, we&#39;ll create it on the fly).</li>
+<li><strong>One transaction</strong> creates the <code>Item</code> row, the <code>BookDetails</code> row,
+and an <code>ActivityLog</code> entry tagging the source. If anything throws,
+nothing commits.</li>
+<li>Response includes <code>{ item, bookDetails, extraction, lookup }</code> — the
+front-end shows the user what was auto-detected vs. what came from
+the lookup, so they know what to double-check.</li>
+</ol>
+<pre><code class="language-ts">const result = await prisma.$transaction(async (tx) =&gt; {
+  const item = await tx.item.create({ data: { name: lookup?.title ?? extraction.title, … } });
+  const bookDetails = await tx.bookDetails.create({ data: { itemId: item.id, … } });
+  await tx.activityLog.create({ data: { … } });
+  return { item, bookDetails };
+});
+</code></pre>
+<p>Two more endpoints exist but aren&#39;t auto-create:</p>
+<ul>
+<li><code>POST /api/books/lookup</code> — pass an ISBN or title+author, get
+metadata. No DB write. For &quot;I already have the ISBN typed in.&quot;</li>
+<li><code>PATCH /api/books/:itemId</code> — update an existing item&#39;s BookDetails
+(creates the row if it doesn&#39;t exist). For the user&#39;s review-and-edit
+step.</li>
+</ul>
+<h2 id="bugs-we-hit-the-pre-existing-strict-mode-tax">Bugs we hit (the pre-existing strict-mode tax)</h2>
+<p>This is where it got unfun. As soon as I tried to run <code>npm run build:backend</code> to verify my new files, the compiler exploded. Not on
+<em>my</em> code — on pre-existing code I hadn&#39;t touched.</p>
+<h3 id="bug-1-shared-package-wasn39t-a-composite-project">Bug 1: shared package wasn&#39;t a composite project</h3>
+<pre><code>tsconfig.json(8,18): error TS6306: Referenced project must have setting &quot;composite&quot;: true.
+</code></pre>
+<p>Backend&#39;s tsconfig has a project reference to shared, but shared&#39;s
+tsconfig was missing <code>composite: true</code>. Fix: one line in
+<code>packages/shared/tsconfig.json</code>. Effect: project references work as
+intended; nothing else changes.</p>
+<h3 id="bug-2-pdftsx-had-jsx-but-tsc-wasn39t-told-about-it">Bug 2: pdf.tsx had JSX, but tsc wasn&#39;t told about it</h3>
+<pre><code>src/services/pdf.tsx(259,11): error TS17004: Cannot use JSX unless the &#39;--jsx&#39; flag is provided.
+</code></pre>
+<p>Chapter 16 documented renaming <code>pdf.ts → pdf.tsx</code> — but only the
+filename changed. The backend tsconfig never enabled JSX. Dev runtime
+(<code>tsx</code> via nodemon) auto-handles JSX, so this never bit anyone. Prod
+<code>tsc</code> does not. Fix: <code>&quot;jsx&quot;: &quot;react-jsx&quot;</code> in
+<code>packages/backend/tsconfig.json</code>.</p>
+<h3 id="bug-3-30-implicit-any-errors-in-pre-existing-files">Bug 3: ~30 implicit-any errors in pre-existing files</h3>
+<p>The base tsconfig has <code>&quot;strict&quot;: true</code> (which includes
+<code>noImplicitAny</code>), but backend code throughout <code>routes/sync.ts</code>,
+<code>services/csv-import.ts</code>, <code>services/pdf.tsx</code>, etc. uses bare <code>(c) =&gt; …</code> callbacks where Prisma&#39;s inferred type can&#39;t propagate. Pure dev
+runtime (tsx) doesn&#39;t enforce it.</p>
+<p>I had two choices: annotate every callback with <code>: any</code> or some real
+type (mechanical, ~40 sites), or relax <code>noImplicitAny</code> for backend
+specifically. I picked the second — keeping the actually-load-bearing
+strict checks (null safety, etc.) on, dropping the noisy one. The
+real fix is to type the Prisma queries with <code>Prisma.ItemGetPayload&lt;…&gt;</code>
+generics, which is a future cleanup.</p>
+<h3 id="bug-4-express-type-tightening-on-reqparams">Bug 4: Express type tightening on req.params</h3>
+<pre><code>src/routes/exports.ts(18,46): error TS2345: &#39;string | string[]&#39; not assignable to &#39;string&#39;.
+</code></pre>
+<p>Newer <code>@types/express</code> started typing <code>req.params.&lt;id&gt;</code> as
+<code>string | string[]</code>. Three routes pass <code>req.params.X</code> straight into
+service functions expecting <code>string</code>. Cast each to <code>as string</code> — Express
+doesn&#39;t actually parse params as arrays unless you opt in.</p>
+<h3 id="bug-5-jsonwebtoken-v9-expiresin-typing">Bug 5: jsonwebtoken v9 expiresIn typing</h3>
+<p>The library&#39;s <code>expiresIn</code> option is now typed as
+<code>number | StringValue</code> (an opaque branded string). Passing a plain
+<code>string</code> from env vars fails. Cast through <code>SignOptions[&#39;expiresIn&#39;]</code>
+and ship it.</p>
+<p>The honest read of all five bugs: <strong>the prod build pipeline was never
+working.</strong> Every reference to &quot;production&quot; in the obsidian docs was
+aspirational. Five small fixes in a single chapter wipe out the debt.</p>
+<h2 id="verifying-4">Verifying</h2>
+<ul>
+<li><code>npm run build:shared</code> ✓</li>
+<li><code>npm run build:backend</code> ✓ (was failing before any of my changes)</li>
+<li><code>npx prisma generate</code> ✓ (Prisma Client picked up <code>BookDetails</code> and
+<code>BookBinding</code>)</li>
+<li>New files compile clean in isolation. Nothing in book code uses any
+of the patterns the strict-mode tax flagged.</li>
+<li>Did <strong>not</strong> run the new endpoints — that requires Postgres, which
+isn&#39;t running locally. The pipeline is verified by reading.</li>
+</ul>
+<p>The admin frontend has its own pre-existing build issue (a
+<code>@types/react</code> / <code>react-router-dom</code> <code>ReactNode</code>/<code>bigint</code> collision) —
+also not caused by anything in this session, also tracked in BACKLOG.
+The book feature is a backend-only landing in v1.2.0; the admin
+&quot;Add Book&quot; page and mobile &quot;Add Book&quot; tab are explicit BACKLOG items
+for the next session.</p>
+<h2 id="chapter-takeaways-21">Chapter takeaways</h2>
+<ul>
+<li><strong>Sidecar tables beat JSON blobs</strong> when the data is structured and
+you&#39;ll want to query it. ISBN lookup needs an index. JSON in Postgres
+can be indexed but it&#39;s awkward; a real column is one declaration.</li>
+<li><strong>LLM + lookup is a powerful pattern.</strong> Let the LLM do what it&#39;s
+great at (reading a photo, identifying ambiguous text). Let an
+authoritative database do what <em>it&#39;s</em> great at (returning canonical
+identifiers). Don&#39;t make Claude recite ISBNs.</li>
+<li><strong>Confidence is a first-class output.</strong> Bake it into the prompt&#39;s
+required fields. The UI can branch on it: high confidence → save
+with optional edits; low confidence → route to manual entry.</li>
+<li><strong>Close enums.</strong> &quot;What&#39;s the binding?&quot; with no constraint gets you
+six different ways to say &quot;paperback.&quot; With an enum, Claude returns
+one of six values or <code>UNKNOWN</code>.</li>
+<li><strong>Haiku for vision when the task is OCR-shaped.</strong> Sonnet&#39;s reasoning
+edge doesn&#39;t help you read &quot;Slaughterhouse-Five&quot; off a cover.</li>
+<li><strong>You inherit every prior author&#39;s strict-mode debt.</strong> When you turn
+on the build for the first time, the bill comes due.</li>
+</ul>
+<hr>
+<h1 id="chapter-21-v120-the-bulk-path-wins">Chapter 21 — v1.2.0: The bulk path wins</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Letting the user redirect your
+design when their workflow is different from your assumption. The
+&quot;AI step lives outside the app&quot; pattern. Why an offline script
+beats a paid endpoint when the job is one-time bulk.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-04-24, same v1.2.0 cut as Chapters 19 and 20. This
+chapter exists because James read Chapter 20&#39;s design and asked a
+better question.</p>
+<h2 id="the-redirect">The redirect</h2>
+<p>Chapter 20 designed the book feature around an in-app camera flow:
+phone snaps a cover, backend calls Claude Haiku, OpenLibrary fills in
+the rest. Cost ~$0.003/book. Fine on paper.</p>
+<p>Then James pushed back, paraphrased:</p>
+<blockquote>
+<p>&quot;I don&#39;t want to spend money on the API. I have <em>thousands</em> of
+books — this is one big cataloging job, not an ongoing thing.
+Could I just have Claude or ChatGPT in a chat window do the vision
+step, hand me a list, and feed that into a script that does the
+lookup?&quot;</p>
+</blockquote>
+<p>That was the better question. Three reasons:</p>
+<ol>
+<li><strong>The job shape.</strong> &quot;Catalog the entire household library before
+the move&quot; is one-time bulk. After that the rate of adding new
+books is approximately zero. Building a permanent paid endpoint
+for a one-time task is the wrong shape.</li>
+<li><strong>Free chat UIs already do vision.</strong> claude.ai and chatgpt.com
+both accept image uploads in the free tier. Why pay per call when
+the same model is free in a different UI?</li>
+<li><strong>The lookup step is free anyway.</strong> OpenLibrary and Google Books
+have no auth and no quota for our scale. The Claude vision call
+was the only paid bit. Move it outside, the whole pipeline costs
+$0.</li>
+</ol>
+<h2 id="what-changed-in-the-code">What changed in the code</h2>
+<p><strong>Removed:</strong></p>
+<ul>
+<li><code>POST /api/books/from-photo</code> — the multipart-upload-and-call-Claude
+endpoint. The route handler, the <code>extractFromPhoto()</code> service
+function, the <code>VISION_PROMPT</code> constant, the Anthropic SDK usage in
+<code>book-lookup.ts</code>. Gone.</li>
+<li><code>BookExtraction</code> type from shared (no more vision step output to
+type).</li>
+<li><code>fromPhotoExtraFieldsSchema</code> Zod validator.</li>
+</ul>
+<p><strong>Kept:</strong></p>
+<ul>
+<li><code>BookDetails</code> model and the migration — the data model is right.</li>
+<li><code>BookBinding</code> enum — still useful for both the script and import.</li>
+<li>OpenLibrary + Google Books lookup helpers — now used by both the
+backend (for <code>POST /api/books/lookup</code>) and the offline script.</li>
+<li><code>POST /api/books/lookup</code> (ISBN or title+author lookup, no DB write)
+and <code>PATCH /api/books/:itemId</code> (manual edit). Both small, both free.</li>
+</ul>
+<p><strong>Added:</strong></p>
+<ul>
+<li><code>scripts/enrich-books.mjs</code> — pure-Node script. Reads a pipe-delimited
+text file, hits OpenLibrary then Google Books per row, emits a CSV.
+No <code>import { Anthropic } from …</code> anywhere. About 200 lines.</li>
+<li><code>POST /api/books/import-csv</code> — bulk import endpoint. Multipart CSV
+upload. Per row: resolves room name → ID, container label → ID,
+creates <code>Item</code> + <code>BookDetails</code> + optional <code>ItemPlacement</code> in one
+transaction. Returns per-row success/error counts so a 1,000-book
+import surfaces the 3 rows that failed instead of the whole batch
+aborting.</li>
+</ul>
+<h2 id="the-user39s-actual-workflow">The user&#39;s actual workflow</h2>
+<pre><code>┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ Stage 1 (FREE)   │  │ Stage 2 (FREE)   │  │ Stage 3 (FREE)   │
+│ Photos → list    │→ │ List → CSV       │→ │ CSV → Stash      │
+│                  │  │                  │  │                  │
+│ Phone Photos +   │  │ enrich-books.mjs │  │ Admin Books →    │
+│ claude.ai/       │  │ (OpenLibrary +   │  │ Import CSV       │
+│ chatgpt.com      │  │  Google Books)   │  │                  │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
+</code></pre>
+<p>The user does Stage 1 in their existing free chat UI with a paste-in
+prompt that returns <code>Title | Authors | ISBN</code> lines. They concat their
+shelves into one text file. They run the script. They open the CSV in
+their spreadsheet, add <code>originLocation</code>, <code>containerLabel</code>, <code>fate</code>
+columns, save. They import. Done.</p>
+<p><strong>Total AI cost:</strong> $0.</p>
+<h2 id="why-this-is-honestly-better-than-what-chapter-20-designed">Why this is honestly better than what Chapter 20 designed</h2>
+<ul>
+<li><strong>Reviewable middle.</strong> The CSV exists between stages. James can
+open it, sort by <code>lookupConfidence</code>, fix the bad rows in Excel.
+The original API-driven flow had no human-readable artifact.</li>
+<li><strong>Pausable.</strong> James can do 200 books a night for two weeks. The
+text files pile up. He runs the script once at the end. The API
+flow assumed he&#39;d do it inline with the photo.</li>
+<li><strong>The placement columns.</strong> James pointed out that the CSV row
+could carry <code>containerLabel</code> — so import doesn&#39;t just create the
+book, it also drops it into U-Box #4 in one step. The API flow
+needed a separate &quot;now place this in a container&quot; step.</li>
+<li><strong>No production AI key needed.</strong> Stash deploys without any LLM
+configuration. Sell-pricing still uses Sonnet (separate, optional
+feature, 503s gracefully if no key). Books are pure free APIs.</li>
+</ul>
+<h2 id="bugs-we-hit-5">Bugs we hit</h2>
+<p>The pivot itself was clean. But on the way out the door, the build
+exploded again — different errors than Chapter 19 covered.</p>
+<h3 id="bug-1-typesexpress-v5-widened-paramsdictionary">Bug 1: @types/express v5 widened ParamsDictionary</h3>
+<pre><code>src/routes/categories.ts(34,14): error TS2322: Type &#39;string | string[]&#39; 
+is not assignable to type &#39;string | undefined&#39;.
+</code></pre>
+<p><code>@types/express@5.0.6</code> redefined <code>ParamsDictionary[key: string]</code> from
+<code>string</code> (the v4 shape) to <code>string | string[]</code> to model some advanced
+router patterns. The actual Express runtime is <strong>4.21.0</strong> —
+the types and the runtime were mismatched. Pinned <code>@types/express</code> to
+<code>^4.17.21</code> in <code>packages/backend/package.json</code> and added an <code>npm overrides</code> block at the workspace root to force the same version on
+transitive deps (<code>@types/multer</code> and friends were dragging in their
+own @types/express).</p>
+<pre><code class="language-json">&quot;overrides&quot;: {
+  &quot;@types/express&quot;: &quot;^4.17.21&quot;,
+  &quot;@types/express-serve-static-core&quot;: &quot;^4.19.6&quot;
+}
+</code></pre>
+<p>Wiped <code>node_modules</code> + lock + reinstalled to make the override stick.
+Errors went from ~30 to 0.</p>
+<h3 id="bug-2-map-type-inference-under-noimplicitany-false">Bug 2: Map type inference under noImplicitAny: false</h3>
+<pre><code>src/routes/books.ts(118,62): error TS2345: Argument of type &#39;Map&lt;unknown, unknown&gt;&#39; 
+is not assignable to parameter of type &#39;Map&lt;string, string&gt;&#39;.
+</code></pre>
+<p>I had relaxed <code>noImplicitAny</code> in Chapter 19. That made
+<code>locations.map((l) =&gt; [l.name, l.id])</code> infer as <code>any[]</code>, which made
+<code>new Map(...)</code> infer as <code>Map&lt;unknown, unknown&gt;</code>. Two-line fix:
+explicit tuple types on the map callbacks plus the Map generic.</p>
+<h2 id="verifying-5">Verifying</h2>
+<ul>
+<li><code>npm run build:shared</code> ✓</li>
+<li><code>npm run build:backend</code> ✓ (clean, no warnings)</li>
+<li>The new <code>enrich-books.mjs</code> is standalone — <code>node scripts/enrich-books.mjs</code>
+works without the backend at all (you can run it on any machine
+with Node 20).</li>
+<li>Endpoints: ready to hit on next deploy. CSV import is exercised
+through the existing CSV pattern, so high confidence it works
+the moment Postgres is up.</li>
+</ul>
+<h2 id="chapter-takeaways-22">Chapter takeaways</h2>
+<ul>
+<li><strong>Listen when the user redescribes the workflow.</strong> James&#39;s &quot;could
+I just…&quot; reframe was a better design than mine. The &quot;AI must be in
+the app&quot; assumption was inertia.</li>
+<li><strong>Match the tool to the job&#39;s shape.</strong> One-time bulk is a script.
+Daily-use feature is an endpoint. Don&#39;t pay per call for a one-time
+task.</li>
+<li><strong>External AI + your own structured pipeline = good leverage.</strong>
+Free chat UIs do the human-in-the-loop vision step well. Free
+databases do the lookup step well. Your code is the glue, not the
+intelligence.</li>
+<li><strong>A reviewable artifact in the middle is gold.</strong> A CSV between the
+AI step and the database write means the user can scrub mistakes
+before they become DB rows.</li>
+<li><strong>Type pins matter.</strong> Pinning <code>@types/express</code> to match runtime
+Express 4 cleared a 30-error build flood that had nothing to do
+with our actual code.</li>
+<li><strong>Removing code is a feature.</strong> The diff for this chapter was net
+<em>negative</em> lines. Deleting the from-photo flow simplified the
+service, the route, the validator, the type module, and the
+documentation. Less surface area, lower maintenance, lower cost.</li>
+</ul>
+<hr>
+<h1 id="glossary">Glossary</h1>
+<p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AABB</td>
+<td>Axis-Aligned Bounding Box. Collision check via comparing min/max on x/y/z. Fast and correct when shapes don&#39;t rotate freely.</td>
+</tr>
+<tr>
+<td>ADR</td>
+<td>Architecture Decision Record. A short document capturing why a design choice was made. See <code>LEARN.md</code>.</td>
+</tr>
+<tr>
+<td>Anthropic SDK</td>
+<td><code>@anthropic-ai/sdk</code> — the Node client for the Claude API. Used by <code>packages/backend/src/services/pricing.ts</code>.</td>
+</tr>
+<tr>
+<td>auth</td>
+<td>Shorthand for authentication (who are you?) + authorization (what can you do?). JWT + <code>requireAuth</code>/<code>requireAdmin</code>.</td>
+</tr>
+<tr>
+<td>enums</td>
+<td>Prisma / TypeScript types with a fixed set of named values. <code>Fate</code>, <code>Condition</code>, <code>ContainerType</code>.</td>
+</tr>
+<tr>
+<td>Expo</td>
+<td>A React Native toolkit and managed runtime. Includes <code>expo-camera</code>, <code>expo-secure-store</code>, etc.</td>
+</tr>
+<tr>
+<td>Expo Go</td>
+<td>The prebuilt Expo runtime that runs your JS without a native build. Can&#39;t load custom native modules.</td>
+</tr>
+<tr>
+<td>FUSE/shfs</td>
+<td>Unraid&#39;s user-share filesystem at <code>/mnt/user/</code> that unions the array + cache pools. Adds I/O latency that&#39;s catastrophic for database containers — pin Postgres to <code>/mnt/cache/</code> instead.</td>
+</tr>
+<tr>
+<td>sidecar table</td>
+<td>A 1:1 companion table that holds type-specific fields off a generic parent. <code>Container</code> and <code>BookDetails</code> are both sidecars on <code>Item</code>. Lets you query <code>WHERE binding=&#39;HARDBACK&#39;</code> without polluting the parent schema with mostly-null columns.</td>
+</tr>
+<tr>
+<td>KSDT</td>
+<td>Keep / Sell / Donate / Trash. The <code>Fate</code> enum.</td>
+</tr>
+<tr>
+<td>MeshPhongMaterial</td>
+<td>A Three.js material that responds to lights with diffuse + specular shading. Needs at least one light in the scene.</td>
+</tr>
+<tr>
+<td>multipart/form-data</td>
+<td>The HTTP content type used for file uploads. Multer parses it.</td>
+</tr>
+<tr>
+<td>Multer</td>
+<td>Express middleware for parsing <code>multipart/form-data</code>. <code>packages/backend/src/middleware/upload.ts</code>.</td>
+</tr>
+<tr>
+<td>OrbitControls</td>
+<td>Three.js addon for mouse-driven camera orbit/pan/zoom. Standard for 3D inspectors.</td>
+</tr>
+<tr>
+<td>React Router</td>
+<td><code>react-router-dom</code> — declarative routing for React SPAs. Nested <code>&lt;Route&gt;</code>s with <code>&lt;Outlet/&gt;</code>.</td>
+</tr>
+<tr>
+<td>Router</td>
+<td>Either the Express subrouter (<code>express.Router()</code>) or the React one, depending on context.</td>
+</tr>
+<tr>
+<td>safety guard</td>
+<td>A check that blocks a destructive operation based on business rules (&quot;can&#39;t delete yourself&quot;, &quot;can&#39;t remove last admin&quot;). Returns 400.</td>
+</tr>
+<tr>
+<td>schema</td>
+<td>In Prisma: the models file that generates SQL + TS types. In Zod: the runtime validation object.</td>
+</tr>
+<tr>
+<td>schema validation</td>
+<td>Checking that incoming data matches a declared shape. Zod does this in the validator middleware.</td>
+</tr>
+<tr>
+<td>SecureStore</td>
+<td><code>expo-secure-store</code> — encrypted key/value storage on mobile. Used for JWTs and the server URL.</td>
+</tr>
+<tr>
+<td>Three.js</td>
+<td>The JS 3D library used for the container viewer. <code>packages/backend/public/container-3d.html</code>.</td>
+</tr>
+<tr>
+<td>transaction</td>
+<td><code>prisma.$transaction(...)</code> — multiple writes committed atomically. Used for Item+Container creation and user-delete-with-reassignment.</td>
+</tr>
+<tr>
+<td>WatermelonDB</td>
+<td>A reactive offline-first database for React Native. Requires native modules, incompatible with Expo Go. Currently unused (Chapter 18).</td>
+</tr>
+<tr>
+<td>workspaces</td>
+<td>npm&#39;s monorepo feature. Root <code>package.json</code> declares workspace paths; packages import each other by name.</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>This is a living document. New chapters land here whenever a
+feature ships, a bug is fixed, or an architectural decision is made.</em></p>
+
+    <div class="foot">
+      <code>BUILD_LOG.md</code> wiki · 155 sections. Regenerate with <code>npm run build:wiki</code>.
+    </div>
+  </main>
+</div>
+<script>
+  (function () {
+    const search = document.getElementById('search')
+    const tocLinks = Array.from(document.querySelectorAll('#toc a'))
+
+    if (search) {
+      search.addEventListener('input', function () {
+        const q = search.value.trim().toLowerCase()
+        tocLinks.forEach(function (a) {
+          const match = !q || a.textContent.toLowerCase().includes(q)
+          a.classList.toggle('hidden', !match)
+        })
+      })
+    }
+
+    const headingEls = tocLinks
+      .map(function (a) { return document.querySelector(a.getAttribute('href')) })
+      .filter(Boolean)
+
+    function updateActive() {
+      const y = window.scrollY + 80
+      let activeIdx = 0
+      for (let i = 0; i < headingEls.length; i++) {
+        if (headingEls[i].offsetTop <= y) activeIdx = i
+      }
+      tocLinks.forEach(function (a, i) { a.classList.toggle('active', i === activeIdx) })
+    }
+    window.addEventListener('scroll', updateActive, { passive: true })
+    updateActive()
+  })()
+</script>
+</body>
+</html>

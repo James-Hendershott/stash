@@ -15,9 +15,10 @@ router.use(requireAuth);
  */
 router.get('/pdf/manifest/:containerId', async (req: Request, res: Response) => {
   try {
-    const buffer = await generateManifestPdf(req.params.containerId);
+    const containerId = req.params.containerId as string;
+    const buffer = await generateManifestPdf(containerId);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="manifest-${req.params.containerId}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="manifest-${containerId}.pdf"`);
     res.send(buffer);
   } catch (err: any) {
     res.status(err.message === 'Container not found' ? 404 : 500).json({ error: err.message });

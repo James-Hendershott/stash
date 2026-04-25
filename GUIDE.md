@@ -8,18 +8,19 @@ Complete guide to using Stash for inventory management and move planning.
 
 1. [Getting Started](#getting-started)
 2. [Adding Items](#adding-items)
-3. [Taking Photos](#taking-photos)
-4. [Changing an Item's Fate](#changing-an-items-fate)
-5. [Selling Items](#selling-items)
-6. [Creating Containers](#creating-containers)
-7. [Placing Items in Containers](#placing-items-in-containers)
-8. [Moving Items Between Rooms](#moving-items-between-rooms)
-9. [Searching and Filtering](#searching-and-filtering)
-10. [QR Code Labels](#qr-code-labels)
-11. [Floor Plan View](#floor-plan-view)
-12. [Importing from a Spreadsheet](#importing-from-a-spreadsheet)
-13. [Exporting and Printing](#exporting-and-printing)
-14. [Managing Users](#managing-users)
+3. [Adding Books from a Photo](#adding-books-from-a-photo)
+4. [Taking Photos](#taking-photos)
+5. [Changing an Item's Fate](#changing-an-items-fate)
+6. [Selling Items](#selling-items)
+7. [Creating Containers](#creating-containers)
+8. [Placing Items in Containers](#placing-items-in-containers)
+9. [Moving Items Between Rooms](#moving-items-between-rooms)
+10. [Searching and Filtering](#searching-and-filtering)
+11. [QR Code Labels](#qr-code-labels)
+12. [Floor Plan View](#floor-plan-view)
+13. [Importing from a Spreadsheet](#importing-from-a-spreadsheet)
+14. [Exporting and Printing](#exporting-and-printing)
+15. [Managing Users](#managing-users)
 
 ---
 
@@ -93,6 +94,139 @@ Items can be placed into **containers** (U-Box, totes, boxes) and assigned to **
 - **Set the fate immediately if you know it.** Undecided items pile up fast
 - **Add dimensions for items going in containers.** This helps the 3D container view show fill level
 - **Don't skip the room.** The floor plan view groups items by room — it's how you track progress
+
+---
+
+## Bulk Cataloging Books
+
+Books get a dedicated workflow because there are thousands of them and
+typing each title is impossible. **Stash does NOT include AI book
+scanning in the app** — to keep API costs at zero, the AI step happens
+outside Stash in a free chat UI (Claude.ai or ChatGPT) and the result
+flows into Stash via a CSV import.
+
+### The three stages
+
+```
+  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
+  │ Stage 1     │    │ Stage 2      │    │ Stage 3         │
+  │ Photos →    │ →  │ Text list →  │ →  │ Enriched CSV →  │
+  │ text list   │    │ enriched CSV │    │ Stash items     │
+  │             │    │              │    │                 │
+  │ Claude.ai / │    │ enrich-books │    │ Admin → Books   │
+  │ ChatGPT     │    │   .mjs       │    │   → Import CSV  │
+  └─────────────┘    └──────────────┘    └─────────────────┘
+   (free vision)      (free, offline)      (no AI cost)
+```
+
+### Stage 1 — Photos to text list
+
+1. Take photos of stacked or shelved books with your iPhone (just
+   regular Photos, no app needed). Spines or covers both work.
+2. Open **claude.ai** or **chatgpt.com** in a browser. Free tier is fine.
+3. Drag the photo into the chat (or attach it on mobile).
+4. Paste this prompt verbatim alongside the photo:
+
+   > Look at this image of stacked or shelved books. For each book whose
+   > spine or cover you can read **confidently**, output one line in
+   > this exact format with no header and no commentary:
+   >
+   > `Title | Authors | Visible ISBN (or blank)`
+   >
+   > Rules:
+   > - **Authors:** separate multiple authors with semicolons. e.g.
+   >   `King, Stephen; Straub, Peter`. Use the form printed on the book
+   >   if possible, otherwise "Last, First".
+   > - **Visible ISBN:** leave blank unless you can literally read the
+   >   ISBN digits on the cover or spine. Do NOT guess.
+   > - Skip any book you can't read with high confidence rather than
+   >   making something up.
+   > - One book per line. Use the pipe character `|` as the separator.
+   >
+   > Example output:
+   >
+   > ```
+   > The Stand | King, Stephen |
+   > Foundation | Asimov, Isaac | 9780553293357
+   > Snow Crash | Stephenson, Neal |
+   > ```
+
+5. Copy the output into a text file. Name it `books-raw-shelf-01.txt`
+   (or whatever — keep them separate per shelf if it helps you stay
+   organized).
+6. Repeat per shelf or per stack. At the end you'll have a pile of
+   text files — concatenate them or feed them through the script
+   one at a time.
+
+### Stage 2 — Enrich the list
+
+The script lives in the repo at `scripts/enrich-books.mjs`. It hits
+**OpenLibrary** (then **Google Books** if no match) per book, looks up
+the canonical ISBN-13, ISBN-10, publisher, year, page count, and the
+official cover image URL.
+
+```bash
+node scripts/enrich-books.mjs books-raw.txt books-enriched.csv
+```
+
+A 1,000-row file takes about 3.5 minutes (rate-limited politely so we
+don't hammer the free APIs). Output is a CSV with these columns:
+
+```
+title, authors, isbn13, isbn10, publisher, publishedYear, edition,
+pageCount, language, binding, coverImageUrl, openLibraryId,
+googleBooksId, lookupSource, lookupConfidence
+```
+
+Books that didn't match come through with `lookupSource=no-match` and
+empty metadata fields — sort/filter on that column to find them and
+fill in by hand if you want.
+
+### Stage 3 — Add placement columns and import
+
+1. Open the enriched CSV in Excel, Numbers, Google Sheets, or LibreOffice.
+2. **Add these columns** (any subset is fine; defaults apply when blank):
+   - `originLocation` — must match a Location name exactly (e.g.
+     `Office`, `Living Room`). Defaults to your first ORIGIN room.
+   - `destinationLocation` — destination room name (optional).
+   - `containerLabel` — must match a `Container.label`. If you set this,
+     the book is automatically placed inside that container.
+   - `fate` — `KEEP`, `SELL`, `DONATE`, `TRASH`, or `UNDECIDED` (default).
+   - `condition` — `GOOD` (default), `FAIR`, or `POOR`.
+   - `quantity` — defaults to 1.
+   - `notes` — anything you want.
+3. Fill in the rows — at minimum a room. Do this in bulk: select 30
+   rows that all came off your office shelf, fill `originLocation=Office`
+   for all of them at once.
+4. Save as CSV.
+5. In the admin dashboard, go to **Books → Import CSV**, pick the file,
+   confirm. The page reports how many rows succeeded, how many were
+   placed in containers, and surfaces any errors row by row.
+
+### Tips
+
+- **Photograph systematically.** Do one shelf at a time. Take photos
+  in order. Number your text files. It saves a lot of "wait, where
+  was this from?" later.
+- **Bad photos cost nothing.** Take three of the same shelf if the
+  first is blurry. The chat UI doesn't charge per photo.
+- **Self-published or obscure books** may miss in both lookup APIs.
+  They show up with `lookupSource=no-match` — review and fill manually
+  in the spreadsheet before importing.
+- **The script is idempotent.** Re-run it with the same input file;
+  same output. Safe to interrupt and resume by running with the
+  remaining lines.
+- **Cost: zero.** No API keys, no per-request charges. The whole flow
+  uses free chat UIs and free databases.
+
+### What the lookup can't always do
+
+- **Self-published or rare books** miss both OpenLibrary and Google Books.
+- **Translations and foreign editions** sometimes match the original
+  edition (different ISBN/year). Edit in the spreadsheet if it matters.
+- **Edition discrimination** without a visible ISBN is fuzzy. The
+  script picks the first match it finds; for collectors that may not
+  be the *exact* printing.
 
 ---
 

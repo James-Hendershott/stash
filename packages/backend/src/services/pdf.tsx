@@ -80,7 +80,7 @@ export async function generateManifestPdf(containerId: string): Promise<Buffer> 
 
   if (!container) throw new Error('Container not found');
 
-  const totalWeight = container.placements.reduce((sum, p) => sum + (p.item.weightLbs || 0), 0);
+  const totalWeight = container.placements.reduce((sum: number, p: any) => sum + (p.item.weightLbs || 0), 0);
 
   const doc = (
     <Document>
@@ -116,7 +116,7 @@ export async function generateManifestPdf(containerId: string): Promise<Buffer> 
             <Text style={[styles.th, { width: '8%' }]}>Qty</Text>
             <Text style={[styles.th, { width: '18%' }]}>Dimensions</Text>
           </View>
-          {container.placements.map((p) => {
+          {container.placements.map((p: any) => {
             const fc = FATE_COLORS[p.item.fate] || FATE_COLORS.UNDECIDED;
             return (
               <View key={p.id} style={styles.tableRow}>
@@ -161,7 +161,7 @@ export async function generateQRLabelsPdf(containerIds?: string[]): Promise<Buff
         </View>
 
         <View style={styles.labelGrid}>
-          {containers.map((c) => {
+          {containers.map((c: any) => {
             const qrPath = c.qrCodePath ? path.join(config.dataPath, c.qrCodePath) : null;
             const hasQR = qrPath && fs.existsSync(qrPath);
             return (
@@ -195,8 +195,8 @@ export async function generateSellListPdf(): Promise<Buffer> {
     orderBy: { name: 'asc' },
   });
 
-  const totalEstimated = items.reduce((sum, i) => sum + (i.estimatedSaleValue || 0), 0);
-  const totalLLM = items.reduce((sum, i) => sum + (i.llmPriceSuggestion || 0), 0);
+  const totalEstimated = items.reduce((sum: number, i: any) => sum + (i.estimatedSaleValue || 0), 0);
+  const totalLLM = items.reduce((sum: number, i: any) => sum + (i.llmPriceSuggestion || 0), 0);
 
   const doc = (
     <Document>
@@ -216,7 +216,7 @@ export async function generateSellListPdf(): Promise<Buffer> {
             <Text style={[styles.th, { width: '15%' }]}>Your Est.</Text>
             <Text style={[styles.th, { width: '15%' }]}>AI Est.</Text>
           </View>
-          {items.map((item) => (
+          {items.map((item: any) => (
             <View key={item.id} style={styles.tableRow}>
               <Text style={[styles.td, { width: '30%' }]}>{item.name}</Text>
               <Text style={[styles.td, { width: '15%' }]}>{item.category.name}</Text>
@@ -263,7 +263,7 @@ export async function generateDonateListPdf(): Promise<Buffer> {
             <Text style={[styles.th, { width: '12%' }]}>Condition</Text>
             <Text style={[styles.th, { width: '13%' }]}>Qty</Text>
           </View>
-          {items.map((item) => (
+          {items.map((item: any) => (
             <View key={item.id} style={styles.tableRow}>
               <Text style={[styles.td, { width: '35%' }]}>{item.name}</Text>
               <Text style={[styles.td, { width: '20%' }]}>{item.category.name}</Text>

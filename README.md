@@ -47,9 +47,9 @@ Stash becomes a permanent property inventory system.
 | Validation  | Zod                                 |
 | File Upload | Multer (disk storage)               |
 | QR Codes    | qrcode (PNG + data URL)             |
-| AI Pricing  | Claude API (claude-sonnet-4-6)    |
+| AI Pricing  | Claude Sonnet 4.6 (sell-price estimates — optional, 503s if no key) |
+| Books lookup| OpenLibrary + Google Books (free, no API key); offline enrichment script + CSV import |
 | Auth        | JWT + bcrypt                        |
-| LLM         | Claude claude-haiku-4-5 (price estimates) |
 | Deploy      | Docker Compose on Unraid            |
 | Remote      | Tailscale                           |
 
@@ -66,8 +66,9 @@ Location ──┤     │
 
 - **Item** — Anything you own. Has a fate (Keep/Sell/Donate/Trash), dimensions, condition, photos.
 - **Container** — A special Item that holds other Items (U-Box, tote, box).
+- **BookDetails** — A 1:1 companion to Item for books — ISBN, edition, binding, cover art URL. Auto-populated from `POST /api/books/from-photo`.
 - **ItemPlacement** — Tracks which items are in which container (with history).
-- **Location** — Rooms in origin house (Colorado) and destination house (NC).
+- **Location** — Rooms in origin house (Eagle Mountain, UT) and destination house (NC).
 - **Category** — Furniture, Electronics, Kitchen, etc.
 - **ActivityLog** — Audit trail of who changed what and when.
 
@@ -117,7 +118,7 @@ React 18 SPA with responsive sidebar, JWT auth, error boundaries, toast notifica
 - **Users** — Admin user management (create, roles, password reset, delete)
 - **Activity Log** — Paginated audit trail
 
-Login: `james@stash.local` / `password123`
+Login: the admin email seeded by `prisma db seed` (see `packages/backend/prisma/seed.ts`). The initial password is a placeholder unless `SEED_ADMIN_PASSWORD` was set when the seed ran — in that case the seed output prints a warning telling you to change it via the Users page on first login.
 
 ## Mobile App
 
@@ -128,16 +129,48 @@ React Native + Expo app with bottom tab navigation:
 
 Runs in Expo Go for development. See [IPHONE-GUIDE.md](IPHONE-GUIDE.md) for user guide.
 
+## Books — bulk cataloging via offline enrichment
+
+Stash has a dedicated path for books because there are thousands of them
+and typing each one is unworkable. **The AI step happens outside Stash**
+in a free chat UI; the result flows in via CSV. Total cost: $0.
+
+```
+Photos → claude.ai/chatgpt.com → text list → enrich-books.mjs → CSV → admin import
+   (free vision)                              (free DB lookups)        (no AI cost)
+```
+
+Three stages:
+1. Take phone photos of shelves/stacks. Drop them into Claude.ai or
+   ChatGPT with a paste-in prompt; copy out a `Title | Authors | ISBN`
+   text list. (See `GUIDE.md` for the prompt.)
+2. Run `node scripts/enrich-books.mjs books.txt books.csv` — pure Node,
+   no auth, hits OpenLibrary then Google Books to enrich each row with
+   ISBN-13/10, publisher, year, page count, official cover URL.
+3. Open the CSV in your spreadsheet editor, add `originLocation`,
+   `containerLabel`, `fate` columns, save. Upload via admin **Books →
+   Import CSV**. Stash batch-creates `Item` + `BookDetails` rows and
+   drops books into their containers in one transaction.
+
+Endpoints:
+- `POST /api/books/import-csv` — bulk creation from enriched CSV
+- `POST /api/books/lookup` — ISBN or title+author, no DB write
+- `PATCH /api/books/:itemId` — manual edit of a single book's details
+
+Books are still Items, so they slot into the same containers, fates,
+locations, QR labels, and exports as everything else — they just have a
+sidecar table with their bibliographic data.
+
 ## API
 
-36 REST endpoints with JWT authentication. See [TEACH.md Step 3](TEACH.md) for
+39 REST endpoints with JWT authentication. See [TEACH.md Step 3](TEACH.md) for
 the full endpoint table. Quick test:
 
 ```bash
 # Login
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"james@stash.local","password":"password123"}'
+  -d '{"email":"<admin-email>","password":"<your-password>"}'
 
 # Use the returned token for all other requests
 curl http://localhost:3001/api/items -H "Authorization: Bearer <token>"

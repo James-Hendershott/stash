@@ -29,7 +29,7 @@ export function DashboardPage() {
   if (loading) return <div className="loading">Loading dashboard...</div>;
   if (!stats) return <div className="error-message">Failed to load stats</div>;
 
-  const fateMap = new Map(stats.fateBreakdown.map((f: any) => [f.fate, f.count]));
+  const fateMap = new Map<string, number>(stats.fateBreakdown.map((f: any) => [f.fate, f.count]));
 
   return (
     <div className="dashboard">

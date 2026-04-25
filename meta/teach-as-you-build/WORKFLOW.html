@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WORKFLOW.md</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e0e10;
+    --surface: #161618;
+    --border: #2a2a2e;
+    --fg: #eaeaea;
+    --muted: #8d8d94;
+    --accent: #6c8cff;
+    --code-bg: #1a1a1d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell {
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static !important; height: auto !important; max-height: none !important; border-right: 0; border-bottom: 1px solid var(--border); }
+  }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem 2rem;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .sidebar h1 { margin: 0 0 0.3rem; font-size: 1.05rem; color: var(--fg); }
+  .sidebar .subtitle { margin: 0 0 1.4rem; font-size: 0.78rem; color: var(--muted); }
+  .sidebar input[type="search"] {
+    width: 100%;
+    padding: 0.4rem 0.55rem;
+    margin-bottom: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--code-bg);
+    color: var(--fg);
+    font-size: 0.85rem;
+  }
+  .toc { display: flex; flex-direction: column; gap: 0.15rem; }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 0.25rem 0.35rem;
+    border-radius: 3px;
+    border-left: 2px solid transparent;
+    transition: background 0.08s, color 0.08s;
+  }
+  .toc a:hover { color: var(--fg); background: rgba(108, 140, 255, 0.08); }
+  .toc a.active { color: var(--fg); border-left-color: var(--accent); background: rgba(108, 140, 255, 0.12); }
+  .toc a.toc-l2 { padding-left: 0.35rem; font-weight: 600; }
+  .toc a.toc-l3 { padding-left: 1rem; font-weight: 400; color: var(--muted); }
+  .toc a.hidden { display: none; }
+
+  .content { padding: 2.5rem 3rem 5rem; max-width: 920px; width: 100%; }
+  @media (max-width: 900px) { .content { padding: 1.5rem 1.25rem 3rem; } }
+
+  h1 { font-size: 1.85rem; line-height: 1.2; margin: 2.5rem 0 0.8rem; }
+  h1:first-child { margin-top: 0; }
+  h2 { font-size: 1.4rem; line-height: 1.25; margin: 2.3rem 0 0.7rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; line-height: 1.3; margin: 1.7rem 0 0.5rem; }
+  h4 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 1.3rem 0 0.4rem; }
+  h1, h2, h3, h4 { scroll-margin-top: 1rem; }
+
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  ul li, ol li { margin-bottom: 0.25rem; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    padding: 0.1em 0.35em;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    line-height: 1.55;
+    font-size: 0.87rem;
+    margin: 0 0 1rem;
+  }
+  pre code { padding: 0; border: 0; background: transparent; font-size: inherit; }
+
+  blockquote {
+    margin: 0 0 1rem;
+    padding: 0.35rem 1rem;
+    border-left: 3px solid var(--accent);
+    background: rgba(108, 140, 255, 0.06);
+    color: var(--fg);
+  }
+  blockquote p { margin: 0.3rem 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 0 0 1rem; font-size: 0.9rem; }
+  table th, table td { border: 1px solid var(--border); padding: 0.4rem 0.65rem; text-align: left; vertical-align: top; }
+  table th { background: var(--code-bg); font-weight: 600; }
+  table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+
+  strong { color: var(--fg); font-weight: 700; }
+  em { color: #dcdce2; }
+
+  .foot {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .foot code { font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <h1>WORKFLOW.md</h1>
+    <p class="subtitle">teach-as-you-build wiki</p>
+    <input id="search" type="search" placeholder="Filter sections…" autocomplete="off" />
+    <nav class="toc" id="toc">
+        <a class="toc-l2" href="#table-of-contents">Table of contents</a>
+        <a class="toc-l2" href="#quick-reference-card">Quick reference card</a>
+        <a class="toc-l2" href="#a1-install-the-skill-globally">A.1 Install the skill globally</a>
+        <a class="toc-l2" href="#a2-confirm-the-skill-is-registered">A.2 Confirm the skill is registered</a>
+        <a class="toc-l2" href="#b1-universal-pre-flight-any-language">B.1 Universal pre-flight (any language)</a>
+        <a class="toc-l2" href="#b2-activate-teaching-docs">B.2 Activate teaching docs</a>
+        <a class="toc-l2" href="#b3-wire-up-auto-maintenance">B.3 Wire up auto-maintenance</a>
+        <a class="toc-l2" href="#d1-javascript-typescript">D.1 JavaScript / TypeScript</a>
+        <a class="toc-l3" href="#project-skeleton">Project skeleton</a>
+        <a class="toc-l3" href="#add-to-claudemd">Add to CLAUDE.md</a>
+        <a class="toc-l3" href="#what-build_log-should-call-out-for-jsts-projects">What BUILD_LOG should call out for JS/TS projects</a>
+        <a class="toc-l3" href="#chapter-0-starter">Chapter 0 starter</a>
+        <a class="toc-l2" href="#d2-python">D.2 Python</a>
+        <a class="toc-l3" href="#project-skeleton-2">Project skeleton</a>
+        <a class="toc-l3" href="#project-layout-most-pythonistas-expect">Project layout most pythonistas expect</a>
+        <a class="toc-l3" href="#add-to-claudemd-2">Add to CLAUDE.md</a>
+        <a class="toc-l3" href="#what-build_log-should-call-out-for-python-projects">What BUILD_LOG should call out for Python projects</a>
+        <a class="toc-l3" href="#chapter-0-starter-2">Chapter 0 starter</a>
+        <a class="toc-l2" href="#d3-react-native-expo">D.3 React Native + Expo</a>
+        <a class="toc-l3" href="#project-skeleton-3">Project skeleton</a>
+        <a class="toc-l3" href="#add-to-claudemd-3">Add to CLAUDE.md</a>
+        <a class="toc-l3" href="#day-to-day-commands">Day-to-day commands</a>
+        <a class="toc-l3" href="#what-build_log-should-call-out-for-expo-projects">What BUILD_LOG should call out for Expo projects</a>
+        <a class="toc-l3" href="#chapter-0-starter-3">Chapter 0 starter</a>
+        <a class="toc-l2" href="#d4-native-ios-swift-swiftui">D.4 Native iOS (Swift / SwiftUI)</a>
+        <a class="toc-l3" href="#project-skeleton-4">Project skeleton</a>
+        <a class="toc-l3" href="#project-layout-xcode-default">Project layout (Xcode default)</a>
+        <a class="toc-l3" href="#add-to-claudemd-4">Add to CLAUDE.md</a>
+        <a class="toc-l3" href="#day-to-day-commands-2">Day-to-day commands</a>
+        <a class="toc-l3" href="#what-build_log-should-call-out-for-ios-projects">What BUILD_LOG should call out for iOS projects</a>
+        <a class="toc-l3" href="#chapter-0-starter-4">Chapter 0 starter</a>
+        <a class="toc-l2" href="#d5-native-android-kotlin-jetpack-compose">D.5 Native Android (Kotlin / Jetpack Compose)</a>
+        <a class="toc-l3" href="#project-skeleton-5">Project skeleton</a>
+        <a class="toc-l3" href="#project-layout-android-studio-default">Project layout (Android Studio default)</a>
+        <a class="toc-l3" href="#add-to-claudemd-5">Add to CLAUDE.md</a>
+        <a class="toc-l3" href="#day-to-day-commands-3">Day-to-day commands</a>
+        <a class="toc-l3" href="#what-build_log-should-call-out-for-android-projects">What BUILD_LOG should call out for Android projects</a>
+        <a class="toc-l3" href="#chapter-0-starter-5">Chapter 0 starter</a>
+        <a class="toc-l2" href="#d6-go">D.6 Go</a>
+        <a class="toc-l2" href="#d7-rust">D.7 Rust</a>
+        <a class="toc-l2" href="#e1-vs-code-cursor-windsurf">E.1 VS Code / Cursor / Windsurf</a>
+        <a class="toc-l2" href="#e2-jetbrains-ides">E.2 JetBrains IDEs</a>
+        <a class="toc-l2" href="#e3-xcode">E.3 Xcode</a>
+        <a class="toc-l2" href="#e4-standalone-terminal">E.4 Standalone terminal</a>
+        <a class="toc-l2" href="#when-you-start-work">When you start work</a>
+        <a class="toc-l2" href="#when-you39re-working-on-a-feature">When you&amp;#39;re working on a feature</a>
+        <a class="toc-l2" href="#when-you-finish-a-feature">When you finish a feature</a>
+        <a class="toc-l2" href="#when-you-fix-a-bug">When you fix a bug</a>
+        <a class="toc-l2" href="#when-you-make-an-architectural-decision">When you make an architectural decision</a>
+        <a class="toc-l2" href="#when-you-onboard-someone-or-future-you">When you onboard someone (or future-you)</a>
+        <a class="toc-l3" href="#quoti-typed-teach-as-you-build-but-claude-says-it-doesn39t-know-that-commandquot">&quot;I typed /teach-as-you-build but Claude says it doesn&amp;#39;t know that command&quot;</a>
+        <a class="toc-l3" href="#quotthe-skill-is-there-but-claude-isn39t-proactively-updating-build_logquot">&quot;The skill is there but Claude isn&amp;#39;t proactively updating BUILD_LOG&quot;</a>
+        <a class="toc-l3" href="#quotbuild_logmd-got-too-long-to-read-in-one-sittingquot">&quot;BUILD_LOG.md got too long to read in one sitting&quot;</a>
+        <a class="toc-l3" href="#quoti-want-different-doc-names-than-build_logmd-learnmdquot">&quot;I want different doc names than BUILD_LOG.md / LEARN.md&quot;</a>
+        <a class="toc-l3" href="#quoti-want-this-for-a-team-not-just-personal-projectsquot">&quot;I want this for a team, not just personal projects&quot;</a>
+        <a class="toc-l3" href="#quoti39m-using-a-non-english-language-for-my-docsquot">&quot;I&amp;#39;m using a non-English language for my docs&quot;</a>
+        <a class="toc-l3" href="#quoti-want-to-see-what-other-skills-are-availablequot">&quot;I want to see what other skills are available&quot;</a>
+        <a class="toc-l3" href="#quotcan-the-skill-auto-commit-too-or-just-write-the-docsquot">&quot;Can the skill auto-commit too, or just write the docs?&quot;</a>
+        <a class="toc-l2" href="#h1-the-three-quotcirclesquot-of-deployment">H.1 The three &quot;circles&quot; of deployment</a>
+        <a class="toc-l2" href="#h2-web-app">H.2 Web app</a>
+        <a class="toc-l3" href="#circle-1-local">Circle 1 — local</a>
+        <a class="toc-l3" href="#circle-2-share-with-one-friend">Circle 2 — share with one friend</a>
+        <a class="toc-l3" href="#circle-3-live-public-persistent">Circle 3 — live, public, persistent</a>
+        <a class="toc-l2" href="#h3-cli-tool">H.3 CLI tool</a>
+        <a class="toc-l3" href="#circle-1-local-2">Circle 1 — local</a>
+        <a class="toc-l3" href="#circle-2-share-with-one-friend-2">Circle 2 — share with one friend</a>
+        <a class="toc-l3" href="#circle-3-live-publish-to-a-registry">Circle 3 — live (publish to a registry)</a>
+        <a class="toc-l2" href="#h4-mobile-app">H.4 Mobile app</a>
+        <a class="toc-l3" href="#h4-expo">H.4 — Expo</a>
+        <a class="toc-l3" href="#h4-native-ios">H.4 — Native iOS</a>
+        <a class="toc-l3" href="#h4-native-android">H.4 — Native Android</a>
+        <a class="toc-l2" href="#h5-server-api">H.5 Server / API</a>
+        <a class="toc-l3" href="#circle-1-local-3">Circle 1 — local</a>
+        <a class="toc-l3" href="#circle-2-share-with-one-friend-3">Circle 2 — share with one friend</a>
+        <a class="toc-l3" href="#circle-3-live">Circle 3 — live</a>
+        <a class="toc-l2" href="#h6-databases-where-your-project39s-data-lives">H.6 Databases — where your project&amp;#39;s data lives</a>
+        <a class="toc-l3" href="#three-paths-same-priority-order">Three paths, same priority order</a>
+        <a class="toc-l3" href="#picking-a-db-engine">Picking a DB engine</a>
+        <a class="toc-l2" href="#h7-pointing-a-domain-at-your-home-server-namecheap-npm">H.7 Pointing a domain at your home server (Namecheap + NPM)</a>
+        <a class="toc-l3" href="#step-1-find-your-public-ip">Step 1 — find your public IP</a>
+        <a class="toc-l3" href="#step-2-port-forward-80-and-443-on-your-router">Step 2 — port-forward 80 and 443 on your router</a>
+        <a class="toc-l3" href="#step-3-add-dns-records-at-namecheap">Step 3 — add DNS records at Namecheap</a>
+        <a class="toc-l3" href="#step-4-add-the-proxy-host-in-npm">Step 4 — add the proxy host in NPM</a>
+        <a class="toc-l3" href="#step-5-verify">Step 5 — verify</a>
+        <a class="toc-l3" href="#avoiding-common-pitfalls">Avoiding common pitfalls</a>
+        <a class="toc-l2" href="#h8-quotjust-send-them-the-sourcequot-for-any-project">H.8 &quot;Just send them the source&quot; — for any project</a>
+        <a class="toc-l2" href="#h9-pushing-to-github-the-first-time">H.9 Pushing to GitHub the first time</a>
+        <a class="toc-l3" href="#option-a-via-gh-cli-easiest-one-command">Option A — via gh CLI (easiest, one command)</a>
+        <a class="toc-l3" href="#option-b-via-github-web-ui">Option B — via GitHub web UI</a>
+        <a class="toc-l3" href="#going-public-later">Going public later</a>
+    </nav>
+  </aside>
+  <main class="content" id="content">
+    <h1 id="workflowmd-using-teach-as-you-build-in-real-projects">WORKFLOW.md — Using teach-as-you-build in real projects</h1>
+<p>A wiki-style how-to. Pick the section that matches your project type
+and follow the steps. Every command is real — paste it into your
+terminal as written (substituting your project name where indicated).</p>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><a href="#quick-reference-card">Quick reference card</a></li>
+<li><a href="#part-a--setup-do-once">Part A — Setup (do once)</a><ul>
+<li><a href="#a1-install-the-skill-globally">A.1 Install the skill globally</a></li>
+<li><a href="#a2-confirm-the-skill-is-registered">A.2 Confirm the skill is registered</a></li>
+</ul>
+</li>
+<li><a href="#part-b--starting-a-brand-new-project">Part B — Starting a brand-new project</a><ul>
+<li><a href="#b1-universal-pre-flight-any-language">B.1 Universal pre-flight (any language)</a></li>
+<li><a href="#b2-activate-teaching-docs">B.2 Activate teaching docs</a></li>
+<li><a href="#b3-wire-up-auto-maintenance">B.3 Wire up auto-maintenance</a></li>
+</ul>
+</li>
+<li><a href="#part-c--adding-to-an-existing-project">Part C — Adding to an existing project</a></li>
+<li><a href="#part-d--per-language-playbooks">Part D — Per-language playbooks</a><ul>
+<li><a href="#d1-javascript--typescript">D.1 JavaScript / TypeScript (Node, Vue, React, etc.)</a></li>
+<li><a href="#d2-python">D.2 Python (CLI, web, data, ML)</a></li>
+<li><a href="#d3-react-native--expo">D.3 React Native + Expo (cross-platform mobile)</a></li>
+<li><a href="#d4-native-ios-swift--swiftui">D.4 Native iOS (Swift / SwiftUI)</a></li>
+<li><a href="#d5-native-android-kotlin--jetpack-compose">D.5 Native Android (Kotlin / Jetpack Compose)</a></li>
+<li><a href="#d6-go">D.6 Go</a></li>
+<li><a href="#d7-rust">D.7 Rust</a></li>
+</ul>
+</li>
+<li><a href="#part-e--ide-specific-tips">Part E — IDE-specific tips</a><ul>
+<li><a href="#e1-vs-code--cursor--windsurf">E.1 VS Code / Cursor / Windsurf</a></li>
+<li><a href="#e2-jetbrains-ides">E.2 JetBrains IDEs (PyCharm, IntelliJ, WebStorm, Android Studio)</a></li>
+<li><a href="#e3-xcode">E.3 Xcode</a></li>
+<li><a href="#e4-standalone-terminal">E.4 Standalone terminal</a></li>
+</ul>
+</li>
+<li><a href="#part-f--the-daily-loop">Part F — The daily loop</a></li>
+<li><a href="#part-g--troubleshooting">Part G — Troubleshooting</a></li>
+<li><a href="#part-h--deploy-and-actually-use-the-project">Part H — Deploy and actually use the project</a><ul>
+<li><a href="#h1-the-three-circles-of-deployment">H.1 The three &quot;circles&quot; of deployment</a></li>
+<li><a href="#h2-web-app">H.2 Web app (Vue, React, Next, SvelteKit, FastAPI, Flask, Django)</a></li>
+<li><a href="#h3-cli-tool">H.3 CLI tool (Node, Python, Go, Rust)</a></li>
+<li><a href="#h4-mobile-app">H.4 Mobile app (Expo, native iOS, native Android)</a></li>
+<li><a href="#h5-server--api">H.5 Server / API</a></li>
+<li><a href="#h6-databases--where-your-projects-data-lives">H.6 Databases — where your project&#39;s data lives</a></li>
+<li><a href="#h7-pointing-a-domain-at-your-home-server-namecheap--npm">H.7 Pointing a domain at your home server (Namecheap + NPM)</a></li>
+<li><a href="#h8-just-send-them-the-source--for-any-project">H.8 &quot;Just send them the source&quot; — for any project</a></li>
+<li><a href="#h9-pushing-to-github-the-first-time">H.9 Pushing to GitHub the first time</a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="quick-reference-card">Quick reference card</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>What to type</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Set up docs in a fresh project</td>
+<td><code>&gt; /teach-as-you-build</code> (Claude Code prompt)</td>
+</tr>
+<tr>
+<td>Append a chapter for what you just did</td>
+<td><code>&gt; add a build-log chapter for what we just shipped</code></td>
+</tr>
+<tr>
+<td>Update the topical reference</td>
+<td><code>&gt; add a section to LEARN.md about [topic]</code></td>
+</tr>
+<tr>
+<td>Backfill a chapter for an old commit</td>
+<td><code>&gt; backfill BUILD_LOG for commit abc123</code></td>
+</tr>
+<tr>
+<td>Invoke the skill explicitly</td>
+<td><code>&gt; /teach-as-you-build</code></td>
+</tr>
+</tbody></table>
+<p>The <code>&gt;</code> represents the Claude Code prompt. You type after it.</p>
+<hr>
+<h1 id="part-a-setup-do-once">Part A — Setup (do once)</h1>
+<p>You only need to do this once per machine. After that, the skill is
+available in every project.</p>
+<h2 id="a1-install-the-skill-globally">A.1 Install the skill globally</h2>
+<p>If you got the kit from this repo (LabelGen Pro), the skill is
+already at <code>~/.claude/skills/teach-as-you-build/</code>. Skip to A.2.</p>
+<p>Otherwise, copy the kit into your global Claude Code skills folder:</p>
+<p><strong>macOS / Linux:</strong></p>
+<pre><code class="language-bash">mkdir -p ~/.claude/skills/teach-as-you-build/templates
+cp meta/teach-as-you-build/SKILL.md ~/.claude/skills/teach-as-you-build/
+cp meta/teach-as-you-build/BUILD_LOG.template.md ~/.claude/skills/teach-as-you-build/templates/
+cp meta/teach-as-you-build/LEARN.template.md ~/.claude/skills/teach-as-you-build/templates/
+</code></pre>
+<p><strong>Windows (PowerShell):</strong></p>
+<pre><code class="language-powershell">$dst = &quot;$HOME\.claude\skills\teach-as-you-build\templates&quot;
+New-Item -ItemType Directory -Force -Path $dst | Out-Null
+Copy-Item meta\teach-as-you-build\SKILL.md &quot;$HOME\.claude\skills\teach-as-you-build\&quot;
+Copy-Item meta\teach-as-you-build\BUILD_LOG.template.md $dst
+Copy-Item meta\teach-as-you-build\LEARN.template.md $dst
+</code></pre>
+<p><strong>Windows (Git Bash / WSL):</strong> use the macOS/Linux commands.</p>
+<h2 id="a2-confirm-the-skill-is-registered">A.2 Confirm the skill is registered</h2>
+<p>Open Claude Code in any folder:</p>
+<pre><code class="language-bash">cd ~
+claude
+</code></pre>
+<p>Inside Claude Code, type:</p>
+<pre><code>/help
+</code></pre>
+<p>If you see <code>teach-as-you-build</code> listed (or you can call
+<code>/teach-as-you-build</code> and Claude responds), you&#39;re set.</p>
+<blockquote>
+<p>💡 If it doesn&#39;t appear, restart Claude Code (<code>/exit</code> then <code>claude</code>
+again) so it re-reads the skills folder.</p>
+</blockquote>
+<hr>
+<h1 id="part-b-starting-a-brand-new-project">Part B — Starting a brand-new project</h1>
+<p>You have an empty folder and an idea. Here&#39;s the universal flow,
+followed by language-specific deviations in <a href="#part-d--per-language-playbooks">Part D</a>.</p>
+<h2 id="b1-universal-pre-flight-any-language">B.1 Universal pre-flight (any language)</h2>
+<pre><code class="language-bash">mkdir my-cool-thing
+cd my-cool-thing
+git init
+echo &quot;# my-cool-thing&quot; &gt; README.md
+git add README.md
+git commit -m &quot;chore: initial commit&quot;
+</code></pre>
+<p>You&#39;re now in an initialised git repo with one file. <strong>Initialise git
+before doing anything else</strong> — even before you&#39;ve decided what to
+build. The first commit captures &quot;what I started with.&quot;</p>
+<p>Then start Claude Code:</p>
+<pre><code class="language-bash">claude
+</code></pre>
+<h2 id="b2-activate-teaching-docs">B.2 Activate teaching docs</h2>
+<p>In Claude Code, run:</p>
+<pre><code>&gt; /teach-as-you-build
+</code></pre>
+<p>Claude will:</p>
+<ol>
+<li>Notice <code>BUILD_LOG.md</code> and <code>LEARN.md</code> don&#39;t exist yet.</li>
+<li>Copy them from the skill&#39;s templates into your project root.</li>
+<li>Replace <code>[PROJECT NAME]</code> with your actual project name (it&#39;ll
+read from <code>package.json</code>, <code>pyproject.toml</code>, or just ask you).</li>
+<li>Write Chapter 0 (&quot;Before any code — understanding the ask&quot;)
+based on what you tell it the project is for.</li>
+</ol>
+<p>To make Chapter 0 useful, <strong>answer Claude when it asks</strong>:</p>
+<ul>
+<li>Who&#39;s the user?</li>
+<li>What&#39;s the success criterion?</li>
+<li>What&#39;s explicitly out of scope?</li>
+<li>Is there a reference project / prior art?</li>
+</ul>
+<p>Those answers become the spine of every decision after.</p>
+<h2 id="b3-wire-up-auto-maintenance">B.3 Wire up auto-maintenance</h2>
+<p>This is the magic step that makes Claude proactively update the docs
+as you work, instead of you having to ask every time.</p>
+<p>Create or open <code>CLAUDE.md</code> in your project root and paste:</p>
+<pre><code class="language-markdown">## Teaching docs
+
+This project maintains two companion documents for learning purposes:
+
+- **`BUILD_LOG.md`** — chronological build journal. One chapter per
+  version, walking through what was built, decisions made, bugs hit,
+  and lessons learned.
+- **`LEARN.md`** — topical engineering reference.
+
+**Always update both** whenever:
+- A feature lands → append a BUILD_LOG chapter.
+- A bug is fixed → append a debugging-walkthrough chapter.
+- An architectural decision is made → add an ADR-style entry to LEARN.md.
+
+**Voice:** conversational, peer-to-peer. Real examples from this
+codebase, not invented hypotheticals. For every notable decision,
+name the alternatives we *didn&#39;t* take and why. Include Big-O for
+non-trivial algorithms. Plain English first, code blocks second.
+</code></pre>
+<p>(This is identical to <code>meta/teach-as-you-build/CLAUDE.md.snippet</code>. You
+can also just copy that file&#39;s contents.)</p>
+<p>Now Claude reads <code>CLAUDE.md</code> on every conversation startup and follows
+the rules without being told.</p>
+<blockquote>
+<p>✅ <strong>You&#39;re done with setup.</strong> Skip to your language section below.</p>
+</blockquote>
+<hr>
+<h1 id="part-c-adding-to-an-existing-project">Part C — Adding to an existing project</h1>
+<p>Same idea, slightly different first step. In your existing project&#39;s
+root:</p>
+<pre><code class="language-bash">cd /path/to/existing-project
+claude
+</code></pre>
+<p>Then:</p>
+<pre><code>&gt; /teach-as-you-build
+&gt; Backfill BUILD_LOG.md based on the existing git history. Use git log to
+  identify the major commits and write a chapter for each meaningful one.
+</code></pre>
+<p>Claude will:</p>
+<ol>
+<li>Run <code>git log</code> to see what&#39;s already happened.</li>
+<li>Group commits into logical &quot;version&quot; chapters.</li>
+<li>Write Chapter 0 (the project&#39;s intent, derived from README +
+git history).</li>
+<li>Write a chapter per major commit / feature / fix it can identify.</li>
+</ol>
+<p>The backfill will be best-effort — older commits may have less context
+than recent ones. Give Claude any extra context you can recall as
+it works.</p>
+<p>After backfill, paste the <code>CLAUDE.md</code> snippet from B.3 to enable
+ongoing auto-maintenance.</p>
+<hr>
+<h1 id="part-d-per-language-playbooks">Part D — Per-language playbooks</h1>
+<p>Each playbook covers:</p>
+<ul>
+<li><strong>Project skeleton</strong> (the standard initialisation commands)</li>
+<li><strong>What to put in <code>CLAUDE.md</code></strong> beyond the universal teaching-docs section</li>
+<li><strong>Language-specific things the BUILD_LOG should call out</strong></li>
+<li><strong>A typical Chapter 0 starter</strong> for that ecosystem</li>
+</ul>
+<h2 id="d1-javascript-typescript">D.1 JavaScript / TypeScript</h2>
+<p>For: web frontends (Vue, React, Svelte, plain), Node CLI tools, Node servers, Electron apps.</p>
+<h3 id="project-skeleton">Project skeleton</h3>
+<p><strong>Vue + Vite + TS</strong> (like LabelGen Pro):</p>
+<pre><code class="language-bash">npm create vue@latest my-app
+cd my-app
+npm install
+git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Vue + Vite + TS&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p><strong>React + Vite + TS:</strong></p>
+<pre><code class="language-bash">npm create vite@latest my-app -- --template react-ts
+cd my-app &amp;&amp; npm install &amp;&amp; git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold React + Vite + TS&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p><strong>Plain Node TS CLI:</strong></p>
+<pre><code class="language-bash">mkdir my-cli &amp;&amp; cd my-cli
+npm init -y
+npm install -D typescript @types/node tsx
+npx tsc --init
+git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Node TS&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<h3 id="add-to-claudemd">Add to CLAUDE.md</h3>
+<p>In addition to the universal teaching-docs section:</p>
+<pre><code class="language-markdown">## Stack
+
+- Runtime: Node 22
+- Language: TypeScript (strict mode)
+- Package manager: npm
+- Build: Vite (or your build tool)
+
+## Conventions
+
+- All source under `src/`
+- Tests under `src/**/*.test.ts` (Vitest)
+- Format: Prettier + ESLint (when added)
+</code></pre>
+<h3 id="what-build_log-should-call-out-for-jsts-projects">What BUILD_LOG should call out for JS/TS projects</h3>
+<ul>
+<li><strong>Type errors as bugs.</strong> Strict-mode TS catches things at compile
+time that other languages catch at runtime. Each TS error fix is a
+bug story worth a paragraph.</li>
+<li><strong>Bundle size deltas.</strong> When you add a dependency, mention what it
+cost in KB — and the alternatives you didn&#39;t choose.</li>
+<li><strong>Hydration / reactivity gotchas.</strong> SSR mismatches in Next/Nuxt;
+Vue&#39;s same-component provide/inject limitation; React&#39;s stale
+closure trap. These are all worth chapters.</li>
+</ul>
+<h3 id="chapter-0-starter">Chapter 0 starter</h3>
+<pre><code class="language-markdown"># Chapter 0 — Before any code
+
+## The ask
+[What you&#39;re building, in plain language]
+
+## The stack and why
+- Vue 3 + TypeScript + Vite — chose this because [reason: ecosystem,
+  team familiarity, bundle size, etc.]
+- No state management library yet — single piece of state, will reach
+  for Pinia only if it grows.
+- No CSS framework — plain CSS with custom properties.
+
+## The reference
+[Did you find an existing tool that does ~80% of what you want?
+Link it. Read its source. Note what you&#39;ll keep and what you&#39;ll
+change.]
+</code></pre>
+<hr>
+<h2 id="d2-python">D.2 Python</h2>
+<p>For: CLI tools, web APIs (FastAPI, Flask, Django), data science notebooks, ML training scripts, automation scripts.</p>
+<h3 id="project-skeleton-2">Project skeleton</h3>
+<p><strong>Modern (recommended) — <code>uv</code> for dep management:</strong></p>
+<pre><code class="language-bash">mkdir my-py-thing &amp;&amp; cd my-py-thing
+uv init
+uv add --dev pytest ruff mypy
+git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Python with uv&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p><strong>Traditional — venv + pip:</strong></p>
+<pre><code class="language-bash">mkdir my-py-thing &amp;&amp; cd my-py-thing
+python -m venv .venv
+source .venv/bin/activate          # macOS/Linux
+.venv\Scripts\activate             # Windows
+echo &quot;pytest&quot; &gt; requirements-dev.txt
+pip install -r requirements-dev.txt
+pip freeze &gt; requirements.txt
+git init
+echo &quot;.venv/&quot; &gt;&gt; .gitignore
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Python venv&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<h3 id="project-layout-most-pythonistas-expect">Project layout most pythonistas expect</h3>
+<pre><code>my-py-thing/
+├── pyproject.toml         # project metadata + deps (with uv/poetry)
+├── README.md
+├── BUILD_LOG.md           # ← teach-as-you-build adds these
+├── LEARN.md
+├── CLAUDE.md
+├── src/
+│   └── my_py_thing/
+│       ├── __init__.py
+│       └── core.py
+└── tests/
+    └── test_core.py
+</code></pre>
+<h3 id="add-to-claudemd-2">Add to CLAUDE.md</h3>
+<pre><code class="language-markdown">## Stack
+
+- Python 3.12+
+- Package manager: uv (or pip + venv)
+- Type checker: mypy
+- Linter / formatter: ruff
+- Tests: pytest
+
+## Conventions
+
+- Source layout: `src/&lt;package&gt;/`
+- Tests in `tests/`, mirror the source layout
+- All public functions get type hints; mypy in strict mode
+- Run `pytest` before every commit; CI enforces
+</code></pre>
+<h3 id="what-build_log-should-call-out-for-python-projects">What BUILD_LOG should call out for Python projects</h3>
+<ul>
+<li><strong>Virtual env quirks.</strong> Activation is the #1 source of &quot;it works on
+my machine.&quot; Note venv setup in Chapter 0.</li>
+<li><strong>Async / sync boundaries.</strong> Mixing <code>asyncio</code> and sync code is a
+classic bug source. Worth a chapter when you hit it.</li>
+<li><strong>Dependency conflicts.</strong> &quot;We pinned <code>pydantic==2.x</code> because v1
+broke our schema serialization in [way]&quot; is exactly the kind of
+archeological note that saves future-you weeks.</li>
+<li><strong>Type-hint coverage.</strong> mypy errors that took you a while to
+understand → BUILD_LOG-worthy.</li>
+</ul>
+<h3 id="chapter-0-starter-2">Chapter 0 starter</h3>
+<pre><code class="language-markdown"># Chapter 0 — Before any code
+
+## The ask
+[Plain language]
+
+## The stack and why
+- Python 3.12 — chose because [reason: existing knowledge, library
+  ecosystem for the domain, performance characteristics, etc.]
+- uv for deps — fast, reproducible, replaces both pip and venv
+  management with one tool.
+- mypy strict — catches type bugs before runtime, similar to TS.
+- pytest — de facto standard.
+
+## The data model
+[Sketch the main domain types as Python dataclasses or Pydantic
+models — the &quot;shape&quot; of the thing you&#39;re building.]
+</code></pre>
+<hr>
+<h2 id="d3-react-native-expo">D.3 React Native + Expo</h2>
+<p>For: iOS + Android apps from a single TypeScript codebase.</p>
+<h3 id="project-skeleton-3">Project skeleton</h3>
+<pre><code class="language-bash">npx create-expo-app@latest my-app
+cd my-app
+git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Expo app&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p>That&#39;s it. Expo handles the iOS/Android bootstrapping for you.</p>
+<h3 id="add-to-claudemd-3">Add to CLAUDE.md</h3>
+<pre><code class="language-markdown">## Stack
+
+- Expo SDK 52+
+- React Native + TypeScript
+- Navigation: expo-router (file-based)
+- State: Zustand (if needed)
+- Styling: NativeWind or StyleSheet (decide early)
+
+## Targets
+
+- iOS 15+ (iPhone, iPad)
+- Android 7.0+ (API 24+)
+
+## Build system
+
+- Local dev: `npx expo start` → scan QR with Expo Go on your phone
+- Native preview builds: `npx expo run:ios` / `npx expo run:android`
+- Production: EAS Build (`npx eas build`)
+
+## Platform-specific code
+
+Use the `Platform.OS === &#39;ios&#39;` check or `.ios.tsx` / `.android.tsx`
+file suffixes when behaviour must differ. Document the divergence in
+BUILD_LOG when it happens.
+</code></pre>
+<h3 id="day-to-day-commands">Day-to-day commands</h3>
+<pre><code class="language-bash">npx expo start              # dev server, opens dev tools
+                            # press &#39;i&#39; for iOS sim, &#39;a&#39; for Android emulator
+                            # or scan the QR with Expo Go on a real device
+
+npx expo install &lt;pkg&gt;      # adds a dep with the right version for your SDK
+npx expo run:ios            # native iOS build (for native modules)
+npx expo run:android        # native Android build
+</code></pre>
+<h3 id="what-build_log-should-call-out-for-expo-projects">What BUILD_LOG should call out for Expo projects</h3>
+<ul>
+<li><strong>Cross-platform bugs.</strong> &quot;Worked on iOS but Android did X.&quot; These
+are the most valuable bug stories because they&#39;re invisible until
+you actually test on both. Always include the <em>why</em> (the platform
+difference that caused it).</li>
+<li><strong>Native module additions.</strong> Adding <code>react-native-something-with-native-code</code>
+forces a &quot;dev client&quot; build. Worth a chapter on what changed.</li>
+<li><strong>EAS Build configuration.</strong> Each platform has its own quirks
+(provisioning profiles, signing keys). Document each step.</li>
+<li><strong>Expo SDK upgrades.</strong> Major-version upgrades sometimes require
+migration notes. Capture them.</li>
+</ul>
+<h3 id="chapter-0-starter-3">Chapter 0 starter</h3>
+<pre><code class="language-markdown"># Chapter 0 — Before any code
+
+## The ask
+[What the app does in plain language. Who&#39;s the user? Free/paid?]
+
+## Why Expo (not bare React Native)
+- Faster setup, no Xcode/Android Studio dance to start
+- OTA updates for free
+- EAS Build handles the signing/upload complexity
+- Trade-off: some native modules need a dev client build, slightly
+  larger binary, slightly more locked into Expo&#39;s release cadence
+
+## Targets
+- iOS [versions]
+- Android [API levels]
+- Phone-only or tablet-aware?
+- Offline-capable or always-online?
+
+## State + persistence
+- [Zustand for app state, AsyncStorage for persistence, etc.]
+</code></pre>
+<hr>
+<h2 id="d4-native-ios-swift-swiftui">D.4 Native iOS (Swift / SwiftUI)</h2>
+<p>For: when you need iOS-only, deep platform integration (HealthKit,
+Metal, etc.), or want native performance.</p>
+<h3 id="project-skeleton-4">Project skeleton</h3>
+<pre><code class="language-bash">mkdir MyApp &amp;&amp; cd MyApp
+git init
+# Create the Xcode project via Xcode: File → New → Project →
+# iOS → App → SwiftUI + Swift
+# Save the project inside this folder.
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Xcode project&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<blockquote>
+<p>📝 Xcode doesn&#39;t have a CLI for creating projects from scratch
+(other than <code>xcodegen</code>). It&#39;s a one-click GUI step.</p>
+</blockquote>
+<h3 id="project-layout-xcode-default">Project layout (Xcode default)</h3>
+<pre><code>MyApp/
+├── MyApp.xcodeproj/        # Xcode project metadata (don&#39;t hand-edit)
+├── MyApp/
+│   ├── MyAppApp.swift      # @main entry point
+│   ├── ContentView.swift   # root view
+│   ├── Assets.xcassets/    # images, colours
+│   └── Info.plist          # app metadata, permissions
+├── MyAppTests/             # unit tests
+├── MyAppUITests/           # UI tests
+├── BUILD_LOG.md            # ← teach-as-you-build adds these
+├── LEARN.md
+└── CLAUDE.md
+</code></pre>
+<h3 id="add-to-claudemd-4">Add to CLAUDE.md</h3>
+<pre><code class="language-markdown">## Stack
+
+- Swift 5.10+
+- SwiftUI for views, UIKit only when necessary
+- Combine for reactive flows (or async/await)
+- iOS 16+ deployment target
+
+## Conventions
+
+- One view per file, named after the view type
+- Models in `Models/`, ViewModels in `ViewModels/`,
+  Views in `Views/`, Services in `Services/`
+- Async/await preferred over completion handlers in new code
+- Tests via XCTest
+
+## Build and run
+
+- ⌘B in Xcode to build
+- ⌘R to build + run on the selected target
+- ⌘U to run tests
+- Selected target = simulator or connected device
+</code></pre>
+<h3 id="day-to-day-commands-2">Day-to-day commands</h3>
+<p>Most work happens in the Xcode UI. From the command line:</p>
+<pre><code class="language-bash"># Build (CI-friendly):
+xcodebuild -scheme MyApp -destination &#39;platform=iOS Simulator,name=iPhone 15&#39; build
+
+# Test:
+xcodebuild -scheme MyApp -destination &#39;platform=iOS Simulator,name=iPhone 15&#39; test
+
+# Open in Xcode (handy from terminal):
+open MyApp.xcodeproj
+</code></pre>
+<p>Claude Code can read/write Swift files directly — but for the project
+build step, you usually run Xcode yourself.</p>
+<h3 id="what-build_log-should-call-out-for-ios-projects">What BUILD_LOG should call out for iOS projects</h3>
+<ul>
+<li><strong>Memory cycles.</strong> Strong reference cycles between view controllers /
+closures are an iOS classic. Worth a chapter when you hit one.</li>
+<li><strong>Concurrency.</strong> <code>@MainActor</code>, structured concurrency, actors —
+Swift&#39;s concurrency model has subtleties.</li>
+<li><strong>Provisioning + signing.</strong> &quot;I had to add the [capability] in the
+Signing &amp; Capabilities tab.&quot; Future-you will thank you.</li>
+<li><strong>Deprecation warnings.</strong> iOS APIs deprecate often. Each migration
+is a small chapter.</li>
+</ul>
+<h3 id="chapter-0-starter-4">Chapter 0 starter</h3>
+<pre><code class="language-markdown"># Chapter 0 — Before any code
+
+## The ask
+[App name, what it does, who uses it]
+
+## Why native iOS (vs Expo / Flutter)
+- Need [HealthKit / WidgetKit / Live Activities / specific iOS-only API]
+- Want App Store-quality UX with no compromises
+- Team has Swift / iOS expertise
+- Trade-off: no Android, more code per feature, slower iteration than RN
+
+## Targets
+- iOS 16+ — chose because [...]
+- iPhone only / iPad too?
+- macOS Catalyst?
+
+## Architecture
+- MVVM with SwiftUI + Combine, or
+- TCA (The Composable Architecture), or
+- Vanilla SwiftUI with @Observable
+[State which and why]
+</code></pre>
+<hr>
+<h2 id="d5-native-android-kotlin-jetpack-compose">D.5 Native Android (Kotlin / Jetpack Compose)</h2>
+<p>For: when you need Android-only, deep platform integration, or want
+native performance.</p>
+<h3 id="project-skeleton-5">Project skeleton</h3>
+<pre><code class="language-bash">mkdir MyApp &amp;&amp; cd MyApp
+git init
+# Create the project via Android Studio:
+# File → New → New Project → Empty Activity → Kotlin
+# Save inside this folder.
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Android project&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<h3 id="project-layout-android-studio-default">Project layout (Android Studio default)</h3>
+<pre><code>MyApp/
+├── app/                       # main application module
+│   ├── src/main/
+│   │   ├── java/com/example/  # Kotlin source
+│   │   ├── res/               # layouts, drawables, strings
+│   │   └── AndroidManifest.xml
+│   ├── build.gradle.kts       # module build config
+│   └── proguard-rules.pro
+├── build.gradle.kts           # project build config
+├── gradle/
+├── settings.gradle.kts
+├── BUILD_LOG.md               # ← teach-as-you-build adds these
+├── LEARN.md
+└── CLAUDE.md
+</code></pre>
+<h3 id="add-to-claudemd-5">Add to CLAUDE.md</h3>
+<pre><code class="language-markdown">## Stack
+
+- Kotlin 2.0+
+- Jetpack Compose for UI
+- Hilt for dependency injection
+- Coroutines + Flow for async
+- minSdk 24 (Android 7.0+), targetSdk 34
+
+## Conventions
+
+- Single-activity architecture
+- Composables in `ui/`, view models in `viewmodel/`,
+  data layer in `data/`, domain in `domain/`
+- One composable per file when complex; small composables can share
+- Tests: JUnit 4 (unit), Espresso (UI), Compose UI tests
+
+## Build and run
+
+- ⌃R (Mac) / ⇧F10 (Win/Linux) in Android Studio to build + run
+- Pick AVD (Android Virtual Device) or connected device from the
+  device dropdown
+- ./gradlew test for unit tests
+- ./gradlew connectedAndroidTest for instrumented tests
+</code></pre>
+<h3 id="day-to-day-commands-3">Day-to-day commands</h3>
+<pre><code class="language-bash"># From the project root:
+./gradlew build                       # full build
+./gradlew assembleDebug               # debug APK
+./gradlew installDebug                # install on connected device
+./gradlew test                        # unit tests
+./gradlew connectedAndroidTest        # instrumented tests on device
+
+# List connected devices/emulators:
+adb devices
+
+# Open in Android Studio:
+studio .                              # if studio CLI is on PATH
+</code></pre>
+<h3 id="what-build_log-should-call-out-for-android-projects">What BUILD_LOG should call out for Android projects</h3>
+<ul>
+<li><strong>Configuration changes</strong> (rotation, dark mode). Activity recreation
+is a perennial gotcha source.</li>
+<li><strong>Background work limits.</strong> Doze mode, JobScheduler, WorkManager
+— Android&#39;s battery rules change between versions.</li>
+<li><strong>Permissions.</strong> Runtime permissions are stateful and version-
+dependent. Each capability you add gets a chapter.</li>
+<li><strong>Compose performance.</strong> Recomposition surprises. Worth a chapter
+the first time <code>Stable</code>/<code>Immutable</code> annotations bite.</li>
+</ul>
+<h3 id="chapter-0-starter-5">Chapter 0 starter</h3>
+<pre><code class="language-markdown"># Chapter 0 — Before any code
+
+## The ask
+[App name, what it does, who uses it]
+
+## Why native Android (vs Expo / Flutter)
+- Need [BLE / NFC / Foreground Services / specific Android API]
+- Want best-in-class Material Design integration
+- Team has Kotlin expertise
+- Trade-off: no iOS without separate Swift codebase
+
+## Targets
+- minSdk 24 (Android 7.0) — covers ~99% of active devices
+- targetSdk 34 — required by Play Store for new submissions
+- Phone, tablet, foldable? Wear OS / Auto?
+
+## Architecture
+- Single Activity + Compose
+- ViewModel + StateFlow for state
+- Hilt for DI, or Koin?
+- Repository pattern for data
+</code></pre>
+<hr>
+<h2 id="d6-go">D.6 Go</h2>
+<pre><code class="language-bash">mkdir my-go-thing &amp;&amp; cd my-go-thing
+go mod init github.com/you/my-go-thing
+git init
+echo &#39;package main; import &quot;fmt&quot;; func main() { fmt.Println(&quot;hi&quot;) }&#39; &gt; main.go
+go fmt ./...
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Go module&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p><code>CLAUDE.md</code> additions:</p>
+<pre><code class="language-markdown">## Stack
+- Go 1.22+
+- stdlib-first; deps only when stdlib doesn&#39;t cut it
+- Tests: built-in `testing` + table tests
+
+## Conventions
+- One package per directory
+- `cmd/&lt;binary&gt;/main.go` for executables
+- `internal/` for non-public packages
+- Run `go fmt ./... &amp;&amp; go vet ./... &amp;&amp; go test ./...` before every commit
+</code></pre>
+<p>What BUILD_LOG should call out: error-handling decisions (wrapped
+errors, sentinel errors, custom types), goroutine lifetime / context
+plumbing, generics tradeoffs.</p>
+<hr>
+<h2 id="d7-rust">D.7 Rust</h2>
+<pre><code class="language-bash">cargo new --bin my-rust-thing
+cd my-rust-thing
+git init
+git add . &amp;&amp; git commit -m &quot;chore: scaffold Rust binary&quot;
+claude
+&gt; /teach-as-you-build
+</code></pre>
+<p><code>CLAUDE.md</code> additions:</p>
+<pre><code class="language-markdown">## Stack
+- Rust 2024 edition
+- async runtime: tokio (or none if sync-only)
+- Tests: built-in #[test] + integration tests in tests/
+
+## Conventions
+- `cargo fmt &amp;&amp; cargo clippy &amp;&amp; cargo test` before every commit
+- Public APIs documented with `///` doc comments + `cargo doc` examples
+- Prefer Result + thiserror over panicking
+</code></pre>
+<p>What BUILD_LOG should call out: lifetime / borrow-checker fights and
+how you resolved them, async/sync interop, unsafe blocks (rare and
+always with justification).</p>
+<hr>
+<h1 id="part-e-ide-specific-tips">Part E — IDE-specific tips</h1>
+<h2 id="e1-vs-code-cursor-windsurf">E.1 VS Code / Cursor / Windsurf</h2>
+<p><strong>Open the project:</strong></p>
+<pre><code class="language-bash">code .              # VS Code
+cursor .            # Cursor
+windsurf .          # Windsurf
+</code></pre>
+<p><strong>Open the integrated terminal:</strong> <code>Ctrl+`</code> (backtick).</p>
+<p><strong>Start Claude Code in the terminal:</strong></p>
+<pre><code class="language-bash">claude
+</code></pre>
+<p><strong>Useful Claude Code commands inside the prompt:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/teach-as-you-build</code></td>
+<td>Activate the doc-maintenance skill</td>
+</tr>
+<tr>
+<td><code>/init</code></td>
+<td>Generate a <code>CLAUDE.md</code> for the current project</td>
+</tr>
+<tr>
+<td><code>/help</code></td>
+<td>Show all available commands and skills</td>
+</tr>
+<tr>
+<td><code>/clear</code></td>
+<td>Clear the conversation context</td>
+</tr>
+<tr>
+<td><code>/exit</code></td>
+<td>Close Claude Code</td>
+</tr>
+</tbody></table>
+<p><strong>Keep both panels open:</strong> Source files in the editor, terminal at the
+bottom with Claude Code running. As Claude edits files, you see the
+diffs in your editor&#39;s gutter. As you click around the codebase to
+understand, Claude can read the same files.</p>
+<p><strong>File-explorer note:</strong> when Claude creates <code>BUILD_LOG.md</code> and
+<code>LEARN.md</code>, they&#39;ll appear in your Explorer pane (left sidebar) at
+the project root. Pin them open in the editor while you work.</p>
+<h2 id="e2-jetbrains-ides">E.2 JetBrains IDEs</h2>
+<p>(PyCharm, IntelliJ, WebStorm, GoLand, RustRover, Android Studio)</p>
+<p><strong>Open the integrated terminal:</strong> <code>Alt+F12</code> (Win/Linux), <code>⌥F12</code> (Mac).</p>
+<p><strong>Start Claude Code:</strong> <code>claude</code> in the terminal panel.</p>
+<p><strong>Markdown preview:</strong> these IDEs render Markdown beautifully. After
+Claude updates <code>BUILD_LOG.md</code>, hit the preview icon (top-right of the
+editor tab) to see the formatted version.</p>
+<p><strong>Project Tool Window:</strong> look for <code>BUILD_LOG.md</code>, <code>LEARN.md</code>,
+<code>CLAUDE.md</code> at the root in the Project view. Pin them.</p>
+<h2 id="e3-xcode">E.3 Xcode</h2>
+<p>Xcode doesn&#39;t have an integrated terminal you can launch Claude Code
+in directly. Two workflows:</p>
+<ol>
+<li><strong>Run Claude Code in Terminal.app (or iTerm)</strong> in a separate
+window, navigated to your project root. Edit Swift files in Xcode;
+Claude reads/writes them and you reload them in Xcode.</li>
+<li><strong>Use VS Code or Cursor as a &quot;scratch IDE&quot;</strong> alongside Xcode for
+non-Swift work (BUILD_LOG editing, config files, scripts). Run
+the actual app in Xcode&#39;s simulator/device builder.</li>
+</ol>
+<p>When Claude updates Swift files that are open in Xcode, Xcode will
+detect the change and prompt you to reload — say yes.</p>
+<h2 id="e4-standalone-terminal">E.4 Standalone terminal</h2>
+<p>You don&#39;t need an IDE at all if you don&#39;t want one. From any terminal:</p>
+<pre><code class="language-bash">cd /path/to/your/project
+claude
+</code></pre>
+<p>You can edit files in <code>vim</code> / <code>nano</code> / your editor of choice, and
+Claude can read/write them. This is the &quot;I&#39;m just on a server&quot; or
+&quot;I&#39;m working on a tiny project&quot; workflow.</p>
+<hr>
+<h1 id="part-f-the-daily-loop">Part F — The daily loop</h1>
+<p>Once everything is wired up, here&#39;s what a normal day looks like.</p>
+<h2 id="when-you-start-work">When you start work</h2>
+<ol>
+<li>Open your IDE in the project root.</li>
+<li>`Ctrl+`` (or your IDE&#39;s terminal shortcut).</li>
+<li><code>claude</code> to start Claude Code.</li>
+<li>(Optional) <code>&gt; recap what we shipped last session</code> — Claude reads
+the latest BUILD_LOG chapter and reminds you.</li>
+</ol>
+<h2 id="when-you39re-working-on-a-feature">When you&#39;re working on a feature</h2>
+<p>Just talk to Claude normally. Code, ask questions, iterate. <strong>Don&#39;t</strong>
+manually update BUILD_LOG.md while you work — it&#39;s noise.</p>
+<h2 id="when-you-finish-a-feature">When you finish a feature</h2>
+<pre><code>&gt; ship this and add a build-log chapter
+</code></pre>
+<p>Claude will:</p>
+<ol>
+<li>Run type checks / build / tests as appropriate.</li>
+<li>Stage the changes.</li>
+<li>Compose a CHANGELOG entry.</li>
+<li>Compose a BUILD_LOG chapter with the format from the skill.</li>
+<li>Commit.</li>
+<li>(If LEARN.md needs updating because you introduced a new
+concept) update LEARN.md too.</li>
+</ol>
+<p>You read the BUILD_LOG chapter in the diff, suggest tweaks if needed,
+approve the commit.</p>
+<h2 id="when-you-fix-a-bug">When you fix a bug</h2>
+<pre><code>&gt; debug this: [paste error / describe symptom]
+</code></pre>
+<p>Claude follows the 7-step debugging method documented in <code>LEARN.md</code>
+(reproduce → read → hypothesise → test → confirm → prevent → record).
+The &quot;record&quot; step writes a debugging-walkthrough chapter into
+BUILD_LOG.md.</p>
+<h2 id="when-you-make-an-architectural-decision">When you make an architectural decision</h2>
+<pre><code>&gt; we&#39;re switching from REST to GraphQL because [reasons]
+</code></pre>
+<p>Claude will:</p>
+<ul>
+<li>Implement the change.</li>
+<li>Add an ADR-style entry to <code>LEARN.md</code> explaining the decision.</li>
+<li>Add a BUILD_LOG chapter walking through the migration.</li>
+<li>Update relevant code comments.</li>
+</ul>
+<h2 id="when-you-onboard-someone-or-future-you">When you onboard someone (or future-you)</h2>
+<p>Hand them three things:</p>
+<ol>
+<li><code>README.md</code> — what is this and how do I run it.</li>
+<li><code>BUILD_LOG.md</code> — read top to bottom to understand how it got
+built.</li>
+<li><code>LEARN.md</code> — reach for it when you need &quot;how should I think
+about X?&quot;</li>
+</ol>
+<p>That&#39;s a complete onboarding path.</p>
+<hr>
+<h1 id="part-g-troubleshooting">Part G — Troubleshooting</h1>
+<h3 id="quoti-typed-teach-as-you-build-but-claude-says-it-doesn39t-know-that-commandquot">&quot;I typed /teach-as-you-build but Claude says it doesn&#39;t know that command&quot;</h3>
+<p>The skill file isn&#39;t where Claude expects. Check:</p>
+<pre><code class="language-bash">ls ~/.claude/skills/teach-as-you-build/SKILL.md
+</code></pre>
+<p>If that file doesn&#39;t exist, redo Part A.</p>
+<h3 id="quotthe-skill-is-there-but-claude-isn39t-proactively-updating-build_logquot">&quot;The skill is there but Claude isn&#39;t proactively updating BUILD_LOG&quot;</h3>
+<p>Add the snippet from <code>meta/teach-as-you-build/CLAUDE.md.snippet</code>
+into your project&#39;s <code>CLAUDE.md</code>. Without that, Claude only updates
+the docs when you ask. With it, Claude updates them every time a
+feature/fix lands.</p>
+<h3 id="quotbuild_logmd-got-too-long-to-read-in-one-sittingquot">&quot;BUILD_LOG.md got too long to read in one sitting&quot;</h3>
+<p>That&#39;s the point — it grows over time. Use the Table of Contents at
+the top to jump to the chapter you want. If a single chapter is too
+long, that&#39;s a sign it should be split: ask Claude to break it into
+sub-chapters.</p>
+<h3 id="quoti-want-different-doc-names-than-build_logmd-learnmdquot">&quot;I want different doc names than BUILD_LOG.md / LEARN.md&quot;</h3>
+<p>Edit <code>~/.claude/skills/teach-as-you-build/SKILL.md</code> and change the
+file names everywhere. The skill is your skill; modify it.</p>
+<h3 id="quoti-want-this-for-a-team-not-just-personal-projectsquot">&quot;I want this for a team, not just personal projects&quot;</h3>
+<p>The skill works fine for teams. A few extra recommendations:</p>
+<ul>
+<li>Move the templates from <code>~/.claude/skills/</code> (per-user) into a
+shared repo and have everyone symlink.</li>
+<li>Add a CI check that fails the build if a feature commit doesn&#39;t
+include a BUILD_LOG update (you&#39;d write a custom check; this is
+outside the skill&#39;s scope).</li>
+<li>Consider per-author byline in chapters for code review trails.</li>
+</ul>
+<h3 id="quoti39m-using-a-non-english-language-for-my-docsquot">&quot;I&#39;m using a non-English language for my docs&quot;</h3>
+<p>The skill writes in the language of the surrounding context. If your
+project comments and CLAUDE.md are in [your language], BUILD_LOG and
+LEARN will follow. Add a note to <code>CLAUDE.md</code>: <code>Documentation language: [language]</code>.</p>
+<h3 id="quoti-want-to-see-what-other-skills-are-availablequot">&quot;I want to see what other skills are available&quot;</h3>
+<p>In Claude Code:</p>
+<pre><code>/help
+</code></pre>
+<p>Lists all built-in and user-installed skills.</p>
+<h3 id="quotcan-the-skill-auto-commit-too-or-just-write-the-docsquot">&quot;Can the skill auto-commit too, or just write the docs?&quot;</h3>
+<p>The skill itself doesn&#39;t auto-commit (that&#39;s a separate concern), but
+you can tell Claude:</p>
+<pre><code>&gt; after writing the chapter, commit it
+</code></pre>
+<p>And it will. Or just leave that as a manual <code>git commit</code> step at the
+end of your session.</p>
+<hr>
+<h1 id="part-h-deploy-and-actually-use-the-project">Part H — Deploy and actually use the project</h1>
+<p>You&#39;ve built the thing. Now you want people to actually use it. There
+are three distinct levels of &quot;use,&quot; each with different tools.</p>
+<h2 id="h1-the-three-quotcirclesquot-of-deployment">H.1 The three &quot;circles&quot; of deployment</h2>
+<table>
+<thead>
+<tr>
+<th>Circle</th>
+<th>Audience</th>
+<th>Effort</th>
+<th>Reach</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1. Local</strong></td>
+<td>You</td>
+<td>Zero (already there)</td>
+<td>One person</td>
+</tr>
+<tr>
+<td><strong>2. Trusted</strong></td>
+<td>One friend / family / collaborator</td>
+<td>5–30 min one-time setup</td>
+<td>Anyone you can text a link to</td>
+</tr>
+<tr>
+<td><strong>3. Live</strong></td>
+<td>The internet</td>
+<td>1 hour to 1 day setup</td>
+<td>Anyone with the URL</td>
+</tr>
+</tbody></table>
+<p>Most people skip from 1 to 3 and burn weeks on it. Going 1 → 2 → 3
+in order is faster and surfaces the friction earlier.</p>
+<p>Pick your project type below.</p>
+<h2 id="h2-web-app">H.2 Web app</h2>
+<p>(Vue, React, Next.js, SvelteKit, FastAPI, Flask, Django, etc.)</p>
+<h3 id="circle-1-local">Circle 1 — local</h3>
+<pre><code class="language-bash">npm run dev          # JS/TS frameworks
+poetry run uvicorn app:main --reload   # FastAPI
+flask run --debug                       # Flask
+python manage.py runserver              # Django
+</code></pre>
+<p>Open <code>http://localhost:5173</code> (or whatever port the framework picked).
+That&#39;s circle 1. You can already use it.</p>
+<h3 id="circle-2-share-with-one-friend">Circle 2 — share with one friend</h3>
+<p>You want your friend to click a link and see what you built. Three
+options, easiest first:</p>
+<p><strong>Option A — ngrok (5 minutes, friend uses for an hour).</strong> A tunnel
+from a public URL to your laptop&#39;s localhost. Free, no account
+needed for short sessions.</p>
+<pre><code class="language-bash"># Install once:
+brew install ngrok        # mac
+choco install ngrok       # win
+# or download from ngrok.com
+
+# Run your dev server in one terminal:
+npm run dev               # serving on :5173
+
+# Tunnel from another terminal:
+ngrok http 5173
+# → outputs something like: https://abcd-12-34-56-78.ngrok.app
+</code></pre>
+<p>Send your friend that URL. They open it; the request tunnels through
+ngrok back to your laptop. <strong>Stays alive only while your laptop is
+on and ngrok is running.</strong> Perfect for &quot;hey check this out for an
+hour.&quot;</p>
+<p><strong>Option B — Cloudflare Tunnel (5 min setup, free, persistent).</strong>
+Same idea but tied to a domain you control (or <code>*.trycloudflare.com</code>
+for instant try-it links). More durable than ngrok.</p>
+<pre><code class="language-bash">cloudflared tunnel --url http://localhost:5173
+# → gives you a https://random-words.trycloudflare.com URL
+</code></pre>
+<p><strong>Option C — push to a free hosting service</strong> (10–30 min). See
+Circle 3 — the same path; you just don&#39;t need a custom domain yet.</p>
+<h3 id="circle-3-live-public-persistent">Circle 3 — live, public, persistent</h3>
+<p>Three paths, in the order most home-lab-equipped builders should
+consider them:</p>
+<p><strong>Path A — self-host on your home server (Unraid, Synology, TrueNAS,
+Linux box).</strong> Free at scale, full control, you own everything.</p>
+<pre><code class="language-bash"># Build the production bundle locally:
+npm run build
+
+# Copy dist/ to your server&#39;s appdata folder
+# (path will vary by distro — Unraid example):
+scp -r dist/ root@your-server.local:/mnt/cache/appdata/your-app/html/
+
+# On the server, run an nginx container pointed at that folder:
+docker run -d \
+  --name your-app \
+  --network shottsproxy \
+  --restart unless-stopped \
+  -v /mnt/cache/appdata/your-app/html:/usr/share/nginx/html:ro \
+  nginx:alpine
+</code></pre>
+<p>Then add a proxy host in <strong>Nginx Proxy Manager</strong> (admin panel
+typically at <code>http://server-ip:7818</code>):</p>
+<ul>
+<li>Domain: <code>your-app.your-domain.com</code></li>
+<li>Forward Hostname: <code>your-app</code> (the container name on the shared network)</li>
+<li>Forward Port: <code>80</code></li>
+<li>SSL tab: request a new Let&#39;s Encrypt cert, force SSL, HTTP/2 on.</li>
+</ul>
+<p>DNS for <code>your-app.your-domain.com</code> should point at your server&#39;s
+public IP — see <a href="#h7-pointing-a-domain-at-your-home-server-namecheap--npm">H.7</a>.</p>
+<blockquote>
+<p>📂 <strong>Worked example:</strong> this repo&#39;s <code>deploy/README.md</code> walks the
+same flow end to end with the actual values used to deploy
+LabelGen Pro to <code>labelgen.shottsserver.com</code>. Use it as a template
+for any new self-hosted Unraid + NPM deployment.</p>
+</blockquote>
+<p><strong>Path B — managed static hosting (Cloudflare Pages, Netlify,
+Vercel) — free for personal use.</strong> Connect your GitHub repo, they
+auto-build on every push. Zero infra to maintain.</p>
+<pre><code class="language-bash"># Push to GitHub first (see H.9).
+# Then go to https://pages.cloudflare.com (or netlify.com / vercel.com),
+# &quot;Create project&quot;, &quot;Connect Git&quot;, pick your repo. Build command:
+#   npm run build      (output dir: dist)
+# Click deploy. Done.
+</code></pre>
+<p>You get <code>https://your-project.pages.dev</code> in ~2 minutes. Custom
+domain another 10 min. Best when you don&#39;t have a home server, or
+want zero ops, or want global CDN for free.</p>
+<p><strong>Path C — VPS / PaaS (Fly.io, Railway, Render, DigitalOcean,
+AWS/GCP/Azure).</strong> Paid (cheapest options ~$5/mo). Push a Dockerfile,
+they run it. Good when you&#39;ve outgrown a home server but don&#39;t want
+to commit to your own VPS yet.</p>
+<blockquote>
+<p>💡 <strong>If you already have a home server, pick Path A.</strong> It&#39;s the
+only $0/mo option that gives you root, your data stays at home, and
+the same Docker pattern works for the next 50 projects you ship.
+If you don&#39;t have a home server, Path B is the 2-minute path.</p>
+</blockquote>
+<h2 id="h3-cli-tool">H.3 CLI tool</h2>
+<p>(Things you run with <code>npx my-thing</code>, <code>python -m my_thing</code>, <code>my-thing</code>)</p>
+<h3 id="circle-1-local-2">Circle 1 — local</h3>
+<pre><code class="language-bash">npx tsx src/cli.ts                    # Node TS
+poetry run python -m my_pkg.cli       # Python
+go run ./cmd/my-thing                  # Go
+cargo run --bin my-thing               # Rust
+</code></pre>
+<h3 id="circle-2-share-with-one-friend-2">Circle 2 — share with one friend</h3>
+<p><strong>Option A — they clone and run.</strong> Best when the friend has the
+runtime installed.</p>
+<pre><code class="language-bash"># What you tell them:
+git clone https://github.com/you/my-thing.git
+cd my-thing
+npm install      # or pip install -e ., go build, cargo build
+npm start        # or whatever runs it
+</code></pre>
+<p><strong>Option B — pre-built binary.</strong> Best when the friend doesn&#39;t have
+the runtime. For Go and Rust, cross-compile:</p>
+<pre><code class="language-bash"># Go: build for friend&#39;s machine (Mac/Win/Linux)
+GOOS=darwin GOARCH=arm64 go build -o my-thing-mac
+GOOS=windows GOARCH=amd64 go build -o my-thing.exe
+GOOS=linux GOARCH=amd64 go build -o my-thing-linux
+
+# Rust:
+cargo build --release --target x86_64-pc-windows-gnu
+</code></pre>
+<p>Send them the binary. They run it. No install required.</p>
+<p>For Node CLIs, <code>pkg</code> or <code>bun build --compile</code> produces standalone
+executables. For Python, <code>pyinstaller</code> does the same.</p>
+<h3 id="circle-3-live-publish-to-a-registry">Circle 3 — live (publish to a registry)</h3>
+<pre><code class="language-bash"># Node CLI on npm:
+npm version patch           # bump version in package.json
+npm publish                 # uploads to npmjs.com
+# Now anyone runs: npx your-cli-name
+
+# Python on PyPI:
+poetry build &amp;&amp; poetry publish     # or twine
+# Now anyone runs: pipx install your-cli-name
+
+# Go: just push to GitHub. Anyone with Go installed runs:
+go install github.com/you/my-thing/cmd/my-thing@latest
+
+# Rust on crates.io:
+cargo publish
+# Now anyone runs: cargo install my-thing
+</code></pre>
+<p>Publishing is permanent (you can yank a version but not delete it).
+Triple-check the package name and that no secrets are in the bundle
+before hitting publish.</p>
+<h2 id="h4-mobile-app">H.4 Mobile app</h2>
+<p>(Expo cross-platform, native iOS, native Android)</p>
+<h3 id="h4-expo">H.4 — Expo</h3>
+<p><strong>Circle 1 — local:</strong></p>
+<pre><code class="language-bash">npx expo start
+# Press &#39;i&#39; for iOS sim, &#39;a&#39; for Android emulator,
+# or scan the QR code with the Expo Go app on your phone.
+</code></pre>
+<p><strong>Circle 2 — share with one friend:</strong></p>
+<ul>
+<li>Send them the QR code from <code>npx expo start</code>. They install
+<strong>Expo Go</strong> (free, App Store + Play Store) and scan. Works
+while your laptop is running and on the same network as their
+phone (or via tunnel mode for cross-network).</li>
+<li>For cross-network: <code>npx expo start --tunnel</code> — runs through Expo&#39;s
+servers so they can scan from anywhere.</li>
+</ul>
+<p><strong>Circle 3 — live (App Store + Play Store):</strong></p>
+<pre><code class="language-bash"># One-time:
+npm install -g eas-cli
+eas login
+eas build:configure
+
+# Build:
+eas build --platform all       # builds iOS + Android in the cloud
+# (you need an Apple Developer account for iOS — $99/yr)
+
+# Submit:
+eas submit --platform ios
+eas submit --platform android
+</code></pre>
+<p>EAS Build handles the signing, provisioning, and uploads to the
+stores. First store submission takes 1–7 days for review. Updates
+after that are usually 24h.</p>
+<p>For testing before public release: TestFlight (iOS) and Play Console
+internal/closed/open testing (Android). Both let you invite specific
+emails to install pre-release builds.</p>
+<h3 id="h4-native-ios">H.4 — Native iOS</h3>
+<p><strong>Circle 1 — local:</strong></p>
+<ul>
+<li>Open <code>MyApp.xcodeproj</code> in Xcode.</li>
+<li>Pick a simulator from the toolbar. ⌘R to build and run.</li>
+<li>Or plug in your iPhone via USB, sign with your free Apple ID,
+⌘R targets your device.</li>
+</ul>
+<p><strong>Circle 2 — share with one friend (TestFlight):</strong></p>
+<ul>
+<li>You need an Apple Developer account ($99/yr).</li>
+<li>In Xcode: Product → Archive → Distribute App → App Store Connect.</li>
+<li>In App Store Connect, go to TestFlight tab.</li>
+<li>Add your friend&#39;s email to &quot;Internal Testers&quot; (no review required).</li>
+<li>They install <strong>TestFlight</strong> from the App Store, accept the
+invite, install your build.</li>
+<li>Builds expire after 90 days.</li>
+</ul>
+<p><strong>Circle 3 — live (App Store):</strong></p>
+<ul>
+<li>Same Archive + upload, but submit for review instead of TestFlight-only.</li>
+<li>Fill in App Store metadata (description, screenshots, privacy
+policy URL).</li>
+<li>Review takes 1–7 days. Subsequent updates often &lt;24h.</li>
+</ul>
+<h3 id="h4-native-android">H.4 — Native Android</h3>
+<p><strong>Circle 1 — local:</strong></p>
+<ul>
+<li>Open the project in Android Studio.</li>
+<li>Pick an AVD (Android Virtual Device) or USB-debug your phone.</li>
+<li>Run button (or ⇧F10).</li>
+</ul>
+<p><strong>Circle 2 — share with one friend:</strong></p>
+<ul>
+<li>Build a debug APK: <code>./gradlew assembleDebug</code> — output at
+<code>app/build/outputs/apk/debug/app-debug.apk</code>.</li>
+<li>Send them the APK file. They install it on their phone (after
+enabling &quot;Install unknown apps&quot; for whatever app they used to
+receive it).</li>
+<li>Or use Play Console internal testing: 100 testers max, no review,
+invite by email.</li>
+</ul>
+<p><strong>Circle 3 — live (Play Store):</strong></p>
+<ul>
+<li>Build a signed release: <code>./gradlew bundleRelease</code> (produces an AAB).</li>
+<li>Upload to Play Console.</li>
+<li>Fill in store metadata, content rating, target audience.</li>
+<li>First submission review: 1–7 days. Updates often within hours.</li>
+</ul>
+<h2 id="h5-server-api">H.5 Server / API</h2>
+<p>(Express, FastAPI, Flask, Django, Go HTTP, Axum, etc.)</p>
+<h3 id="circle-1-local-3">Circle 1 — local</h3>
+<pre><code class="language-bash">npm run dev                                       # Node
+uvicorn app:main --reload                         # FastAPI
+flask run --debug                                 # Flask
+python manage.py runserver                        # Django
+go run ./cmd/server                                # Go
+cargo run --bin server                             # Rust
+</code></pre>
+<h3 id="circle-2-share-with-one-friend-3">Circle 2 — share with one friend</h3>
+<p>Same as H.2 (web app) — ngrok or Cloudflare Tunnel. Send them the
+public URL.</p>
+<h3 id="circle-3-live">Circle 3 — live</h3>
+<p>For APIs you want online persistently. Same paths as web apps but
+the trade-offs shift because backends usually need a database
+(see <a href="#h6-databases--where-your-projects-data-lives">H.6</a>) and
+persistent process management.</p>
+<p><strong>Path A — self-host on your home server.</strong> Docker container running
+your API, behind Nginx Proxy Manager for SSL/routing, with the DB
+container on the same shared network so they can talk by name.</p>
+<pre><code class="language-bash"># Example: Node API container talking to a MariaDB container,
+# both on the shottsproxy network.
+docker run -d \
+  --name your-api \
+  --network shottsproxy \
+  --restart unless-stopped \
+  -e DATABASE_URL=&quot;mysql://user:pass@mariadb:3306/your_db&quot; \
+  -v /mnt/cache/appdata/your-api/data:/data \
+  your-org/your-api:latest
+</code></pre>
+<p>Then NPM proxy host pointing <code>api.your-domain.com → your-api:3000</code>
+(or whatever port your API listens on inside the container). Same
+SSL flow as Path A above.</p>
+<p><strong>Path B — Fly.io / Railway / Render</strong> — Dockerfile-based, auto-deploy
+from GitHub, free tier exists, managed Postgres / MySQL add-ons one
+click away. Best when you don&#39;t have home-server hosting <em>or</em> you
+want fully managed DB backups without thinking about it.</p>
+<p><strong>Path C — VPS</strong> — DigitalOcean / Hetzner / Linode droplet, ~$5/mo,
+install Docker, run your container. Self-managed but no home-network
+quirks (router port-forwarding, dynamic IPs, residential ISP
+restrictions on some ports).</p>
+<p><strong>Path D — Cloud Functions / Workers / Lambda</strong> — for stateless
+event-driven APIs. Pay-per-request. Can be effectively free for
+tiny apps. Cold-start latency is real; pick this when &quot;spins up on
+demand&quot; is a feature, not a bug.</p>
+<blockquote>
+<p>💡 <strong>If you have home infra</strong>, Path A. <strong>Otherwise</strong>, Path B is the
+easiest place to start, with the option to migrate to A or D later
+as costs or complexity push you.</p>
+</blockquote>
+<h2 id="h6-databases-where-your-project39s-data-lives">H.6 Databases — where your project&#39;s data lives</h2>
+<p>If your project needs persistence (user accounts, saved items,
+search indexes, anything that must survive a restart), here&#39;s where
+to put it.</p>
+<h3 id="three-paths-same-priority-order">Three paths, same priority order</h3>
+<p><strong>Path A — self-hosted on your home server.</strong> If you already run an
+Unraid / Synology / Linux box with Docker, your DB lives there.
+You own it. You back it up. You scale it.</p>
+<p>The pattern: one DB container per &quot;engine&quot; you need (one MariaDB,
+one Postgres, etc.), shared across multiple apps via a private
+Docker network. Each app connects by container name.</p>
+<pre><code class="language-bash"># Example: spin up MariaDB once, reuse it for many apps.
+docker run -d \
+  --name mariadb \
+  --network shottsproxy \
+  --restart unless-stopped \
+  -v /mnt/cache/appdata/mariadb:/var/lib/mysql \
+  -e MARIADB_ROOT_PASSWORD=&quot;long-secret-here&quot; \
+  mariadb:11
+
+# Create a DB + user for your new app:
+docker exec -it mariadb mysql -uroot -p
+&gt; CREATE DATABASE your_app;
+&gt; CREATE USER &#39;your_app&#39;@&#39;%&#39; IDENTIFIED BY &#39;app-password-here&#39;;
+&gt; GRANT ALL ON your_app.* TO &#39;your_app&#39;@&#39;%&#39;;
+&gt; FLUSH PRIVILEGES;
+&gt; EXIT
+
+# Your app&#39;s connection string:
+DATABASE_URL=mysql://your_app:app-password-here@mariadb:3306/your_app
+</code></pre>
+<p>Same shape for Postgres (<code>postgres:16</code>), MongoDB (<code>mongo:7</code>), Redis
+(<code>redis:7</code>).</p>
+<blockquote>
+<p>📂 <strong>Worked example:</strong> the homelab&#39;s running database lineup —
+<code>mariadb:3306</code> (primary), <code>mariadb-1:3307</code> (secondary),
+<code>PostgreSQL_Immich:5433</code>, <code>MongoDB:27018</code>, <code>redis:6379</code>. Pick the
+one that matches your data shape (relational vs document vs
+cache); the connection-string pattern is the same.</p>
+</blockquote>
+<p><strong>Backup discipline:</strong></p>
+<ul>
+<li>The Unraid Appdata Backup plugin (or equivalent) snapshots
+<code>/mnt/cache/appdata/&lt;dbname&gt;/</code> nightly to your array. Set it up
+once.</li>
+<li>Test a restore at least once a year. Backups you&#39;ve never restored
+aren&#39;t backups, they&#39;re hopes.</li>
+<li>For DBs you can&#39;t afford to lose, also push an off-site copy
+(Backblaze B2, S3, or just rsync to a friend&#39;s NAS).</li>
+</ul>
+<p><strong>Path B — managed Postgres / MySQL.</strong> Best when you don&#39;t have a
+home server or you want fully-managed backups + scaling without
+thinking about them.</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>Best for</th>
+<th>Free tier</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Supabase</strong></td>
+<td>Postgres + auth + storage in one</td>
+<td>500 MB DB, 1 GB storage, 50k auth users</td>
+</tr>
+<tr>
+<td><strong>Neon</strong></td>
+<td>Postgres only, instant branches for dev</td>
+<td>0.5 GB storage</td>
+</tr>
+<tr>
+<td><strong>PlanetScale</strong></td>
+<td>MySQL with branching</td>
+<td>Hobby tier (limited)</td>
+</tr>
+<tr>
+<td><strong>Render</strong></td>
+<td>Postgres alongside their hosting</td>
+<td>$0 for 90 days, then $7+/mo</td>
+</tr>
+<tr>
+<td><strong>Railway</strong></td>
+<td>Postgres / MySQL / Mongo / Redis</td>
+<td>$5 trial credit, then usage-based</td>
+</tr>
+</tbody></table>
+<p>Connection string from the provider, paste into your app&#39;s <code>.env</code>,
+done. Migrating off later is straightforward (<code>pg_dump</code> / <code>mysqldump</code>).</p>
+<p><strong>Path C — embedded SQLite.</strong> When the data fits in a single file
+and you don&#39;t need concurrent writes from multiple processes (or
+multiple servers).</p>
+<pre><code class="language-python"># Python example
+import sqlite3
+conn = sqlite3.connect(&#39;app.db&#39;)
+</code></pre>
+<p>Pros: zero ops, no DB server to run, file backups are trivial.
+Cons: single-writer at a time, doesn&#39;t scale to multi-server. For
+a CLI tool, a personal-use app, or anything single-tenant, often the
+right choice.</p>
+<p>If you eventually need to distribute SQLite across machines: LiteFS
+(Fly.io&#39;s project) or Cloudflare D1 (managed SQLite at the edge).</p>
+<h3 id="picking-a-db-engine">Picking a DB engine</h3>
+<table>
+<thead>
+<tr>
+<th>If your data is...</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Relational (users → orders → items)</td>
+<td>Postgres or MariaDB</td>
+</tr>
+<tr>
+<td>Document-shaped (deeply nested JSON)</td>
+<td>MongoDB or Postgres JSONB</td>
+</tr>
+<tr>
+<td>Key-value, ephemeral (sessions, caches)</td>
+<td>Redis</td>
+</tr>
+<tr>
+<td>Full-text search heavy</td>
+<td>Postgres + tsvector, or Meilisearch</td>
+</tr>
+<tr>
+<td>Time-series (metrics, logs)</td>
+<td>TimescaleDB or InfluxDB</td>
+</tr>
+</tbody></table>
+<p>When in doubt, <strong>start with Postgres</strong>. It does relational, JSON,
+full-text search, and has the strongest tooling ecosystem. You can
+migrate to a specialist DB later if needed; you almost never have
+to.</p>
+<hr>
+<h2 id="h7-pointing-a-domain-at-your-home-server-namecheap-npm">H.7 Pointing a domain at your home server (Namecheap + NPM)</h2>
+<p>You bought a domain on Namecheap (or any registrar) and you want
+<code>thing.your-domain.com</code> resolving to a service running on your
+home server, with HTTPS via Nginx Proxy Manager. Here&#39;s the wiring.</p>
+<h3 id="step-1-find-your-public-ip">Step 1 — find your public IP</h3>
+<pre><code class="language-bash">curl ifconfig.io
+# → 73.98.242.228 (example)
+</code></pre>
+<p>That&#39;s the IP your ISP gave your router. <strong>Note: this can change</strong>
+if you don&#39;t have a static IP. If it changes, your DNS records have
+to update too. Two mitigations:</p>
+<ul>
+<li><strong>Dynamic DNS</strong> (DDNS) — a script on your server that updates the
+registrar when your IP changes. Namecheap supports this; the
+ddclient or similar tool runs in a container.</li>
+<li><strong>Tailscale</strong> — if you don&#39;t need the service on the <em>open
+internet</em>, Tailscale gives you a stable VPN-only IP that doesn&#39;t
+care what your public IP does. Cheaper, simpler, more secure.</li>
+</ul>
+<h3 id="step-2-port-forward-80-and-443-on-your-router">Step 2 — port-forward 80 and 443 on your router</h3>
+<p>This varies wildly by router. The general path:</p>
+<ol>
+<li>Log into your router&#39;s admin UI (usually <code>http://192.168.0.1</code> or
+<code>http://192.168.1.1</code>).</li>
+<li>Find &quot;Port Forwarding&quot; or &quot;Virtual Server.&quot;</li>
+<li>Add two forwards:<ul>
+<li>External port <code>80</code> → internal IP <code>your-server-lan-ip</code>, internal
+port whatever NPM listens on for HTTP (often <code>8080</code>).</li>
+<li>External port <code>443</code> → internal IP, internal port for HTTPS
+(often <code>4443</code>).</li>
+</ul>
+</li>
+<li>Save and reboot the router if it asks.</li>
+</ol>
+<blockquote>
+<p>📂 <strong>Worked example:</strong> in this homelab, NPM listens on <code>8080</code> /
+<code>4443</code> internally on <code>192.168.1.153</code>, and the router forwards
+<code>80 → 8080</code> and <code>443 → 4443</code> to it.</p>
+</blockquote>
+<h3 id="step-3-add-dns-records-at-namecheap">Step 3 — add DNS records at Namecheap</h3>
+<ol>
+<li>Log into Namecheap → Domain List → &quot;Manage&quot; next to your domain.</li>
+<li>Go to the <strong>Advanced DNS</strong> tab.</li>
+<li>Add an <strong>A Record</strong>:<ul>
+<li><strong>Type:</strong> A Record</li>
+<li><strong>Host:</strong> <code>thing</code> (or <code>@</code> for the root domain, <code>*</code> for a
+wildcard)</li>
+<li><strong>Value:</strong> your public IP from Step 1</li>
+<li><strong>TTL:</strong> Automatic</li>
+</ul>
+</li>
+<li>Save.</li>
+</ol>
+<p>For a wildcard (so any <code>*.your-domain.com</code> works), use <code>Host: *</code>.</p>
+<blockquote>
+<p>💡 <strong>Tip:</strong> <code>thing.your-domain.com</code> will work in ~5 minutes on
+Namecheap&#39;s DNS. From other DNS providers it can take longer
+(TTL-dependent). Use <code>dig thing.your-domain.com @1.1.1.1</code> to
+verify resolution from outside your network.</p>
+</blockquote>
+<h3 id="step-4-add-the-proxy-host-in-npm">Step 4 — add the proxy host in NPM</h3>
+<ol>
+<li>Open NPM admin (typically <code>http://server-ip:7818</code>).</li>
+<li><strong>Hosts → Proxy Hosts → Add Proxy Host</strong>.</li>
+<li><strong>Details tab:</strong><ul>
+<li>Domain Names: <code>thing.your-domain.com</code></li>
+<li>Scheme: <code>http</code></li>
+<li>Forward Hostname/IP: the container name (e.g., <code>your-app</code>) on
+the shared Docker network.</li>
+<li>Forward Port: the container&#39;s internal port (usually <code>80</code> for
+a static site, <code>3000</code>/<code>8000</code>/etc. for an API).</li>
+<li>Cache Assets: <strong>on</strong> (for static sites)</li>
+<li>Block Common Exploits: <strong>on</strong></li>
+</ul>
+</li>
+<li><strong>SSL tab:</strong><ul>
+<li>Certificate: <strong>Request a new SSL Certificate</strong></li>
+<li>Force SSL: <strong>on</strong></li>
+<li>HTTP/2 Support: <strong>on</strong></li>
+<li>HSTS Enabled: <strong>on</strong></li>
+<li>Email: yours, for renewal alerts</li>
+<li>Agree to LE terms: yes</li>
+</ul>
+</li>
+<li>Save.</li>
+</ol>
+<p>The Let&#39;s Encrypt cert issues in ~30 seconds. NPM auto-renews it
+every 60 days.</p>
+<h3 id="step-5-verify">Step 5 — verify</h3>
+<pre><code class="language-bash"># From outside your network (use your phone on cell, or a friend&#39;s wifi):
+curl -I https://thing.your-domain.com
+# Should respond with HTTP/2 200 and a valid cert.
+</code></pre>
+<p>If it fails: see Part G (Troubleshooting) — the most common issue is
+DNS not propagated yet, or the container not actually being on the
+NPM-shared Docker network.</p>
+<h3 id="avoiding-common-pitfalls">Avoiding common pitfalls</h3>
+<ul>
+<li><strong>Hairpin NAT</strong> — some consumer routers can&#39;t route traffic from
+inside your network <em>back</em> to your public IP. So
+<code>https://thing.your-domain.com</code> works on cell but not LAN. Fix:
+run a local DNS service (dnsmasq or Pi-hole) on your network that
+resolves <code>thing.your-domain.com</code> directly to the LAN IP for
+inside-the-network clients.</li>
+<li><strong>Dynamic public IP</strong> — if your IP changes weekly, set up DDNS so
+the DNS records auto-update. Namecheap has a built-in &quot;Dynamic DNS&quot;
+setting per host — combine with <code>ddclient</code> running in a container.</li>
+<li><strong>ISP blocking ports 80/443</strong> — some residential ISPs block
+inbound on these. Workaround: use Cloudflare in front (orange-cloud
+the DNS record) or run on non-standard ports + tell users.</li>
+</ul>
+<hr>
+<h2 id="h8-quotjust-send-them-the-sourcequot-for-any-project">H.8 &quot;Just send them the source&quot; — for any project</h2>
+<p>Sometimes the friend is a developer who&#39;d rather just clone and
+poke. The minimum viable &quot;give them the source&quot;:</p>
+<pre><code class="language-bash"># 1. Make sure your README has clear run instructions.
+# 2. Push to GitHub (see H.7).
+# 3. Send them the URL. They:
+
+git clone https://github.com/you/your-project.git
+cd your-project
+# follow README
+</code></pre>
+<p>Make their life easier:</p>
+<ul>
+<li><strong>A working <code>README.md</code></strong> with the exact commands they should run.</li>
+<li><strong>A <code>.env.example</code> file</strong> if you have secrets — they copy to <code>.env</code>
+and fill in their own values.</li>
+<li><strong>A <code>Makefile</code> or <code>npm script</code> for one-line setup</strong> —
+<code>make setup</code> or <code>npm run setup</code> should install deps + create
+empty config. Less is more here.</li>
+<li><strong>No outstanding broken state in <code>main</code></strong> — if you committed broken
+code, they&#39;ll think the project is broken.</li>
+</ul>
+<h2 id="h9-pushing-to-github-the-first-time">H.9 Pushing to GitHub the first time</h2>
+<p>Two paths.</p>
+<h3 id="option-a-via-gh-cli-easiest-one-command">Option A — via gh CLI (easiest, one command)</h3>
+<pre><code class="language-bash"># One-time install + auth:
+brew install gh                       # mac
+choco install gh                      # windows
+gh auth login                         # follow browser flow
+
+# Per-project:
+cd /path/to/your/project
+gh repo create your-project-name --private --source=. --remote=origin --push
+</code></pre>
+<p>That single <code>gh repo create</code> command:</p>
+<ul>
+<li>Creates a new repo on GitHub (private by default with <code>--private</code>).</li>
+<li>Adds it as the <code>origin</code> remote in your local repo.</li>
+<li>Pushes the current branch.</li>
+</ul>
+<p>You&#39;re done. Send the URL to people who should have access.</p>
+<h3 id="option-b-via-github-web-ui">Option B — via GitHub web UI</h3>
+<ol>
+<li>Go to <a href="https://github.com/new">https://github.com/new</a></li>
+<li>Name the repo. Pick Private. <strong>Do not</strong> initialise with a README,
+.gitignore, or license — your local repo already has them.</li>
+<li>Create.</li>
+<li>GitHub shows you commands to copy-paste in your terminal:<pre><code class="language-bash">git remote add origin https://github.com/you/your-project.git
+git branch -M main
+git push -u origin main
+</code></pre>
+</li>
+<li>Run those.</li>
+</ol>
+<h3 id="going-public-later">Going public later</h3>
+<p>When you&#39;re ready to flip a private repo to public:</p>
+<pre><code class="language-bash">gh repo edit --visibility public --accept-visibility-change-consequences
+</code></pre>
+<p>Or in the web UI: Settings → General → &quot;Change visibility&quot; at the
+bottom (Danger Zone).</p>
+<p><strong>Before flipping public</strong>, scan for:</p>
+<ul>
+<li>Hardcoded secrets, API keys, passwords (use <code>git log -p | grep -i password</code> and similar).</li>
+<li>Personal info (real names, addresses) in commits or comments you
+don&#39;t want public.</li>
+<li>Internal infrastructure details (server IPs, internal URLs).</li>
+</ul>
+<p>Once it&#39;s public, the git history is public — even if you delete the
+file in a later commit, the secret is in the history. The proper fix
+is <code>git filter-repo</code> to rewrite history, but the easier fix is &quot;don&#39;t
+commit secrets in the first place.&quot; Use a <code>.env</code> file (gitignored)
+for any sensitive values.</p>
+<hr>
+<h1 id="what-happens-next-in-this-repo">What happens next in this repo</h1>
+<p>Going forward, every time we ship a feature in LabelGen Pro, the
+commit will include:</p>
+<ol>
+<li>The feature code itself.</li>
+<li>A new chapter in <code>BUILD_LOG.md</code>.</li>
+<li>(Sometimes) a new section in <code>LEARN.md</code>.</li>
+<li>A <code>CHANGELOG.md</code> entry.</li>
+</ol>
+<p>You can see the format in action by reading the existing chapters in
+<code>BUILD_LOG.md</code>. When we ship STL export next, Chapter 8 will appear
+following the same template.</p>
+<p>If anything in this WORKFLOW is confusing or missing, that&#39;s a sign
+the wiki needs an update — say so and we&#39;ll improve it.</p>
+
+    <div class="foot">
+      <code>WORKFLOW.md</code> wiki · 90 sections. Regenerate with <code>npm run build:wiki</code>.
+    </div>
+  </main>
+</div>
+<script>
+  (function () {
+    const search = document.getElementById('search')
+    const tocLinks = Array.from(document.querySelectorAll('#toc a'))
+
+    if (search) {
+      search.addEventListener('input', function () {
+        const q = search.value.trim().toLowerCase()
+        tocLinks.forEach(function (a) {
+          const match = !q || a.textContent.toLowerCase().includes(q)
+          a.classList.toggle('hidden', !match)
+        })
+      })
+    }
+
+    const headingEls = tocLinks
+      .map(function (a) { return document.querySelector(a.getAttribute('href')) })
+      .filter(Boolean)
+
+    function updateActive() {
+      const y = window.scrollY + 80
+      let activeIdx = 0
+      for (let i = 0; i < headingEls.length; i++) {
+        if (headingEls[i].offsetTop <= y) activeIdx = i
+      }
+      tocLinks.forEach(function (a, i) { a.classList.toggle('active', i === activeIdx) })
+    }
+    window.addEventListener('scroll', updateActive, { passive: true })
+    updateActive()
+  })()
+</script>
+</body>
+</html>

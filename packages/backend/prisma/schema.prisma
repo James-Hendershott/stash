@@ -44,11 +44,21 @@ enum ShapeType {
 enum ContainerType {
   UBOX
   TOTE_27GAL
+  TOTE_14GAL
   BOX_SMALL
   BOX_MEDIUM
   BOX_LARGE
   BOX_CUSTOM
   CUSTOM
+}
+
+enum BookBinding {
+  HARDBACK
+  PAPERBACK
+  EBOOK
+  AUDIOBOOK
+  BOXED_SET
+  UNKNOWN
 }
 
 enum LocationType {
@@ -150,6 +160,7 @@ model Item {
   addedBy             User        @relation("AddedBy", fields: [addedById], references: [id])
   lastModifiedBy      User        @relation("LastModifiedBy", fields: [lastModifiedById], references: [id])
   container           Container?
+  bookDetails         BookDetails?
   placements          ItemPlacement[] @relation("PlacedItem")
 
   @@index([categoryId])
@@ -200,6 +211,45 @@ model ItemPlacement {
   @@index([containerId])
   @@index([placedById])
   @@map("item_placements")
+}
+
+model BookDetails {
+  id               String      @id @default(uuid())
+  itemId           String      @unique
+
+  // Identifiers
+  isbn10           String?
+  isbn13           String?
+
+  // Bibliographic data
+  title            String
+  authors          String[]
+  publisher        String?
+  publishedYear    Int?
+  edition          String?
+  pageCount        Int?
+  language         String?
+
+  // Physical attributes
+  binding          BookBinding @default(UNKNOWN)
+
+  // External references
+  coverImageUrl    String?
+  openLibraryId    String?
+  googleBooksId    String?
+
+  // Metadata source tracking — set by /api/books/from-photo
+  lookupSource     String?
+  lookupConfidence Float?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  item             Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([isbn13])
+  @@index([isbn10])
+  @@map("book_details")
 }
 
 model ActivityLog {

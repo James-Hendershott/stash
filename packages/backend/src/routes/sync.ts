@@ -54,15 +54,15 @@ router.post('/pull', async (req: Request, res: Response) => {
   const changedLocations = await prisma.location.findMany({
     where: { updatedAt: { gt: since } },
   });
-  const locationsCreated = isFirstSync ? changedLocations : changedLocations.filter((l) => l.createdAt > since);
-  const locationsUpdated = isFirstSync ? [] : changedLocations.filter((l) => l.createdAt <= since);
+  const locationsCreated = isFirstSync ? changedLocations : changedLocations.filter((l: { createdAt: Date }) => l.createdAt > since);
+  const locationsUpdated = isFirstSync ? [] : changedLocations.filter((l: { createdAt: Date }) => l.createdAt <= since);
 
   // Categories
   const changedCategories = await prisma.category.findMany({
     where: { updatedAt: { gt: since } },
   });
-  const categoriesCreated = isFirstSync ? changedCategories : changedCategories.filter((c) => c.createdAt > since);
-  const categoriesUpdated = isFirstSync ? [] : changedCategories.filter((c) => c.createdAt <= since);
+  const categoriesCreated = isFirstSync ? changedCategories : changedCategories.filter((c: { createdAt: Date }) => c.createdAt > since);
+  const categoriesUpdated = isFirstSync ? [] : changedCategories.filter((c: { createdAt: Date }) => c.createdAt <= since);
 
   function mapItem(item: any) {
     return {
@@ -141,7 +141,7 @@ router.post('/pull', async (req: Request, res: Response) => {
       items: {
         created: itemsCreated.map(mapItem),
         updated: itemsUpdated.map(mapItem),
-        deleted: deletedItems.map((i) => i.id),
+        deleted: deletedItems.map((i: { id: string }) => i.id),
       },
       containers: {
         created: containersCreated.map(mapContainer),

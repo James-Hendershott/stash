@@ -55,7 +55,9 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
  * Sign a JWT for the given user.
  */
 export function signToken(userId: string, role: string): string {
+  // jsonwebtoken v9 typed expiresIn as `number | StringValue`; cast through
+  // SignOptions['expiresIn'] so the env-string value passes type-checking.
   return jwt.sign({ userId, role }, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn,
+    expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
   });
 }

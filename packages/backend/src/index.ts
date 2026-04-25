@@ -18,6 +18,7 @@ import exportRoutes from './routes/exports';
 import importRoutes from './routes/imports';
 import floorplanRoutes from './routes/floorplan';
 import userRoutes from './routes/users';
+import bookRoutes from './routes/books';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/floorplan', floorplanRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/books', bookRoutes);
 
 // ── 404 handler ──────────────────────────────────────────
 app.use((_req, res) => {

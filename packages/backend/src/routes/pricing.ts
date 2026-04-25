@@ -28,7 +28,7 @@ router.post('/items/:id/price-estimate', async (req: Request, res: Response) => 
   }
 
   try {
-    const estimate = await estimatePrice(req.params.id);
+    const estimate = await estimatePrice(req.params.id as string);
 
     await prisma.activityLog.create({
       data: {

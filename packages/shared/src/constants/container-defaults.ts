@@ -8,19 +8,29 @@ export interface ContainerDefaults {
   maxWeightLbs: number;
 }
 
+// Internal dimensions (inches) — what fits INSIDE the container.
+// HDX tote dims are from Home Depot product specs; measure your own
+// totes and adjust if they differ. U-Haul U-Box dims from U-Haul spec.
 export const CONTAINER_DEFAULTS: Record<string, ContainerDefaults> = {
   [ContainerType.UBOX]: {
-    label: 'U-Box',
+    label: 'U-Haul U-Box',
     lengthIn: 95,
     widthIn: 56,
     heightIn: 83,
     maxWeightLbs: 2000,
   },
   [ContainerType.TOTE_27GAL]: {
-    label: '27-Gallon Tote',
-    lengthIn: 24,
-    widthIn: 16,
-    heightIn: 14,
+    label: 'HDX 27-Gal Tote',
+    lengthIn: 28.3,
+    widthIn: 18.5,
+    heightIn: 13.6,
+    maxWeightLbs: 75,
+  },
+  [ContainerType.TOTE_14GAL]: {
+    label: 'HDX 14-Gal Tote',
+    lengthIn: 21,
+    widthIn: 14,
+    heightIn: 11.5,
     maxWeightLbs: 50,
   },
   [ContainerType.BOX_SMALL]: {

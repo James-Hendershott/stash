@@ -4,3 +4,4 @@ export * from './container';
 export * from './location';
 export * from './category';
 export * from './activity';
+export * from './book';
