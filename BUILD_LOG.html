@@ -298,6 +298,18 @@
         <a class="toc-l3" href="#bug-2-map-type-inference-under-noimplicitany-false">Bug 2: Map type inference under noImplicitAny: false</a>
         <a class="toc-l2" href="#verifying-5">Verifying</a>
         <a class="toc-l2" href="#chapter-takeaways-22">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-22">The ask</a>
+        <a class="toc-l2" href="#the-plan-18">The plan</a>
+        <a class="toc-l2" href="#step-1-the-schema">Step 1: The schema</a>
+        <a class="toc-l2" href="#step-2-the-honor-the-physical-label-heuristic">Step 2: The honor-the-physical-label heuristic</a>
+        <a class="toc-l2" href="#step-3-the-legacy-label-parser">Step 3: The legacy-label parser</a>
+        <a class="toc-l2" href="#step-4-auto-create-during-import">Step 4: Auto-create during import</a>
+        <a class="toc-l2" href="#step-5-the-intake-csv-transformation">Step 5: The intake CSV transformation</a>
+        <a class="toc-l2" href="#step-6-the-actual-import">Step 6: The actual import</a>
+        <a class="toc-l2" href="#bugs-we-hit-6">Bugs we hit</a>
+        <a class="toc-l3" href="#bug-1-books-csv-import-using-the-photo-filter-multer">Bug 1: Books CSV import using the photo-filter multer</a>
+        <a class="toc-l2" href="#verifying-6">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-23">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -363,6 +375,7 @@ it&#39;s defined in the glossary.</li>
 <li><a href="#chapter-19--v120-cleaning-the-seed-and-untangling-the-data-path">Chapter 19 — v1.2.0: Cleaning the seed and untangling the data path</a></li>
 <li><a href="#chapter-20--v120-a-book-is-just-an-item-with-a-sidecar">Chapter 20 — v1.2.0: A book is just an item with a sidecar</a></li>
 <li><a href="#chapter-21--v120-the-bulk-path-wins">Chapter 21 — v1.2.0: The bulk path wins</a></li>
+<li><a href="#chapter-22--v121-container-codes-and-the-great-intake-csv-import">Chapter 22 — v1.2.1: Container codes and the great intake-CSV import</a></li>
 <li><a href="#glossary">Glossary</a></li>
 </ul>
 <hr>
@@ -2783,6 +2796,307 @@ service, the route, the validator, the type module, and the
 documentation. Less surface area, lower maintenance, lower cost.</li>
 </ul>
 <hr>
+<h1 id="chapter-22-v121-container-codes-and-the-great-intake-csv-import">Chapter 22 — v1.2.1: Container codes and the great intake-CSV import</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Auto-generated unique identifiers,
+migrating data shape without losing user intent, the
+&quot;honor-the-physical-label&quot; heuristic, transactional auto-create
+during bulk imports.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-04-25, hours after v1.2.0 deployed. James handed over
+a 320-row Google Forms CSV from a previous cataloging attempt and
+asked for two things: (1) make container labels uniform/sortable
+auto-generated codes instead of free text, and (2) import the
+existing CSV without manual intervention.</p>
+<h2 id="the-ask-22">The ask</h2>
+<p>Two threads:</p>
+<blockquote>
+<p>&quot;I want it to be uniform and unique so it can be sorted later... if
+we rename the label to something other than Tote, perhaps TOT12 or
+something easy and unique. TOT0012, I don&#39;t know. What do you
+think.&quot;</p>
+</blockquote>
+<blockquote>
+<p>&quot;We can keep code unique again for clean organization and add an
+optional and editable note or description next to the code?&quot;</p>
+</blockquote>
+<p>That second message was the simplification. Not &quot;label vs code, two
+fields&quot; — just &quot;the label IS the code, friendly text lives on the
+existing <code>Item.description</code>.&quot;</p>
+<h2 id="the-plan-18">The plan</h2>
+<ul>
+<li><strong>Format:</strong> <code>{PREFIX}-{NNNN}</code> — short type prefix, zero-padded
+4-digit sequence. <code>T27-0012</code>, <code>BXS-0001</code>, <code>UBX-0001</code>.<ul>
+<li>Sortable lexicographically thanks to the padding.</li>
+<li>Filterable by prefix (<code>T27-*</code> = all 27-gallon totes).</li>
+<li>QR-friendly.</li>
+</ul>
+</li>
+<li><strong>Schema change:</strong> <code>Container.label</code> becomes the code. Add
+<code>UNIQUE</code> constraint. Move friendly text to <code>Item.description</code>
+(which already exists). No new columns.</li>
+<li><strong><code>TOTE_35GAL</code></strong> added with HDX 35-gal dimensions (the user&#39;s
+&quot;Large Tote&quot;).</li>
+<li><strong>Helper:</strong> <code>nextContainerCode(tx, type, preferredNumber?)</code> that
+honors a preferred sequence if free, else takes next available.</li>
+<li><strong>Helper:</strong> <code>parseLegacyLabel(&quot;Tote #12&quot;)</code> returns
+<code>{ type: TOTE_27GAL, preferredNumber: 12, description: &quot;Tote #12&quot; }</code>.</li>
+<li><strong>CSV import:</strong> when <code>containerLabel</code> column is present, look up
+by exact code first; if not found, parse as a legacy label and
+create the container on the fly. The user&#39;s CSV says &quot;Tote #12&quot;;
+Stash creates <code>T27-0012</code> and uses &quot;Tote #12&quot; as the description.</li>
+</ul>
+<h2 id="step-1-the-schema">Step 1: The schema</h2>
+<pre><code class="language-prisma">model Container {
+  // …
+  label String @unique
+  // ↑ now contains &quot;T27-0012&quot;, not &quot;Halloween Box&quot;. QR codes encode it.
+}
+</code></pre>
+<p>Migration:</p>
+<pre><code class="language-sql">ALTER TYPE &quot;ContainerType&quot; ADD VALUE &#39;TOTE_35GAL&#39;;
+CREATE UNIQUE INDEX &quot;containers_label_key&quot; ON &quot;containers&quot;(&quot;label&quot;);
+</code></pre>
+<p>Two lines, additive. The unique constraint is safe to add because
+the production DB had <strong>zero</strong> containers in it (the v1.2.0 deploy
+seeded only the scaffold; no fake fixtures).</p>
+<h2 id="step-2-the-honor-the-physical-label-heuristic">Step 2: The honor-the-physical-label heuristic</h2>
+<p>The user has totes with sharpie numbers on them. They&#39;ve been &quot;Tote
+#12&quot; for months. We don&#39;t want to rename them in their own house.</p>
+<pre><code class="language-ts">export async function nextContainerCode(
+  tx,
+  type: ContainerType,
+  preferredNumber?: number,
+) {
+  const used = new Set(/* existing seq numbers for this prefix */);
+  if (preferredNumber &amp;&amp; !used.has(preferredNumber)) {
+    return { code: format(type, preferredNumber), usedPreferred: true };
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return { code: format(type, n), usedPreferred: false };
+}
+</code></pre>
+<p>Result: when the import sees <code>Tote #12</code> and the parser returns
+<code>(TOTE_27GAL, 12)</code>, the helper checks if <code>T27-0012</code> is taken. Empty
+DB → it&#39;s free → assign it. The physical sharpie number and the
+digital code agree.</p>
+<h2 id="step-3-the-legacy-label-parser">Step 3: The legacy-label parser</h2>
+<pre><code class="language-ts">export function parseLegacyLabel(label: string) {
+  const lower = label.trim().toLowerCase();
+  const numberMatch = label.match(/#\s*(\d+)/);
+  const num = numberMatch ? parseInt(numberMatch[1], 10) : undefined;
+
+  if (lower.startsWith(&#39;large tote&#39;)) return { type: TOTE_35GAL, preferredNumber: num, description: label };
+  if (lower.startsWith(&#39;tote&#39;))       return { type: TOTE_27GAL, preferredNumber: num, description: label };
+  if (lower.startsWith(&#39;book box&#39;))   return { type: BOX_SMALL,  preferredNumber: num, description: label };
+  if (lower.startsWith(&#39;bin&#39;))        return { type: BOX_SMALL,  preferredNumber: num, description: label };
+  if (lower.startsWith(&#39;suitcase&#39;))   return { type: CUSTOM,     preferredNumber: num, description: label };
+  if (lower.match(/^uhaul|^u-haul|^u-box|^ubox/))
+    return { type: UBOX, description: label };
+  return null;
+}
+</code></pre>
+<p>Six rules, covers the user&#39;s entire intake CSV. Anything that
+doesn&#39;t match falls through to <code>CUSTOM</code> with the literal label
+preserved as the description.</p>
+<h2 id="step-4-auto-create-during-import">Step 4: Auto-create during import</h2>
+<p>The CSV import — both <code>/api/import/csv</code> and <code>/api/books/import-csv</code>
+— now share <code>resolveOrCreateContainer(rawLabel, originLocId, categoryId, userId)</code>:</p>
+<ol>
+<li>Try exact match: maybe <code>rawLabel</code> already is a code (<code>T27-0012</code>).</li>
+<li>If not, parse as a legacy label.</li>
+<li>If parsable, get next code for that type using the parsed number.</li>
+<li>If a container with that code already exists, reuse it.</li>
+<li>Otherwise create the container (as a transactional Item +
+Container pair) and return its id.</li>
+</ol>
+<p>The cache is per-import — multiple items in <code>Tote #12</code> only do one
+DB lookup, then reuse.</p>
+<h2 id="step-5-the-intake-csv-transformation">Step 5: The intake CSV transformation</h2>
+<p><code>scripts/transform-intake-csv.mjs</code> reads the user&#39;s 320-row Google
+Forms CSV and writes two import-ready files:</p>
+<ul>
+<li><code>data/import/book-input.txt</code> — 53 book rows in the
+<code>Title|Authors|ISBN</code> format the enrichment script wants.</li>
+<li><code>data/import/items.csv</code> — 159 real-location rows + 107 stale-
+location rows, with <code>containerLabel</code> set to &quot;Tote #X&quot; / &quot;Book
+Box #1&quot; / etc. for the real ones, and blank with
+<code>originLocation=Unsorted</code> for the stale ones (camping bins,
+outside-tent totes, wife&#39;s hurry-up bare-numbered totes).</li>
+</ul>
+<p>Stale-detection rule lives in one Set in the transformer. Adding a
+new stale container is a one-line edit.</p>
+<h2 id="step-6-the-actual-import">Step 6: The actual import</h2>
+<p>Production flow, end to end:</p>
+<pre><code>$ node scripts/enrich-books.mjs data/import/book-input.txt data/import/book-enriched.csv
+📚 Enriching 53 books...
+  [1/53] Wizardology... ✓ openlibrary
+  …
+  ✅ 52 matched, 1 unmatched (filter by lookupSource=&#39;no-match&#39; to find them).
+
+# add originLocation/containerLabel/fate/condition/notes columns
+$ node -e &quot;…&quot; → book-final.csv
+
+# scp to unraid, login, hit the endpoints
+$ ssh unraid &#39;curl … /api/books/import-csv&#39;
+{&quot;created&quot;:53,&quot;placed&quot;:53,&quot;containersCreated&quot;:1,&quot;errors&quot;:[]}
+
+$ ssh unraid &#39;curl … /api/import/csv/execute&#39;
+{&quot;created&quot;:266,&quot;placed&quot;:159,&quot;containersCreated&quot;:14,&quot;errors&quot;:[]}
+</code></pre>
+<p>After the smoke dust cleared, the database had:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Type</th>
+<th>Description</th>
+<th align="right">Items</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>BXS-0001</code></td>
+<td>BOX_SMALL</td>
+<td>Book Box #1</td>
+<td align="right">53</td>
+</tr>
+<tr>
+<td><code>T27-0003</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #03</td>
+<td align="right">14</td>
+</tr>
+<tr>
+<td><code>T27-0010</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #10</td>
+<td align="right">35</td>
+</tr>
+<tr>
+<td><code>T27-0011</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #11</td>
+<td align="right">29</td>
+</tr>
+<tr>
+<td><code>T27-0012</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #12</td>
+<td align="right">37</td>
+</tr>
+<tr>
+<td><code>T27-0013</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #13</td>
+<td align="right">25</td>
+</tr>
+<tr>
+<td><code>T27-0020</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #20 (Red)</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td><code>T27-0021</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #21 (Red)</td>
+<td align="right">6</td>
+</tr>
+<tr>
+<td><code>T27-0030</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #30</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>T27-0031</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #31</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>T27-0033</code></td>
+<td>TOTE_27GAL</td>
+<td>Tote #33</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>T35-0001</code></td>
+<td>TOTE_35GAL</td>
+<td>Large Tote #01</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>CST-0001</code></td>
+<td>CUSTOM</td>
+<td>Suitcase #1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>CST-0003</code></td>
+<td>CUSTOM</td>
+<td>Suitcase #3</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td><code>CST-0004</code></td>
+<td>CUSTOM</td>
+<td>Suitcase #4</td>
+<td align="right">1</td>
+</tr>
+</tbody></table>
+<p>15 containers, 212 active placements, 319 items, 107 in &quot;Unsorted&quot;
+awaiting future re-cataloging. The physical-tote sharpie numbers
+match the digital codes. Zero manual intervention beyond confirming
+the design and running the script.</p>
+<h2 id="bugs-we-hit-6">Bugs we hit</h2>
+<h3 id="bug-1-books-csv-import-using-the-photo-filter-multer">Bug 1: Books CSV import using the photo-filter multer</h3>
+<pre><code>{&quot;error&quot;:&quot;Internal server error&quot;}
+…
+Error: File type &quot;application/octet-stream&quot; not allowed.
+</code></pre>
+<p>The books <code>from-photo</code> endpoint had used <code>uploadPhoto</code> middleware
+(image-only file filter). When v1.2.0 pivoted to the CSV import
+flow but left the same middleware, CSV uploads got rejected. Fixed
+with a dedicated <code>csvUpload</code> multer instance using
+<code>memoryStorage()</code> and no fileFilter. One-commit fix
+(<code>888776c</code>).</p>
+<h2 id="verifying-6">Verifying</h2>
+<ul>
+<li><code>npm run build:shared</code> ✓</li>
+<li><code>npm run build:backend</code> ✓ (all the prior pre-existing-debt fixes
+survived this round)</li>
+<li>Migration applied against prod via
+<code>docker compose exec stash-backend npx prisma migrate deploy</code></li>
+<li>Re-seeded prod (DB was scaffold-only, no real data to lose):
+10 origin rooms (was 8 + 2 storage), 11 categories (was 10 + 1
+Camping)</li>
+<li>Imported 53 books + 266 items: zero errors</li>
+<li><code>GET /api/containers</code> returns 15 containers in expected codes</li>
+</ul>
+<h2 id="chapter-takeaways-23">Chapter takeaways</h2>
+<ul>
+<li><strong>Honor the user&#39;s physical world.</strong> James had numbered totes for
+months. The auto-gen code respects &quot;Tote #12&quot; by trying T27-0012
+first. Software shouldn&#39;t make people relabel their stuff.</li>
+<li><strong>Auto-create on import beats two-phase wizards.</strong> The original
+Step 11 import was a parse-then-map-then-execute wizard. With
+legacy-label parsing, the CSV is the only artifact: run it,
+containers and items appear together.</li>
+<li><strong>One unique field beats two parallel fields.</strong> First design had
+<code>containerCode</code> + <code>label</code> (code + friendly name). User&#39;s
+pushback simplified to: label IS the code, friendly text uses
+the existing <code>Item.description</code>. No new column.</li>
+<li><strong>Cache resolved containers within a single import.</strong> A 50-book
+shipment all going into <code>Book Box #1</code> shouldn&#39;t lookup-or-create
+50 times; one round-trip handles it.</li>
+<li><strong>Stale data is its own category, not a special case.</strong> Items
+whose location is unknown go to a real <code>Unsorted</code> location, not
+a magic null. Querying &quot;what do I still need to find?&quot; is one
+filter.</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -2894,7 +3208,7 @@ documentation. Less surface area, lower maintenance, lower cost.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 155 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 167 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

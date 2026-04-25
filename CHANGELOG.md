@@ -5,6 +5,28 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-25
+
+### Added
+- **Container codes:** auto-generated unique identifiers in the format `{PREFIX}-{NNNN}` (e.g. `T27-0012`, `BXS-0001`, `UBX-0001`). The legacy `Container.label` is now this code, immutable and unique. Friendly text moves to the associated `Item.description`.
+- `TOTE_35GAL` container type with HDX 35-gal dimensions (28 × 15 × 16 internal, ~85 lbs).
+- New backend service `services/container-codes.ts` with `nextContainerCode(tx, type, preferredNumber?)` and `parseLegacyLabel()` that recognizes "Tote #12", "Book Box #1", "Large Tote #01", "Bin #03", "Suitcase #1", and "Uhaul Unit ...".
+- `containerLabel` column in `/api/import/csv` and `/api/books/import-csv` — when present, resolves to an existing container by exact code OR auto-creates one from a legacy label hint, placing the item in one transaction.
+- 11th category `Camping & Outdoors` (forest green, tent icon).
+- 2 new ORIGIN locations seeded for bulk import use cases: `In Storage / U-Box` and `Unsorted`.
+- `scripts/transform-intake-csv.mjs` — converts the legacy "Tote Inventory Intake Form" Google Forms CSV into Stash's import-ready files (book-input.txt for the enrichment script + items.csv for the regular import).
+
+### Changed
+- `Container.label` now has a `UNIQUE` constraint (Prisma migration `20260425100000_container_codes`). QR codes encode this code; it never changes after creation.
+- `POST /api/containers` no longer accepts a free-text label. If the caller passes a label hint with a number (e.g. "Tote #12"), that number is used as the *preferred* sequence; the actual code is auto-generated.
+- `/api/books/import-csv` now uses a CSV-aware multer instance instead of the photo-only middleware (was previously rejecting CSV uploads with "File type not allowed").
+- Both CSV import endpoints now return `{ created, placed, containersCreated, errors }` so the caller can see how many auto-creations happened.
+
+### Production deploy outcome (2026-04-25)
+Imported the legacy intake CSV in one shot:
+- 53 books → enrichment script (52 matched OpenLibrary/Google Books, 1 unmatched) → `/api/books/import-csv` → all 53 imported with full bibliographic metadata, all placed in `BXS-0001` (Book Box #1).
+- 266 non-book items → `/api/import/csv/execute` → 159 placed in 14 auto-created containers (T27-0003 / 0010 / 0011 / 0012 / 0013 / 0020 / 0021 / 0030 / 0031 / 0033, T35-0001, CST-0001 / 0003 / 0004), 107 sent to "Unsorted" with no container (stale camping bins per user instruction). Zero row-level errors.
+
 ## [1.2.0] - 2026-04-24
 
 ### Added
