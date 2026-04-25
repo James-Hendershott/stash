@@ -26,6 +26,7 @@ import { uploadPhoto } from '../middleware/upload';
 import { validate } from '../middleware/validate';
 import { lookupSchema, updateBookDetailsSchema } from '../validators/books';
 import { lookupByISBN, lookupByTitleAuthor } from '../services/book-lookup';
+import { resolveOrCreateContainer } from '../services/csv-import';
 import { BookBinding } from '@stash/shared';
 import fs from 'fs';
 
@@ -90,9 +91,8 @@ router.post('/import-csv', uploadPhoto, async (req: Request, res: Response) => {
   }
 
   // Pre-load reference data so name → ID resolution doesn't N+1 the DB.
-  const [locations, containers, booksCategory] = await Promise.all([
+  const [locations, booksCategory] = await Promise.all([
     prisma.location.findMany(),
-    prisma.container.findMany(),
     prisma.category.findUnique({ where: { name: 'Books & Media' } }),
   ]);
 
@@ -103,11 +103,19 @@ router.post('/import-csv', uploadPhoto, async (req: Request, res: Response) => {
     })).id;
 
   const locByName = new Map<string, string>(locations.map((l): [string, string] => [l.name.toLowerCase(), l.id]));
-  const containerByLabel = new Map<string, string>(containers.map((c): [string, string] => [c.label.toLowerCase(), c.id]));
   const defaultOrigin = locations.find((l) => l.type === 'ORIGIN')?.id;
 
+  // Cache resolved/auto-created containers so multiple books in the same
+  // box only do one lookup.
+  const containerCache = new Map<string, string>();
+
   const userId = req.user!.userId;
-  const results = { created: 0, placed: 0, errors: [] as Array<{ row: number; message: string }> };
+  const results = {
+    created: 0,
+    placed: 0,
+    containersCreated: 0,
+    errors: [] as Array<{ row: number; message: string }>,
+  };
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -119,9 +127,21 @@ router.post('/import-csv', uploadPhoto, async (req: Request, res: Response) => {
       if (!originId) throw new Error('No originLocation column and no ORIGIN locations seeded');
 
       const destinationId = resolveLocationId(row.destinationLocation, locByName);
-      const containerId = row.containerLabel
-        ? containerByLabel.get(String(row.containerLabel).toLowerCase().trim())
-        : undefined;
+
+      // Resolve (or auto-create) the container by label or legacy hint.
+      let containerId: string | undefined;
+      if (row.containerLabel) {
+        const labelKey = String(row.containerLabel).trim();
+        const cached = containerCache.get(labelKey.toLowerCase());
+        if (cached) {
+          containerId = cached;
+        } else {
+          const resolved = await resolveOrCreateContainer(labelKey, originId, categoryId, userId);
+          containerId = resolved.id;
+          if (resolved.created) results.containersCreated++;
+          containerCache.set(labelKey.toLowerCase(), resolved.id);
+        }
+      }
 
       await prisma.$transaction(async (tx) => {
         const item = await tx.item.create({

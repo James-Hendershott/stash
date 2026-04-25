@@ -43,6 +43,7 @@ enum ShapeType {
 
 enum ContainerType {
   UBOX
+  TOTE_35GAL
   TOTE_27GAL
   TOTE_14GAL
   BOX_SMALL
@@ -175,7 +176,10 @@ model Container {
   id               String        @id @default(uuid())
   itemId           String        @unique
   containerType    ContainerType
-  label            String
+  // Auto-generated container code, format {PREFIX}-{NNNN} (e.g. T27-0012,
+  // BXS-0001, UBX-0001). Unique across the DB. Immutable after create —
+  // QR code labels encode this. Friendly text lives on `item.description`.
+  label            String        @unique
   internalLengthIn Float
   internalWidthIn  Float
   internalHeightIn Float

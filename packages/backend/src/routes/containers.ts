@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createContainerSchema, updateContainerSchema } from '../validators/containers';
+import { nextContainerCode } from '../services/container-codes';
 
 const router = Router();
 
@@ -89,8 +90,15 @@ router.post('/', validate(createContainerSchema), async (req: Request, res: Resp
     containerType, label, internalLengthIn, internalWidthIn, internalHeightIn, maxWeightLbs,
   } = req.body;
 
-  // Create both in a transaction so they either both succeed or both fail
+  // Create both in a transaction so they either both succeed or both fail.
+  // Container.label is the auto-generated unique code (T27-0012, BXS-0001,
+  // etc.). If the caller passed an explicit `label`, honor it as a
+  // preferred number when the format is parseable; otherwise let the
+  // helper pick the next available code.
   const result = await prisma.$transaction(async (tx) => {
+    const preferredNumber = parsePreferredNumber(label);
+    const { code } = await nextContainerCode(tx, containerType, preferredNumber);
+
     const item = await tx.item.create({
       data: {
         name,
@@ -114,7 +122,7 @@ router.post('/', validate(createContainerSchema), async (req: Request, res: Resp
       data: {
         itemId: item.id,
         containerType,
-        label,
+        label: code,
         internalLengthIn,
         internalWidthIn,
         internalHeightIn,
@@ -193,5 +201,16 @@ router.patch('/:id', validate(updateContainerSchema), async (req: Request, res: 
 
   res.json(result);
 });
+
+// If the caller's `label` looks like "Tote #12" or "T27-0012" or just
+// "12", extract the numeric portion as the preferred sequence number.
+// Returns undefined if no number can be parsed.
+function parsePreferredNumber(label: unknown): number | undefined {
+  if (typeof label !== 'string') return undefined;
+  const m = label.match(/(\d+)/);
+  if (!m) return undefined;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
 
 export default router;

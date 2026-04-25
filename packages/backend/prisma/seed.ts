@@ -88,6 +88,9 @@ async function main() {
     { name: 'Guest Bedroom',   floor: 'Upper',  color: '#EC4899', sortOrder: 6 },
     { name: 'Basement',        floor: 'Lower',  color: '#78716C', sortOrder: 7 },
     { name: 'Garage',          floor: 'Ground', color: '#6B7280', sortOrder: 8 },
+    // Special-purpose origin locations used by CSV import:
+    { name: 'In Storage / U-Box',   floor: 'Storage',  color: '#7C2D3B', sortOrder: 90 },
+    { name: 'Unsorted',             floor: 'Storage',  color: '#9CA3AF', sortOrder: 91 },
   ];
   await Promise.all(
     origins.map((r) =>
@@ -152,16 +155,17 @@ async function main() {
 
   // ── Categories (templates) ──────────────────────────────────
   const categories = [
-    { name: 'Furniture',         icon: 'sofa',      color: '#8B5CF6' },
-    { name: 'Electronics',       icon: 'monitor',   color: '#3B82F6' },
-    { name: 'Kitchen',           icon: 'utensils',  color: '#F59E0B' },
-    { name: 'Clothing',          icon: 'shirt',     color: '#EC4899' },
-    { name: 'Books & Media',     icon: 'book-open', color: '#10B981' },
-    { name: 'Tools',             icon: 'wrench',    color: '#6B7280' },
-    { name: 'Decor',             icon: 'frame',     color: '#F97316' },
-    { name: 'Sports & Outdoor',  icon: 'bike',      color: '#14B8A6' },
-    { name: 'Kids & Toys',       icon: 'puzzle',    color: '#A855F7' },
-    { name: 'Miscellaneous',     icon: 'box',       color: '#78716C' },
+    { name: 'Furniture',          icon: 'sofa',      color: '#8B5CF6' },
+    { name: 'Electronics',        icon: 'monitor',   color: '#3B82F6' },
+    { name: 'Kitchen',            icon: 'utensils',  color: '#F59E0B' },
+    { name: 'Clothing',           icon: 'shirt',     color: '#EC4899' },
+    { name: 'Books & Media',      icon: 'book-open', color: '#10B981' },
+    { name: 'Tools',              icon: 'wrench',    color: '#6B7280' },
+    { name: 'Decor',              icon: 'frame',     color: '#F97316' },
+    { name: 'Camping & Outdoors', icon: 'tent',      color: '#15803D' },
+    { name: 'Sports & Outdoor',   icon: 'bike',      color: '#14B8A6' },
+    { name: 'Kids & Toys',        icon: 'puzzle',    color: '#A855F7' },
+    { name: 'Miscellaneous',      icon: 'box',       color: '#78716C' },
   ];
   await Promise.all(categories.map((c) => prisma.category.create({ data: c })));
   console.log(`  ✓ ${categories.length} categories`);

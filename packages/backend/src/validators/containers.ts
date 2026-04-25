@@ -11,8 +11,11 @@ export const createContainerSchema = z.object({
   notes: z.string().max(5000).nullable().optional(),
 
   // Container-specific fields
-  containerType: z.enum(['UBOX', 'TOTE_27GAL', 'BOX_SMALL', 'BOX_MEDIUM', 'BOX_LARGE', 'BOX_CUSTOM', 'CUSTOM']),
-  label: z.string().min(1, 'Label is required').max(50),
+  containerType: z.enum(['UBOX', 'TOTE_35GAL', 'TOTE_27GAL', 'TOTE_14GAL', 'BOX_SMALL', 'BOX_MEDIUM', 'BOX_LARGE', 'BOX_CUSTOM', 'CUSTOM']),
+  // Optional preferred label hint. The backend auto-generates a unique
+  // code (T27-0012 etc.) but if you pass "Tote #12" or "12" we'll try to
+  // reserve that sequence number for the chosen type.
+  label: z.string().max(50).optional(),
   internalLengthIn: z.number().positive(),
   internalWidthIn: z.number().positive(),
   internalHeightIn: z.number().positive(),

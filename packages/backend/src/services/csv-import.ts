@@ -5,7 +5,10 @@
  * and creates items in batch via Prisma.
  */
 
+import { Prisma, ContainerType } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { CONTAINER_DEFAULTS } from '@stash/shared';
+import { nextContainerCode, parseLegacyLabel } from './container-codes';
 
 export interface CsvParseResult {
   headers: string[];
@@ -75,6 +78,7 @@ export const IMPORTABLE_FIELDS = [
   { key: 'quantity', label: 'Quantity', required: false },
   { key: 'fate', label: 'Fate', required: false },
   { key: 'originLocationName', label: 'Origin Room', required: false },
+  { key: 'containerLabel', label: 'Container', required: false },
   { key: 'lengthIn', label: 'Length (in)', required: false },
   { key: 'widthIn', label: 'Width (in)', required: false },
   { key: 'heightIn', label: 'Height (in)', required: false },
@@ -98,7 +102,12 @@ export async function importCsvRows(
   rows: string[][],
   mapping: ColumnMapping,
   userId: string,
-): Promise<{ created: number; errors: { row: number; message: string }[] }> {
+): Promise<{
+  created: number;
+  placed: number;
+  containersCreated: number;
+  errors: { row: number; message: string }[];
+}> {
   // Pre-fetch categories and locations for name-to-ID lookups
   const categories = await prisma.category.findMany();
   const locations = await prisma.location.findMany();
@@ -110,7 +119,13 @@ export async function importCsvRows(
   const defaultCategoryId = categories[0]?.id;
   const defaultLocationId = locations.find((l: { type: string }) => l.type === 'ORIGIN')?.id || locations[0]?.id;
 
+  // Cache containers we've already resolved or created during this import
+  // so multiple items in the same Tote share one DB lookup.
+  const containerCache = new Map<string, string>(); // legacy-or-code → container.id
+
   let created = 0;
+  let placed = 0;
+  let containersCreated = 0;
   const errors: { row: number; message: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -142,26 +157,59 @@ export async function importCsvRows(
       const condition = (['GOOD', 'FAIR', 'POOR'].includes(getValue('condition')?.toUpperCase() || '') ? getValue('condition')!.toUpperCase() : 'GOOD') as any;
       const fate = (['KEEP', 'SELL', 'DONATE', 'TRASH', 'UNDECIDED'].includes(getValue('fate')?.toUpperCase() || '') ? getValue('fate')!.toUpperCase() : 'UNDECIDED') as any;
 
-      await prisma.item.create({
-        data: {
-          name,
-          description: getValue('description') || null,
-          categoryId: categoryId!,
-          condition,
-          quantity: parseInt(getValue('quantity') || '1') || 1,
-          fate,
-          originLocationId: originLocationId!,
-          lengthIn: parseFloat(getValue('lengthIn') || '') || null,
-          widthIn: parseFloat(getValue('widthIn') || '') || null,
-          heightIn: parseFloat(getValue('heightIn') || '') || null,
-          weightLbs: parseFloat(getValue('weightLbs') || '') || null,
-          estimatedSaleValue: parseFloat(getValue('estimatedSaleValue') || '') || null,
-          notes: getValue('notes') || null,
-          addedById: userId,
-          lastModifiedById: userId,
-        },
+      // Resolve (or auto-create) the container *before* the item so the
+      // placement can happen in the same transaction.
+      const containerLabelRaw = getValue('containerLabel')?.trim();
+      let containerId: string | undefined;
+      let containerCreatedThisRow = false;
+
+      if (containerLabelRaw) {
+        const cached = containerCache.get(containerLabelRaw.toLowerCase());
+        if (cached) {
+          containerId = cached;
+        } else {
+          const resolved = await resolveOrCreateContainer(
+            containerLabelRaw,
+            originLocationId!,
+            categoryId!,
+            userId,
+          );
+          containerId = resolved.id;
+          containerCreatedThisRow = resolved.created;
+          containerCache.set(containerLabelRaw.toLowerCase(), resolved.id);
+        }
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const item = await tx.item.create({
+          data: {
+            name,
+            description: getValue('description') || null,
+            categoryId: categoryId!,
+            condition,
+            quantity: parseInt(getValue('quantity') || '1') || 1,
+            fate,
+            originLocationId: originLocationId!,
+            lengthIn: parseFloat(getValue('lengthIn') || '') || null,
+            widthIn: parseFloat(getValue('widthIn') || '') || null,
+            heightIn: parseFloat(getValue('heightIn') || '') || null,
+            weightLbs: parseFloat(getValue('weightLbs') || '') || null,
+            estimatedSaleValue: parseFloat(getValue('estimatedSaleValue') || '') || null,
+            notes: getValue('notes') || null,
+            addedById: userId,
+            lastModifiedById: userId,
+          },
+        });
+
+        if (containerId) {
+          await tx.itemPlacement.create({
+            data: { itemId: item.id, containerId, placedById: userId },
+          });
+          placed++;
+        }
       });
 
+      if (containerCreatedThisRow) containersCreated++;
       created++;
     } catch (err: any) {
       errors.push({ row: i + 2, message: err.message });
@@ -175,9 +223,124 @@ export async function importCsvRows(
       action: 'IMPORT_CSV',
       entityType: 'Item',
       entityId: 'batch',
-      newValue: { created, errors: errors.length },
+      newValue: { created, placed, containersCreated, errors: errors.length },
     },
   });
 
-  return { created, errors };
+  return { created, placed, containersCreated, errors };
+}
+
+/**
+ * Find a container by exact label match, or parse a legacy label like
+ * "Tote #12" / "Book Box #1" and either find or create the matching
+ * container with an auto-generated code.
+ *
+ * Returns { id, created } so the caller can count auto-creations.
+ */
+export async function resolveOrCreateContainer(
+  rawLabel: string,
+  fallbackOriginLocationId: string,
+  fallbackCategoryId: string,
+  userId: string,
+): Promise<{ id: string; created: boolean }> {
+  // Exact match against existing label (already a code or pre-existing
+  // free text from a previous version of the data).
+  const exact = await prisma.container.findUnique({ where: { label: rawLabel } });
+  if (exact) return { id: exact.id, created: false };
+
+  // Try legacy parse: "Tote #12" → TOTE_27GAL, 12.
+  const parsed = parseLegacyLabel(rawLabel);
+  if (!parsed) {
+    // We can't infer a type — auto-create as CUSTOM with the literal
+    // label as description so nothing gets lost.
+    return await createContainerWithCode(
+      ContainerType.CUSTOM,
+      undefined,
+      rawLabel,
+      fallbackOriginLocationId,
+      fallbackCategoryId,
+      userId,
+    );
+  }
+
+  // If the parsed code (e.g. T27-0012) already exists, reuse it.
+  const result = await prisma.$transaction(async (tx) => {
+    const { code } = await nextContainerCode(tx, parsed.type, parsed.preferredNumber);
+    const existingByCode = await tx.container.findUnique({ where: { label: code } });
+    if (existingByCode) return { id: existingByCode.id, created: false };
+
+    return await createContainerInTx(
+      tx,
+      parsed.type,
+      code,
+      parsed.description,
+      fallbackOriginLocationId,
+      fallbackCategoryId,
+      userId,
+    );
+  });
+
+  return result;
+}
+
+async function createContainerWithCode(
+  type: ContainerType,
+  preferredNumber: number | undefined,
+  description: string,
+  originLocationId: string,
+  categoryId: string,
+  userId: string,
+): Promise<{ id: string; created: boolean }> {
+  return await prisma.$transaction(async (tx) => {
+    const { code } = await nextContainerCode(tx, type, preferredNumber);
+    return await createContainerInTx(tx, type, code, description, originLocationId, categoryId, userId);
+  });
+}
+
+async function createContainerInTx(
+  tx: Prisma.TransactionClient,
+  type: ContainerType,
+  code: string,
+  description: string,
+  originLocationId: string,
+  categoryId: string,
+  userId: string,
+): Promise<{ id: string; created: boolean }> {
+  const defaults = CONTAINER_DEFAULTS[type] ?? CONTAINER_DEFAULTS.CUSTOM ?? {
+    label: 'Container',
+    lengthIn: 12,
+    widthIn: 12,
+    heightIn: 12,
+    maxWeightLbs: 25,
+  };
+
+  const item = await tx.item.create({
+    data: {
+      name: code,
+      description, // friendly text — the legacy label verbatim
+      categoryId,
+      originLocationId,
+      isContainer: true,
+      shapeType: 'BOX',
+      lengthIn: defaults.lengthIn,
+      widthIn: defaults.widthIn,
+      heightIn: defaults.heightIn,
+      addedById: userId,
+      lastModifiedById: userId,
+    },
+  });
+
+  const container = await tx.container.create({
+    data: {
+      itemId: item.id,
+      containerType: type,
+      label: code,
+      internalLengthIn: defaults.lengthIn,
+      internalWidthIn: defaults.widthIn,
+      internalHeightIn: defaults.heightIn,
+      maxWeightLbs: defaults.maxWeightLbs,
+    },
+  });
+
+  return { id: container.id, created: true };
 }

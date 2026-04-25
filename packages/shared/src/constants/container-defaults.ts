@@ -19,6 +19,13 @@ export const CONTAINER_DEFAULTS: Record<string, ContainerDefaults> = {
     heightIn: 83,
     maxWeightLbs: 2000,
   },
+  [ContainerType.TOTE_35GAL]: {
+    label: 'HDX 35-Gal Tote',
+    lengthIn: 28,
+    widthIn: 15,
+    heightIn: 16,
+    maxWeightLbs: 85,
+  },
   [ContainerType.TOTE_27GAL]: {
     label: 'HDX 27-Gal Tote',
     lengthIn: 28.3,
