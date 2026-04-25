@@ -1,236 +1,318 @@
-# Stash — iPhone User Guide
+# Stash — iPhone Guide
 
-This guide walks you through using the Stash app on your iPhone, step by step.
+This guide has two parts:
 
----
-
-## Getting Started
-
-### Step 1: Install Expo Go
-
-1. Open the **App Store** on your iPhone
-2. Search for **"Expo Go"**
-3. Tap **Get** to install it
-4. Wait for the download to finish
-
-### Step 2: Connect to the Network
-
-The Stash app connects to our server. You need to be on either:
-- **Home WiFi** (when you're on the same network as the server)
-- **Tailscale VPN** (when you're away from home — cellular, other WiFi)
-
-If you're away from home, make sure **Tailscale** is turned on:
-1. Open the **Tailscale** app on your iPhone
-2. Toggle the switch to **Connected**
-3. You should see a green dot / "Connected" status
-
-### Step 3: Open the Stash App
-
-1. Open **Expo Go** on your iPhone
-2. The developer (James) will share a QR code or link to scan
-3. Scan the QR code or enter the URL — the Stash app will load
+- **[Part 1 — First-time setup](#part-1--first-time-setup-james-does-this-once)** — what James does on his laptop to get Stash running on the phones.
+- **[Part 2 — Day-to-day use](#part-2--day-to-day-use)** — for anyone who's already got the app installed and is just using it.
 
 ---
 
-## Signing In
+# Part 1 — First-time setup (James does this once)
 
-When the app opens, you'll see the **Sign In** screen:
+## What you need before starting
 
-1. **Email**: Enter your email address (the one James set up for you)
-2. **Password**: Enter your password
-3. Tap **Sign In**
+| | |
+|---|---|
+| Laptop with Node.js 20+ | (Windows, Mac, or Linux) |
+| The `stash` repo cloned locally | `D:\Code\personal\stash` |
+| Both phones | iPhones, iOS 17+ |
+| **Tailscale** installed on both phones | (You already have this) |
 
-If the sign-in fails:
-- Check that you're connected to WiFi or Tailscale
-- Double-check your email and password
-- Ask James to verify your account
+## Step 1 — Install Expo Go on each phone
 
----
+On both your iPhone and Savanah's iPhone:
 
-## The Main Screens
+1. Open the **App Store**.
+2. Search for **Expo Go**.
+3. Tap **Get** to install. Free, no account needed.
 
-After signing in, you'll see three tabs at the bottom of the screen:
+## Step 2 — Start the dev server on your laptop
 
-| Tab | Icon | What It Does |
-|-----|------|-------------|
-| **Items** | Box icon | Browse, search, and manage all your items |
-| **Scan** | Camera icon | Scan QR codes on boxes and items |
-| **Settings** | Gear icon | Your account info and server settings |
+Open a terminal on your laptop:
 
----
+```bash
+cd D:\Code\personal\stash\packages\mobile
+npx expo start --tunnel
+```
 
-## Browsing Items
+What `--tunnel` does: makes the Expo bundle reachable from anywhere on the
+internet via Expo's free tunnel service. The phones don't have to be on
+your home WiFi to load the bundle.
 
-The **Items** tab shows all your inventory as cards.
+Wait ~30 seconds. Eventually you'll see something like:
 
-### Searching
-1. Tap the **search bar** at the top
-2. Type what you're looking for (e.g., "mixer" or "desk")
-3. Results filter as you type
+```
+› Metro waiting on exp+stash://expo-development-client/?url=https%3A%2F%2F...
+› Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
+```
 
-### Filtering by Fate
-Below the search bar, you'll see filter buttons:
-- **All** — Show everything
-- **KEEP** — Items you're keeping
-- **SELL** — Items to sell
-- **DONATE** — Items to donate
-- **TRASH** — Items to throw away
-- **UNDECIDED** — Items not yet decided
+Plus a big **QR code** in the terminal.
 
-Tap any button to filter. Tap **All** to go back to showing everything.
+> **Don't close that terminal.** As long as it's running, the phones can
+> open Stash. If you close it, the phones can't load the bundle until
+> you start it again. (Upgrade path to fix this is in [Step 6](#step-6--optional-eas-update-so-your-laptop-doesnt-have-to-be-on).)
 
-### Pull to Refresh
-To get the latest data from the server:
-1. Scroll to the top of the list
-2. Pull down with your finger
-3. Release — the list will refresh
+## Step 3 — Scan the QR code with each phone
 
----
+On each iPhone:
 
-## Viewing an Item
+1. Open the iPhone's built-in **Camera** app.
+2. Point it at the QR code in your laptop's terminal.
+3. A banner appears at the top of the camera saying "Open in Expo Go".
+4. Tap the banner. Expo Go launches and starts downloading the Stash
+   bundle. First load takes ~10–30 seconds.
+5. Stash opens to its login screen.
 
-Tap any item card to see its full details:
+If the Camera app doesn't show the banner: open Expo Go directly, tap
+**Scan QR code**, then point at your laptop's terminal.
 
-- **Photo** — The item's picture (if one has been taken)
-- **Name and Fate** — What it is and what's happening to it
-- **Fate Buttons** — Tap to change the fate (Keep/Sell/Donate/Trash)
-- **Details** — Category, condition, room, dimensions, weight
-- **Container Placements** — Which box or tote this item is in
+## Step 4 — Set the API server URL in the app
 
----
+When Stash opens for the first time, it doesn't know how to reach the
+backend. Tell it:
 
-## Taking a Photo of an Item
+1. In the app, tap the **Settings** tab (gear icon, bottom right).
+2. Find the **Server URL** field.
+3. Paste one of these URLs:
 
-1. Open an item by tapping its card
-2. Tap **Take Photo**
-3. Your camera will open
-4. Point at the item and tap the **shutter button** (white circle)
-5. Tap **Use Photo** to confirm
-6. The photo uploads automatically to the server
+   | Where you are | URL to paste |
+   |---|---|
+   | At home (on your WiFi network) | `http://192.168.1.153:3001` |
+   | Anywhere with Tailscale on | `http://100.122.58.114:3001` |
+   | (Future) After NPM proxy is set up | `https://stash-api.shottsserver.com` |
 
-You can also choose an existing photo from your library:
-1. Tap **Choose Photo**
-2. Browse your photo library
-3. Tap the photo you want
-4. It uploads automatically
+   **Recommended:** use the Tailscale URL `http://100.122.58.114:3001`. It
+   works at home and on the road, and your phone is already configured
+   for Tailscale.
 
----
+4. Tap **Save**.
 
-## Adding a New Item
+## Step 5 — Log in
 
-1. On the **Items** tab, tap the blue **+** button (bottom right)
-2. Fill in the details:
-   - **Name** (required) — What is this item? (e.g., "Standing Desk")
-   - **Description** (optional) — Any extra details
-   - **Category** — Tap to select (Furniture, Electronics, Kitchen, etc.)
-   - **Condition** — Good, Fair, or Poor
-   - **Fate** — Keep, Sell, Donate, Trash, or Undecided
-   - **Origin Room** — Which room is this item in right now?
-   - **Quantity** — How many? (usually 1)
-3. Tap **Create Item**
-4. You'll be taken to the item's detail page where you can add a photo
+| Email | Password |
+|---|---|
+| `jameshendershott85@gmail.com` | `password` *(initial — change via Users page)* |
+| `mama.shotts@gmail.com` | `password` *(initial)* |
 
----
+> ⚠️ **Change both passwords on first login** by going to the admin
+> dashboard at http://192.168.1.153:3002 → Users → Reset Password for
+> each account. The mobile app currently doesn't have a change-password
+> screen.
 
-## Changing an Item's Fate
+After login, you'll see the bottom tab bar: Items / Scan / Settings.
+Skip ahead to [Part 2](#part-2--day-to-day-use) for what each tab does.
 
-This is the most common action during the move:
+## Step 6 — (Optional) EAS Update so your laptop doesn't have to be on
 
-1. Open the item (tap its card)
-2. Find the **Fate** section
-3. Tap the fate you want:
-   - **KEEP** (green) — Taking it to the new house
-   - **SELL** (orange) — Selling it before the move
-   - **DONATE** (purple) — Giving it away
-   - **TRASH** (red) — Throwing it out
-   - **UNDECIDED** (gray) — Haven't decided yet
-4. The change saves immediately — no need to tap a save button
+The setup above works, but it requires `npx expo start --tunnel` to be
+running on your laptop whenever the phones load Stash. For a permanent
+"app on the home screen" feel, publish the bundle to Expo's free CDN.
 
----
+1. **Install the CLI** (one-time, on your laptop):
+   ```bash
+   npm install -g eas-cli
+   ```
+2. **Sign up for a free Expo account** at https://expo.dev/signup. Then
+   on your laptop:
+   ```bash
+   eas login
+   ```
+3. **Configure the project** (one-time, in the mobile package):
+   ```bash
+   cd D:\Code\personal\stash\packages\mobile
+   eas init
+   ```
+4. **Publish the bundle:**
+   ```bash
+   eas update --branch production
+   ```
+   This uploads the JS bundle to Expo's CDN. Free tier allows 1,000
+   updates/month with unlimited bandwidth. More than enough.
+5. **Get the channel URL** that EAS prints — looks like
+   `exp://u.expo.dev/<project-id>?channel-name=production`. Generate a
+   QR code for it (any free QR generator).
+6. Each phone: open Expo Go, scan that QR, the bundle loads from the CDN.
+   **No laptop required from this point on.**
+7. To push code changes later: rerun `eas update --branch production` on
+   your laptop. The phones get the new code on next app open.
 
-## Getting a Price Estimate (Sell Items)
-
-If an item is marked as **SELL**, you can ask the AI for a price suggestion:
-
-1. Open the item
-2. Tap the orange **Get AI Price Estimate** button
-3. Wait a few seconds — the AI is thinking
-4. A popup will show:
-   - **Suggested price** (e.g., "$150")
-   - **Why that price** (condition, brand, demand)
-   - **Where to sell** (Facebook Marketplace, OfferUp, etc.)
-
-This uses our AI assistant to research comparable prices. The suggestion is
-a starting point — you can adjust based on how quickly you want it to sell.
-
----
-
-## Scanning QR Codes
-
-QR code labels can be printed and stuck on boxes and items:
-
-1. Tap the **Scan** tab (camera icon at the bottom)
-2. Point your camera at a Stash QR code
-3. The app will automatically:
-   - Recognize the QR code
-   - Open the item or container it belongs to
-4. No need to tap anything — it reads automatically
-
-**What you'll see:** When you scan a box label, the app jumps straight to
-that item's detail page showing everything about it.
+This is free, permanent, and the phones treat Stash like a real app.
 
 ---
 
-## Settings
+# Part 2 — Day-to-day use
 
-The **Settings** tab shows:
-- **Your account** — Name, email, role
-- **Server URL** — Where the app connects to (James will set this up)
-- **Sign Out** button
+## Signing in
 
-You shouldn't need to change anything here. If the app can't connect,
-James may ask you to update the Server URL.
+When the app opens, you'll see the **Sign In** screen.
 
----
+1. **Email** — your account email.
+2. **Password** — your password.
+3. Tap **Sign In**.
+
+If sign-in fails:
+- Check that you're connected to WiFi or Tailscale.
+- Double-check your email and password.
+- The Tailscale toggle on your phone needs to be **green/on** if you're
+  not at home.
+
+## The main screens
+
+After signing in, three tabs at the bottom:
+
+| Tab | Icon | What it does |
+|-----|------|--------------|
+| **Items** | Box | Browse, search, add, edit |
+| **Scan** | Camera | Scan QR codes on boxes/items |
+| **Settings** | Gear | Account info + server URL |
+
+## Items tab
+
+The items list shows everything in your Stash database as cards. With
+your library, that's currently **697 items**: 432 books, 14 toted
+non-book items, plus the items still in the original Eagle Mountain
+rooms.
+
+**Search:** tap the search bar at the top, type any word. Results
+filter as you type — try `mixer`, `desk`, `Atwood`.
+
+**Filter by fate:** the buttons under the search bar filter by
+KEEP / SELL / DONATE / TRASH / UNDECIDED. Tap **All** to clear.
+
+**Pull to refresh:** scroll to the top, pull down, release. Pulls the
+latest data from the server.
+
+## Viewing an item
+
+Tap any card. You'll see:
+
+- **Photo** (if one has been uploaded)
+- **Name and fate**
+- **Fate buttons** — tap any to change the fate; saves instantly
+- **Details** — category, condition, room, dimensions, weight
+- **Container placements** — which box/tote this item is in
+
+## Taking a photo
+
+1. Open an item by tapping its card.
+2. Tap **Take Photo**.
+3. Camera opens. Point at item, tap shutter, tap **Use Photo**.
+4. Uploads to the server automatically.
+
+Or **Choose Photo** to pick one from your camera roll.
+
+## Adding a new item
+
+1. On Items tab, tap the blue **+** (bottom right).
+2. Fill in:
+   - **Name** (required) — e.g., "Standing Desk"
+   - **Description** (optional)
+   - **Category** — pick from the list
+   - **Condition** — Good / Fair / Poor
+   - **Fate** — Keep / Sell / Donate / Trash / Undecided
+   - **Origin Room** — where the item is right now
+   - **Quantity** — usually 1
+3. Tap **Create Item**.
+4. You land on the item's detail page; add a photo there.
+
+## Changing an item's fate
+
+The most common action during the move:
+
+1. Open the item.
+2. Find the fate buttons.
+3. Tap the fate you want — saves instantly. No save button.
+
+| Fate | Color | Means |
+|------|-------|-------|
+| **KEEP** | Green | Taking it to NC |
+| **SELL** | Orange | Selling before the move |
+| **DONATE** | Purple | Giving it away |
+| **TRASH** | Red | Throwing out |
+| **UNDECIDED** | Gray | Not yet decided |
+
+## AI price estimate (sell items only)
+
+> Requires `ANTHROPIC_API_KEY` set in `/mnt/user/appdata/stash/repo/.env`
+> on Unraid. If unset, the button returns "feature disabled."
+
+1. Mark an item as **SELL**.
+2. Open the item.
+3. Tap the orange **Get AI Price Estimate** button.
+4. After ~5 seconds you get a popup:
+   - **Suggested price**
+   - **Why** (condition, brand, demand)
+   - **Where to sell** (Facebook Marketplace, OfferUp, eBay, etc.)
+
+The suggestion is a starting point. Adjust based on how fast you want
+the item gone.
+
+## Scanning QR codes
+
+The Scan tab is for finding things by their printed QR labels.
+
+1. Tap the **Scan** tab.
+2. Point camera at a QR code on a box or item.
+3. The app auto-recognizes it and jumps to that item or container's
+   detail page.
+
+> No QR codes are printed yet — you generate label sheets via the admin
+> dashboard's Export tab and print them out, then stick on the boxes.
+
+## Settings tab
+
+- **Your account** — name, email, role
+- **Server URL** — where the app talks to. You shouldn't need to
+  change this after first setup.
+- **Sign Out**
 
 ## Troubleshooting
 
-### "Login Failed"
-- Make sure you're connected to WiFi or Tailscale
-- Check your email and password are correct
-- Try closing the app completely and reopening
+### "Login failed"
+- Make sure WiFi or Tailscale is connected
+- Check email + password
+- Force-quit the app (swipe up from bottom, flick Stash up) and reopen
 
-### Items not loading / spinning forever
+### Items spinning forever / not loading
 - Pull down to refresh
-- Check your internet connection
-- Make sure Tailscale is connected (if not on home WiFi)
+- Check internet
+- Make sure Tailscale is **connected** (green) when off home WiFi
+- If still stuck: Settings → check Server URL is right for your network
 
-### Camera not working
-- The first time you use the camera, iOS will ask for permission
-- Tap **Allow** when prompted
-- If you accidentally denied it: go to iPhone **Settings** → **Expo Go** → **Camera** → toggle ON
+### Camera doesn't work
+- iOS asks for permission the first time. Tap **Allow**.
+- If you said no by mistake: iPhone **Settings** → **Expo Go** →
+  **Camera** → toggle ON.
 
-### Photos not uploading
-- Make sure you have a good internet connection
+### Photo upload fails
+- Need internet
 - Photos must be under 10 MB
-- Try taking the photo again
+- Try again — sometimes the connection drops
 
-### App seems slow or frozen
-- Close the app completely (swipe up from the bottom, swipe the app away)
-- Reopen Expo Go and load Stash again
+### App is slow or frozen
+- Force-quit + reopen
+- If that doesn't help: restart Expo Go entirely
+
+### "Server URL" issues
+- LAN: `http://192.168.1.153:3001` only works on home WiFi
+- Tailscale: `http://100.122.58.114:3001` works anywhere if Tailscale is
+  on
+- Proxy URL `https://stash-api.shottsserver.com` only works once NPM is
+  set up
 
 ---
 
-## Quick Reference
+## Quick reference
 
 | Action | How |
 |--------|-----|
 | Search items | Tap search bar, type keywords |
-| Filter by fate | Tap KEEP/SELL/DONATE/TRASH buttons |
-| View item details | Tap any item card |
+| Filter by fate | Tap KEEP/SELL/DONATE/TRASH/UNDECIDED |
+| Open an item | Tap its card |
 | Change fate | Open item → tap a fate button |
 | Take photo | Open item → Take Photo |
 | Add new item | Tap blue + button |
-| Scan QR code | Tap Scan tab → point camera |
+| Scan QR | Scan tab → point camera |
 | Refresh list | Pull down on item list |
-| Sign out | Settings tab → Sign Out |
+| Sign out | Settings → Sign Out |
+| Server URL | Settings → Server URL field |
