@@ -20,15 +20,20 @@
  * script, then this CSV import). See GUIDE.md "Bulk Cataloging Books".
  */
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
-import { uploadPhoto } from '../middleware/upload';
 import { validate } from '../middleware/validate';
 import { lookupSchema, updateBookDetailsSchema } from '../validators/books';
 import { lookupByISBN, lookupByTitleAuthor } from '../services/book-lookup';
 import { resolveOrCreateContainer } from '../services/csv-import';
 import { BookBinding } from '@stash/shared';
-import fs from 'fs';
+
+// CSV upload — no image filter; accepts text/csv/octet-stream payloads.
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB ought to cover a 10k-row catalog
+});
 
 const router = Router();
 
@@ -74,15 +79,13 @@ router.post('/lookup', validate(lookupSchema), async (req: Request, res: Respons
 //     notes
 //
 // Multipart field name: "file"
-router.post('/import-csv', uploadPhoto, async (req: Request, res: Response) => {
+router.post('/import-csv', csvUpload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
-    res.status(400).json({ error: 'CSV file required (multipart field "file" or "photo")' });
+    res.status(400).json({ error: 'CSV file required (multipart field "file")' });
     return;
   }
 
-  const text = await fs.promises.readFile(req.file.path, 'utf8');
-  // Tidy up the temp file regardless of outcome.
-  fs.promises.unlink(req.file.path).catch(() => undefined);
+  const text = req.file.buffer.toString('utf8');
 
   const rows = parseCsv(text);
   if (rows.length === 0) {
