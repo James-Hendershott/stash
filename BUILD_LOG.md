@@ -64,6 +64,7 @@ bottom — each chapter assumes you've read the ones before it.
 - [Chapter 20 — v1.2.0: A book is just an item with a sidecar](#chapter-20--v120-a-book-is-just-an-item-with-a-sidecar)
 - [Chapter 21 — v1.2.0: The bulk path wins](#chapter-21--v120-the-bulk-path-wins)
 - [Chapter 22 — v1.2.1: Container codes and the great intake-CSV import](#chapter-22--v121-container-codes-and-the-great-intake-csv-import)
+- [Chapter 23 — v1.2.2: Getting Stash onto the iPhones](#chapter-23--v122-getting-stash-onto-the-iphones)
 - [Glossary](#glossary)
 
 ---
@@ -3070,6 +3071,284 @@ with a dedicated `csvUpload` multer instance using
   whose location is unknown go to a real `Unsorted` location, not
   a magic null. Querying "what do I still need to find?" is one
   filter.
+
+---
+
+# Chapter 23 — v1.2.2: Getting Stash onto the iPhones
+
+> 📌 **What this chapter teaches.** The reality of "first-time" Expo
+> setup in an existing npm-workspaces monorepo: every assumption that
+> makes Expo's quickstart pleasant breaks slightly. Three back-to-back
+> errors, each a different layer of the stack.
+
+**Date:** 2026-04-25, late evening, hours after the intake CSV
+imported. James was following the new `IPHONE-GUIDE.md` Part 1 trying
+to get Stash running on his phone. The first `npx expo start --tunnel`
+threw three different errors in succession. This chapter is the
+forensics on each.
+
+## The setup
+
+```
+PS D:\Code\personal\stash\packages\mobile> npx expo start --tunnel
+Starting project at D:\Code\personal\stash\packages\mobile
+Starting Metro Bundler
+✔ The package @expo/ngrok@^4.1.0 is required to use tunnels, would you like to install it globally? ... yes
+Tunnel ready.
+[QR code rendered]
+› Metro waiting on exp://qrliieu-anonymous-8081.exp.direct
+```
+
+So far so good. Phone scans QR, app starts loading, and then…
+
+## Bug 1: Cannot find module 'babel-preset-expo'
+
+```
+iOS Bundling failed 394ms packages\mobile\App.tsx (1 module)
+ERROR  Error: Cannot find module 'babel-preset-expo'
+Require stack:
+  - D:\Code\personal\stash\node_modules\@babel\core\lib\config\files\plugins.js
+  - …
+```
+
+The mobile package's `babel.config.js` is one line:
+
+```js
+module.exports = function (api) {
+  api.cache(true);
+  return { presets: ['babel-preset-expo'] };
+};
+```
+
+`babel-preset-expo` is supposed to be a transitive dep of `expo` (which
+mobile depends on), and indeed it gets installed at
+`packages/mobile/node_modules/babel-preset-expo`. **But the require
+stack shows the lookup happening from
+`D:\Code\personal\stash\node_modules\@babel\core\lib\config\files\plugins.js`.**
+
+That's `@babel/core` hoisted to the workspace **root**. When Babel
+core resolves a preset, Node walks up from its own location:
+
+1. `node_modules\@babel\core\node_modules\babel-preset-expo` — no
+2. `node_modules\@babel\node_modules\babel-preset-expo` — no
+3. `node_modules\babel-preset-expo` — **no, this is what fails**
+
+The preset exists in mobile's nested `node_modules`, but Node's
+hierarchical lookup starting from `@babel/core` at the root never
+walks down into a sibling package's `node_modules`. Classic
+workspaces hoisting mismatch.
+
+**Fix:** add `babel-preset-expo` to the root `package.json`'s
+`devDependencies`. This forces npm to hoist it to the root, where
+`@babel/core` can find it.
+
+```json
+"devDependencies": {
+  "marked": "^14.1.4",
+  "babel-preset-expo": "^55.0.18"
+}
+```
+
+`npm install`. Verify:
+
+```
+$ ls node_modules/babel-preset-expo
+README.md  build  lazy-imports-blacklist.js  …
+```
+
+Onward.
+
+## Bug 2: "main" has not been registered
+
+```
+iOS Bundled 6563ms packages\mobile\App.tsx (937 modules)
+ERROR  [Invariant Violation: "main" has not been registered. This can happen if:
+  * Metro (the local dev server) is run from the wrong folder.
+  * A module failed to load due to an error and `AppRegistry.registerComponent` wasn't called.]
+```
+
+The bundle succeeded (937 modules, no Babel error). The app reaches
+React Native's runtime and… can't find a registered root component.
+
+`packages/mobile/package.json` had:
+
+```json
+"main": "App.tsx"
+```
+
+In older Expo SDKs (≤ 49), pointing `main` directly at `App.tsx` worked
+because `expo/AppEntry.js` was used implicitly to register a default
+export. **In SDK 50+, you have to be explicit.** The recommended
+pattern:
+
+```js
+// packages/mobile/index.js
+import { registerRootComponent } from 'expo';
+import App from './App';
+registerRootComponent(App);
+```
+
+```json
+"main": "index.js"
+```
+
+`registerRootComponent` is a one-line wrapper that calls
+`AppRegistry.registerComponent('main', () => App)` AND ensures the JS
+runtime is set up correctly for both Expo Go and bare native builds.
+
+Onward (with `--clear` to wipe Metro's cache, since the failed bundle
+was cached and would replay the same error otherwise).
+
+## Bug 3: Invalid hook call / useContext null
+
+```
+iOS Bundled 6563ms packages\mobile\index.js (937 modules)
+ERROR  Warning: Invalid hook call. Hooks can only be called inside of the body of a function component.
+  1. You might have mismatching versions of React and the renderer (such as React DOM)
+  2. You might be breaking the Rules of Hooks
+  3. You might have more than one copy of React in the same app
+ERROR  [TypeError: Cannot read property 'useContext' of null]
+```
+
+This one's the most subtle. The app bundles successfully and runs.
+React Native's runtime starts. The first hook call (probably
+`useContext` inside `AuthContext`) throws because React's internal
+state is null.
+
+The error message lists three possible causes; in a workspaces
+monorepo it's almost always **#3: more than one copy of React.**
+Confirmed:
+
+```bash
+$ cat node_modules/react/package.json | grep version
+"version": "18.3.1",
+$ cat packages/mobile/node_modules/react/package.json | grep version
+"version": "19.1.0",
+```
+
+Two different React majors:
+
+- Root `node_modules/react` is **18.3.1** (admin needs that — it's
+  what `react-router-dom` v6 + `@types/react@~18.3.5` are built
+  against; we pinned this in v1.2.0 to clear another bug).
+- `packages/mobile/node_modules/react` is **19.1.0** (Expo SDK 54
+  requires React 19).
+
+Metro, by default, walks up the folder tree looking for modules. So a
+single `import { useContext } from 'react'` could land in either
+location depending on the calling file's path. Components from
+`@react-navigation/*` (hoisted to root) ended up using one React;
+components in `packages/mobile/src/*` ended up using the other.
+Hooks blew up.
+
+**Fix:** custom Metro resolver that pins React (and friends) to the
+mobile package's copy. `packages/mobile/metro.config.js`:
+
+```js
+const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
+
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, '../..');
+const config = getDefaultConfig(projectRoot);
+
+// Watch the whole workspace so @stash/shared edits trigger reloads.
+config.watchFolders = [workspaceRoot];
+
+// Both paths so @stash/* (symlinked at root) resolves correctly.
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
+// No directory-tree walking — only the explicit paths above.
+config.resolver.disableHierarchicalLookup = true;
+
+// Force React-family imports to ALWAYS resolve from mobile's own
+// node_modules, regardless of which file does the importing.
+const PINNED = new Set([
+  'react', 'react-dom', 'react-native',
+  'react/jsx-runtime', 'react/jsx-dev-runtime',
+  'scheduler',
+]);
+
+const original = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (PINNED.has(moduleName)) {
+    return context.resolveRequest(
+      { ...context, originModulePath: path.join(projectRoot, 'index.js') },
+      moduleName,
+      platform,
+    );
+  }
+  if (original) return original(context, moduleName, platform);
+  return context.resolveRequest(context, moduleName, platform);
+};
+
+module.exports = config;
+```
+
+The `resolveRequest` hook intercepts every module resolution. When it
+sees one of the pinned packages, it spoofs the `originModulePath` to
+`packages/mobile/index.js` — which forces Metro to start its
+resolution walk from inside the mobile package, finding mobile's React
+first. For everything else, the default resolver runs.
+
+After `npx expo start --tunnel --clear`: app loads on the phone, login
+screen appears, hooks work.
+
+## Why this ends up being three bugs, not one
+
+Each fix unblocks the next. None of them are exotic — but each is
+specific to a layer of the stack:
+
+1. **Bug 1** is a Node.js module-resolution problem (workspaces
+   hoisting + Babel's preset lookup).
+2. **Bug 2** is an Expo SDK version problem (auto-entry-point
+   behavior changed in SDK 50).
+3. **Bug 3** is a Metro bundler problem (resolver walking finds two
+   Reacts in a workspaces tree).
+
+If you ran a fresh `expo init` outside a monorepo, you wouldn't hit
+any of them. If you tried to "add Expo" to an existing monorepo
+without a metro.config.js, you'd hit all three back-to-back like we
+did. Worth writing down because every Expo + monorepo bootstrap will
+hit this.
+
+## Verifying
+
+- `npx expo start --tunnel --clear` runs to "Tunnel ready" without
+  errors
+- iPhone Camera scan loads Stash
+- Login screen renders (which means hooks work)
+- Pasting `http://100.122.58.114:3001` into Settings makes the API
+  reachable; login as `jameshendershott85@gmail.com` / `password`
+  works
+- Item list displays (697 items including the 378 books we imported
+  earlier in the day)
+
+## Chapter takeaways
+
+- **Workspaces + native frameworks = three things to fix, not one.**
+  Babel preset hoisting, entry-point registration, React deduplication.
+  Each is a different layer.
+- **Read the require stack, not just the error.** Bug 1's error
+  message looked like "package not installed"; the require stack
+  showed it WAS installed, just not in the right place.
+- **`Invalid hook call` in a monorepo means duplicate React 99% of
+  the time.** Bug list in the error message says "you might have
+  more than one copy of React" — believe it.
+- **Metro's default resolver is wrong for monorepos.** Always set
+  `disableHierarchicalLookup: true` and explicit
+  `nodeModulesPaths`. The official Expo docs cover this; the issue
+  is that you don't know to look at them until after you've already
+  failed.
+- **`registerRootComponent` does two jobs:** registers the component
+  AND sets up the JS runtime. Calling `AppRegistry.registerComponent`
+  manually is not equivalent.
+- **`--clear` matters.** Metro's cache will replay a previously
+  cached failure even after you fix the underlying problem. Habit:
+  `--clear` after every config change.
 
 ---
 

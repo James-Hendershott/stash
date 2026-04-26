@@ -25,7 +25,8 @@
     "build:wiki": "node meta/teach-as-you-build/build-wiki.mjs"
   },
   "devDependencies": {
-    "marked": "^14.1.4"
+    "marked": "^14.1.4",
+    "babel-preset-expo": "^55.0.18"
   },
   "overrides": {
     "@types/express": "^4.17.21",

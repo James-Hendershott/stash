@@ -5,6 +5,28 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-04-25
+
+### Added
+- `packages/mobile/index.js` — explicit `registerRootComponent(App)` entry point. Required by Expo SDK 54 to register the React Native root component with `AppRegistry`. Without it, the app bundles successfully but throws `[Invariant Violation: "main" has not been registered]` at launch.
+- `packages/mobile/metro.config.js` — Metro bundler config that solves two npm-workspaces + Expo gotchas:
+  1. **Watches the workspace root** so edits to `@stash/shared` trigger Metro reloads, and includes both the mobile package's and workspace root's `node_modules` in the resolver paths.
+  2. **Pins `react`, `react-native`, `react-dom`, `react/jsx-runtime`, and `scheduler` to the mobile package's own copies** via a custom `resolveRequest` hook. Prevents Metro from loading two Reacts (mobile's React 19 + admin's hoisted React 18), which manifested as `[Invariant Violation: Invalid hook call]` and `[TypeError: Cannot read property 'useContext' of null]`.
+- `babel-preset-expo` added to root `package.json` devDependencies. The mobile `babel.config.js` references it but it wasn't installed at the workspace root, so `@babel/core` (hoisted) couldn't resolve it. Listing it at root forces hoisting.
+
+### Changed
+- `packages/mobile/package.json` `main` field: `App.tsx` → `index.js`. The new `index.js` calls `registerRootComponent`, then re-imports `App.tsx` as the root component.
+- Vault/repo doc sync: deleted the duplicate uppercase markdown files (`IPHONE-GUIDE.md`, `GUIDE.md`, `README.md`, `SETUP.md`, `TEACH.md`) inside the obsidian project folder; canonical lowercase copies (`iphone-guide.md`, `guide.md`, `readme.md`, `setup.md`, `teach.md`) now mirror the latest repo content.
+
+### Fixed
+- `IPHONE-GUIDE.md` rewritten with actual setup steps. The original guide jumped straight to "James will share a QR code" without explaining how James generates one. New version has a Part 1 (first-time setup with `npx expo start --tunnel`, real API URLs, optional EAS Update path) and Part 2 (the original day-to-day usage content).
+
+### Production state (2026-04-25 evening)
+- `https://stash.shottsserver.com` — admin SPA, HTTP 200, Let's Encrypt SSL ✓
+- `https://stash-api.shottsserver.com` — backend API, HTTP 200, `/api/health` returns OK ✓
+- 697 items, 432 books, 15 containers, 212 placements, 107 in Unsorted
+- 378 photo-catalog books imported via `/api/books/import-csv` with no container assignments (per user choice — they'll place books when unpacking each real box)
+
 ## [1.2.1] - 2026-04-25
 
 ### Added

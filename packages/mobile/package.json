@@ -2,7 +2,7 @@
   "name": "@stash/mobile",
   "version": "0.1.0",
   "private": true,
-  "main": "App.tsx",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@types/react": "~19.1.10",
+    "babel-preset-expo": "^55.0.18",
     "typescript": "~5.3.3"
   }
 }

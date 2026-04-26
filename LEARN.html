@@ -144,6 +144,13 @@
     <input id="search" type="search" placeholder="Filter sections…" autocomplete="off" />
     <nav class="toc" id="toc">
         <a class="toc-l2" href="#table-of-contents">Table of contents</a>
+        <a class="toc-l2" href="#chapter-7-reading-errors">Chapter 7 — Reading errors</a>
+        <a class="toc-l2" href="#chapter-8-debugging">Chapter 8 — Debugging</a>
+        <a class="toc-l2" href="#chapter-12-containers-nginx-deployment">Chapter 12 — Containers, nginx, deployment</a>
+        <a class="toc-l2" href="#chapter-13-observability">Chapter 13 — Observability</a>
+        <a class="toc-l2" href="#chapter-18-the-data-model">Chapter 18 — The data model</a>
+        <a class="toc-l2" href="#chapter-19-the-container-code-system">Chapter 19 — The container code system</a>
+        <a class="toc-l2" href="#chapter-20-the-mobile-package39s-monorepo-gotchas">Chapter 20 — The mobile package&amp;#39;s monorepo gotchas</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -202,17 +209,198 @@ intentional.</p>
 decisions and reasoning.]</p>
 <hr>
 <h1 id="part-2-writing-the-code">Part 2 — Writing the code</h1>
-<p>[Fill in chapters 6–9.]</p>
+<h2 id="chapter-7-reading-errors">Chapter 7 — Reading errors</h2>
+<p>Error messages are usually right about <em>what</em> failed and wrong about
+<em>where</em>. Two real examples from this codebase:</p>
+<p><strong>Example: &quot;Cannot find module &#39;babel-preset-expo&#39;&quot;</strong> (Chapter 23 in
+BUILD_LOG)</p>
+<p>The error said &quot;package not installed.&quot; The package WAS installed —
+at <code>packages/mobile/node_modules/babel-preset-expo</code>. The hint that
+mattered was the <strong>require stack</strong>:</p>
+<pre><code>Require stack:
+  - D:\Code\personal\stash\node_modules\@babel\core\lib\config\files\plugins.js
+</code></pre>
+<p><code>@babel/core</code> was hoisted to the workspace root. From its location,
+Node&#39;s hierarchical resolver walked up and never found the preset (it
+lives a sibling-package down). The fix wasn&#39;t &quot;install the package&quot;
+— it was &quot;install it where the resolver actually looks.&quot;</p>
+<p><strong>Lesson:</strong> when an error says &quot;X not found,&quot; check the <strong>require
+stack</strong> to see WHERE the search is starting. Half the time it&#39;s a
+location problem, not an existence problem.</p>
+<p><strong>Example: <code>Invalid hook call. Cannot read property &#39;useContext&#39; of null</code></strong></p>
+<p>Three bullet points in the error message:</p>
+<ol>
+<li>Mismatched React + renderer versions</li>
+<li>Breaking the Rules of Hooks</li>
+<li><strong>More than one copy of React in the same app</strong></li>
+</ol>
+<p>In a monorepo with hoisting, #3 is right ~99% of the time. The same
+component file can resolve to React A on one render and React B on
+the next, depending on which import path Metro chose. Fix is at the
+bundler config level, not in your component code.</p>
+<p><strong>Lesson:</strong> when an error message lists multiple causes, the right
+one is often the <em>least obvious</em> one. Frequency-of-occurrence in your
+particular environment beats first-instinct.</p>
+<h2 id="chapter-8-debugging">Chapter 8 — Debugging</h2>
+<p>Debugging in this codebase has had two shapes:</p>
+<p><strong>Server-side:</strong> add a <code>console.error(&#39;Unhandled error:&#39;, err)</code> to the
+global Express handler (already there in <code>index.ts</code>), then <code>docker logs --tail 30 stash-backend</code>. Real-world example: the books CSV
+import returned <code>{&quot;error&quot;:&quot;Internal server error&quot;}</code>; the docker logs
+showed <code>Error: File type &quot;application/octet-stream&quot; not allowed.</code>
+That pointed at the <code>uploadPhoto</code> middleware&#39;s image filter being
+applied to a CSV upload. One-line fix.</p>
+<p><strong>Client-side / build:</strong> the iteration loop is <code>npx expo start --tunnel --clear</code>, watch terminal, watch phone. Metro&#39;s <code>--clear</code> is the
+&quot;have you tried turning it off and on again&quot; of the React Native
+world: failed bundles get cached and replay forever until you wipe.</p>
+<p>A pattern that&#39;s saved time: <strong>add the error message itself to git
+grep before fixing.</strong> If the same error has hit before in this repo
+or in a similar one (e.g., the open-source examples we cloned
+patterns from), you&#39;ve got a head start. Searching <code>&quot;Invalid hook call&quot;</code> in our own BUILD_LOG.md found Chapter 23, which described the
+exact fix for next time.</p>
 <hr>
 <h1 id="part-3-shipping-it">Part 3 — Shipping it</h1>
-<p>[Fill in chapters 10–13.]</p>
+<h2 id="chapter-12-containers-nginx-deployment">Chapter 12 — Containers, nginx, deployment</h2>
+<p>Stash deploys as three Docker containers: <code>stash-postgres</code>,
+<code>stash-backend</code>, <code>stash-admin</code>. Compose orchestrates them on a
+shared <code>shottsproxy</code> Docker network. Nginx Proxy Manager (a
+fourth, pre-existing container on Unraid) terminates SSL and
+proxies the public domains to container hostnames.</p>
+<p>A handful of lessons that mattered:</p>
+<p><strong>Match <code>@types/express</code> to your runtime Express major.</strong> We
+inherited <code>@types/express@5</code> while running <code>express@4</code>. The v5
+typings widened <code>req.params[key]</code> from <code>string</code> to <code>string | string[]</code>, generating ~30 unrelated TypeScript errors that
+masqueraded as code bugs. Pinning the types to v4 + an <code>npm overrides</code> block at the workspace root cleared all of them in one
+move. (See BUILD_LOG ch. 21.)</p>
+<p><strong>Match Postgres data path to direct NVMe on Unraid.</strong> The user&#39;s
+homelab docs were emphatic that database containers should never
+write through Unraid&#39;s FUSE/shfs union layer (<code>/mnt/user/...</code>).
+The original Stash setup pointed Postgres at exactly that. Fix
+was a <code>POSTGRES_DATA_PATH</code> separate from <code>DATA_PATH</code>, with the
+former pinned to <code>/mnt/cache/...</code> (cache pool, no FUSE). Saved
+ourselves a Plex-style &quot;70 seconds to render the home page&quot;
+disaster before the first byte was written. (Ch. 19.)</p>
+<p><strong>Production builds need to actually build.</strong> Stash&#39;s prod
+Dockerfile had been written but never executed. When we tried,
+five separate latent issues fell out: missing <code>composite: true</code> on
+the shared TypeScript project, JSX not enabled on
+<code>pdf.tsx</code>, the <code>@types/express</code> mismatch, a JWT expiresIn cast,
+and <code>noImplicitAny</code> errors throughout. Lesson: a Dockerfile that
+hasn&#39;t been run isn&#39;t a Dockerfile; it&#39;s a wish. Add a CI job
+that runs the prod build per commit, even if you don&#39;t deploy.</p>
+<p><strong>Nginx Proxy Manager forward port = container&#39;s INTERNAL port,
+not the host port.</strong> When the admin container is exposed as
+<code>3002:80</code>, NPM should be configured with port <code>80</code>, not <code>3002</code>.
+Got this wrong on first try and saw HTTP 502s from the proxy. The
+user spotted the fix in a minute once the symptoms were laid out.
+(Ch. 23-ish — happened during the iPhone-setup session.)</p>
+<p><strong>Save the secrets to a real place.</strong> JWT_SECRET, POSTGRES_PASSWORD,
+seed user passwords — all generated server-side via <code>openssl rand</code>,
+and immediately echoed once so they could be captured to the
+obsidian vault&#39;s <code>shottsserver-logins-and-credentials.md</code>. They
+don&#39;t exist anywhere else; if the vault entry is wrong, no
+recovery path exists.</p>
+<h2 id="chapter-13-observability">Chapter 13 — Observability</h2>
+<p>Stash currently has no observability beyond <code>docker logs</code>. That&#39;s
+deliberate for a personal-use app: the &quot;alert&quot; budget is &quot;James
+notices the page didn&#39;t load.&quot; But three small affordances were
+worth adding:</p>
+<ul>
+<li><code>GET /api/health</code> — single endpoint, returns <code>{status: &#39;ok&#39;, timestamp: ...}</code>. Used by docker compose&#39;s <code>healthcheck:</code> block.</li>
+<li>An ActivityLog table that records every CREATE/UPDATE on
+significant entities, with the user, before-value, and
+after-value. Doubles as both an audit trail and a debugging aid
+(&quot;what happened just before the data went weird?&quot;).</li>
+<li>Per-row error reporting in CSV imports. Failing one row out of
+500 shouldn&#39;t abort the import; surfacing exactly <em>which</em> row +
+<em>why</em> tells the user where to look without spelunking logs.</li>
+</ul>
+<p>If Stash were anything other than personal-use, the next things
+to add would be: structured logs (pino), a Sentry-style error
+tracker, and a per-route latency histogram. None of those are
+needed today.</p>
 <hr>
 <h1 id="part-4-the-work-that39s-actually-about-other-humans">Part 4 — The work that&#39;s actually about other humans</h1>
 <p>[Fill in chapters 14–17.]</p>
 <hr>
 <h1 id="part-5-codebase-tour">Part 5 — Codebase tour</h1>
-<p>[Project-specific reference. Add a chapter per major area of the
-codebase — types, state, rendering, exports, etc.]</p>
+<h2 id="chapter-18-the-data-model">Chapter 18 — The data model</h2>
+<p>Stash&#39;s domain is <em>items</em>. Every meaningful thing is an Item: a sofa
+is an Item, a tote that holds other items is an Item, a book is an
+Item, a U-Box you packed at home is an Item. The thing that varies
+between them is which <strong>sidecar tables</strong> they have:</p>
+<pre><code>Item ─┬─ (always) ─ category, originLocation, destinationLocation, etc.
+      ├─ Container?       (1:1, only when Item.isContainer = true)
+      ├─ BookDetails?     (1:1, only when Item is a book)
+      └─ ItemPlacement[]  (history of which container the item lived in)
+</code></pre>
+<p>The sidecar pattern keeps the <code>items</code> table lean and uniformly
+query-able. Adding a new specialization (say, <code>VehicleDetails</code> for
+tracking VINs and plates) is a new sidecar — never a new column on
+<code>items</code>.</p>
+<p><strong>Container is also an Item.</strong> This is the one design decision that
+shapes everything. A U-Box has a fate (KEEP), a photo, a QR code, a
+location — exactly like a sofa. It also has internal dimensions and a
+type, which live in the Container sidecar. The <code>isContainer</code> flag on
+Item is a hint, not the source of truth; the existence of a Container
+row is.</p>
+<p><strong>ItemPlacement is temporal.</strong> When you take a book out of a tote,
+you don&#39;t <code>DELETE FROM item_placements WHERE …</code>. You set
+<code>removedAt = NOW()</code>. The history of where each item has lived is
+queryable from this table. This matters for &quot;I know that book was in
+Tote #12 last month — when did it move?&quot;</p>
+<p><strong>Location is keyed by both house and floor.</strong> Items have an origin
+and an optional destination, so a single item can describe its full
+journey: started in <code>Eagle Mountain, UT — Office</code>, will end up in
+<code>NC Property — TBD — Primary Bedroom</code>. Querying &quot;show me everything
+that ends up in the new master bedroom&quot; is a one-liner.</p>
+<h2 id="chapter-19-the-container-code-system">Chapter 19 — The container code system</h2>
+<p>Every Container has a <code>label</code> of the form <code>{TYPE}-{NNNN}</code>:</p>
+<pre><code>T27-0012   HDX 27-Gal Tote, sequence 12
+T35-0001   HDX 35-Gal Tote, first one
+BXS-0001   Small Box (Pen+Gear), first one
+UBX-0001   U-Haul U-Box, first one
+CST-0003   Custom container, third one
+</code></pre>
+<p>The label is <strong>unique</strong> across the database (Postgres <code>UNIQUE</code>
+constraint), <strong>immutable</strong> (QR codes encode it; the codes never
+change after creation), and <strong>auto-generated</strong> by
+<code>nextContainerCode(tx, type, preferredNumber?)</code>. Friendly text —
+&quot;Halloween box, red lid, taped corner&quot; — lives on the associated
+<code>Item.description</code>.</p>
+<p><strong>Why two fields are wrong here.</strong> First-pass design had
+<code>Container.code</code> (the auto-gen) plus <code>Container.label</code> (the user&#39;s
+pretty name). Two fields meant two questions on every UI screen, two
+columns in every export, two strings per QR label. Collapsing to
+<code>label = the code</code> and <code>Item.description = the friendly name</code> made
+everything cleaner.</p>
+<p><strong>The &quot;honor the physical sharpie number&quot; trick.</strong> When a CSV row
+says <code>Tote #12</code>, the import parses out <code>(TOTE_27GAL, 12)</code> and asks
+the helper for code <code>T27-0012</code>. If that&#39;s free, it&#39;s assigned —
+which is the common case in a clean DB. The user&#39;s physical tote
+labels and the digital codes line up automatically. If <code>T27-0012</code>
+were already taken, the helper falls through to next-available and
+the import reports it as a warning. Either way, no manual
+intervention.</p>
+<h2 id="chapter-20-the-mobile-package39s-monorepo-gotchas">Chapter 20 — The mobile package&#39;s monorepo gotchas</h2>
+<p>The <code>packages/mobile</code> Expo project has three configuration files
+that exist <em>only</em> because it&#39;s inside an npm-workspaces monorepo:</p>
+<ul>
+<li><strong><code>metro.config.js</code></strong> — pins React + React Native to mobile&#39;s own
+copies (preventing duplicate React from the workspace root) and
+watches the workspace root so <code>@stash/shared</code> edits trigger
+reloads. Without it: &quot;Invalid hook call&quot; + &quot;Cannot read property
+&#39;useContext&#39; of null&quot; at app launch. (See BUILD_LOG ch. 23.)</li>
+<li><strong><code>index.js</code></strong> — explicit <code>registerRootComponent(App)</code>. Required
+in Expo SDK 50+; the older <code>&quot;main&quot;: &quot;App.tsx&quot;</code> shortcut no longer
+registers the root.</li>
+<li><strong><code>babel.config.js</code></strong> — references <code>babel-preset-expo</code>, which
+must be installed at the workspace <strong>root</strong> (not just in the
+mobile package&#39;s nested <code>node_modules</code>) because <code>@babel/core</code>
+hoists to root and resolves from there.</li>
+</ul>
+<p>A standalone <code>expo init</code> project doesn&#39;t need any of these. They&#39;re
+all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
+23 so the next person doesn&#39;t rediscover.</p>
 <hr>
 <h1 id="appendix-a-glossary">Appendix A: Glossary</h1>
 <table>
@@ -263,7 +451,7 @@ Bulleted list with one-line reasoning for each.
 </ul>
 
     <div class="foot">
-      <code>LEARN.md</code> wiki · 1 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>LEARN.md</code> wiki · 8 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

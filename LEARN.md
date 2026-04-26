@@ -62,13 +62,147 @@ decisions and reasoning.]
 
 # Part 2 — Writing the code
 
-[Fill in chapters 6–9.]
+## Chapter 7 — Reading errors
+
+Error messages are usually right about *what* failed and wrong about
+*where*. Two real examples from this codebase:
+
+**Example: "Cannot find module 'babel-preset-expo'"** (Chapter 23 in
+BUILD_LOG)
+
+The error said "package not installed." The package WAS installed —
+at `packages/mobile/node_modules/babel-preset-expo`. The hint that
+mattered was the **require stack**:
+
+```
+Require stack:
+  - D:\Code\personal\stash\node_modules\@babel\core\lib\config\files\plugins.js
+```
+
+`@babel/core` was hoisted to the workspace root. From its location,
+Node's hierarchical resolver walked up and never found the preset (it
+lives a sibling-package down). The fix wasn't "install the package"
+— it was "install it where the resolver actually looks."
+
+**Lesson:** when an error says "X not found," check the **require
+stack** to see WHERE the search is starting. Half the time it's a
+location problem, not an existence problem.
+
+**Example: `Invalid hook call. Cannot read property 'useContext' of null`**
+
+Three bullet points in the error message:
+1. Mismatched React + renderer versions
+2. Breaking the Rules of Hooks
+3. **More than one copy of React in the same app**
+
+In a monorepo with hoisting, #3 is right ~99% of the time. The same
+component file can resolve to React A on one render and React B on
+the next, depending on which import path Metro chose. Fix is at the
+bundler config level, not in your component code.
+
+**Lesson:** when an error message lists multiple causes, the right
+one is often the *least obvious* one. Frequency-of-occurrence in your
+particular environment beats first-instinct.
+
+## Chapter 8 — Debugging
+
+Debugging in this codebase has had two shapes:
+
+**Server-side:** add a `console.error('Unhandled error:', err)` to the
+global Express handler (already there in `index.ts`), then `docker
+logs --tail 30 stash-backend`. Real-world example: the books CSV
+import returned `{"error":"Internal server error"}`; the docker logs
+showed `Error: File type "application/octet-stream" not allowed.`
+That pointed at the `uploadPhoto` middleware's image filter being
+applied to a CSV upload. One-line fix.
+
+**Client-side / build:** the iteration loop is `npx expo start --tunnel
+--clear`, watch terminal, watch phone. Metro's `--clear` is the
+"have you tried turning it off and on again" of the React Native
+world: failed bundles get cached and replay forever until you wipe.
+
+A pattern that's saved time: **add the error message itself to git
+grep before fixing.** If the same error has hit before in this repo
+or in a similar one (e.g., the open-source examples we cloned
+patterns from), you've got a head start. Searching `"Invalid hook
+call"` in our own BUILD_LOG.md found Chapter 23, which described the
+exact fix for next time.
 
 ---
 
 # Part 3 — Shipping it
 
-[Fill in chapters 10–13.]
+## Chapter 12 — Containers, nginx, deployment
+
+Stash deploys as three Docker containers: `stash-postgres`,
+`stash-backend`, `stash-admin`. Compose orchestrates them on a
+shared `shottsproxy` Docker network. Nginx Proxy Manager (a
+fourth, pre-existing container on Unraid) terminates SSL and
+proxies the public domains to container hostnames.
+
+A handful of lessons that mattered:
+
+**Match `@types/express` to your runtime Express major.** We
+inherited `@types/express@5` while running `express@4`. The v5
+typings widened `req.params[key]` from `string` to `string |
+string[]`, generating ~30 unrelated TypeScript errors that
+masqueraded as code bugs. Pinning the types to v4 + an `npm
+overrides` block at the workspace root cleared all of them in one
+move. (See BUILD_LOG ch. 21.)
+
+**Match Postgres data path to direct NVMe on Unraid.** The user's
+homelab docs were emphatic that database containers should never
+write through Unraid's FUSE/shfs union layer (`/mnt/user/...`).
+The original Stash setup pointed Postgres at exactly that. Fix
+was a `POSTGRES_DATA_PATH` separate from `DATA_PATH`, with the
+former pinned to `/mnt/cache/...` (cache pool, no FUSE). Saved
+ourselves a Plex-style "70 seconds to render the home page"
+disaster before the first byte was written. (Ch. 19.)
+
+**Production builds need to actually build.** Stash's prod
+Dockerfile had been written but never executed. When we tried,
+five separate latent issues fell out: missing `composite: true` on
+the shared TypeScript project, JSX not enabled on
+`pdf.tsx`, the `@types/express` mismatch, a JWT expiresIn cast,
+and `noImplicitAny` errors throughout. Lesson: a Dockerfile that
+hasn't been run isn't a Dockerfile; it's a wish. Add a CI job
+that runs the prod build per commit, even if you don't deploy.
+
+**Nginx Proxy Manager forward port = container's INTERNAL port,
+not the host port.** When the admin container is exposed as
+`3002:80`, NPM should be configured with port `80`, not `3002`.
+Got this wrong on first try and saw HTTP 502s from the proxy. The
+user spotted the fix in a minute once the symptoms were laid out.
+(Ch. 23-ish — happened during the iPhone-setup session.)
+
+**Save the secrets to a real place.** JWT_SECRET, POSTGRES_PASSWORD,
+seed user passwords — all generated server-side via `openssl rand`,
+and immediately echoed once so they could be captured to the
+obsidian vault's `shottsserver-logins-and-credentials.md`. They
+don't exist anywhere else; if the vault entry is wrong, no
+recovery path exists.
+
+## Chapter 13 — Observability
+
+Stash currently has no observability beyond `docker logs`. That's
+deliberate for a personal-use app: the "alert" budget is "James
+notices the page didn't load." But three small affordances were
+worth adding:
+
+- `GET /api/health` — single endpoint, returns `{status: 'ok',
+  timestamp: ...}`. Used by docker compose's `healthcheck:` block.
+- An ActivityLog table that records every CREATE/UPDATE on
+  significant entities, with the user, before-value, and
+  after-value. Doubles as both an audit trail and a debugging aid
+  ("what happened just before the data went weird?").
+- Per-row error reporting in CSV imports. Failing one row out of
+  500 shouldn't abort the import; surfacing exactly *which* row +
+  *why* tells the user where to look without spelunking logs.
+
+If Stash were anything other than personal-use, the next things
+to add would be: structured logs (pino), a Sentry-style error
+tracker, and a per-route latency histogram. None of those are
+needed today.
 
 ---
 
@@ -80,8 +214,100 @@ decisions and reasoning.]
 
 # Part 5 — Codebase tour
 
-[Project-specific reference. Add a chapter per major area of the
-codebase — types, state, rendering, exports, etc.]
+## Chapter 18 — The data model
+
+Stash's domain is *items*. Every meaningful thing is an Item: a sofa
+is an Item, a tote that holds other items is an Item, a book is an
+Item, a U-Box you packed at home is an Item. The thing that varies
+between them is which **sidecar tables** they have:
+
+```
+Item ─┬─ (always) ─ category, originLocation, destinationLocation, etc.
+      ├─ Container?       (1:1, only when Item.isContainer = true)
+      ├─ BookDetails?     (1:1, only when Item is a book)
+      └─ ItemPlacement[]  (history of which container the item lived in)
+```
+
+The sidecar pattern keeps the `items` table lean and uniformly
+query-able. Adding a new specialization (say, `VehicleDetails` for
+tracking VINs and plates) is a new sidecar — never a new column on
+`items`.
+
+**Container is also an Item.** This is the one design decision that
+shapes everything. A U-Box has a fate (KEEP), a photo, a QR code, a
+location — exactly like a sofa. It also has internal dimensions and a
+type, which live in the Container sidecar. The `isContainer` flag on
+Item is a hint, not the source of truth; the existence of a Container
+row is.
+
+**ItemPlacement is temporal.** When you take a book out of a tote,
+you don't `DELETE FROM item_placements WHERE …`. You set
+`removedAt = NOW()`. The history of where each item has lived is
+queryable from this table. This matters for "I know that book was in
+Tote #12 last month — when did it move?"
+
+**Location is keyed by both house and floor.** Items have an origin
+and an optional destination, so a single item can describe its full
+journey: started in `Eagle Mountain, UT — Office`, will end up in
+`NC Property — TBD — Primary Bedroom`. Querying "show me everything
+that ends up in the new master bedroom" is a one-liner.
+
+## Chapter 19 — The container code system
+
+Every Container has a `label` of the form `{TYPE}-{NNNN}`:
+
+```
+T27-0012   HDX 27-Gal Tote, sequence 12
+T35-0001   HDX 35-Gal Tote, first one
+BXS-0001   Small Box (Pen+Gear), first one
+UBX-0001   U-Haul U-Box, first one
+CST-0003   Custom container, third one
+```
+
+The label is **unique** across the database (Postgres `UNIQUE`
+constraint), **immutable** (QR codes encode it; the codes never
+change after creation), and **auto-generated** by
+`nextContainerCode(tx, type, preferredNumber?)`. Friendly text —
+"Halloween box, red lid, taped corner" — lives on the associated
+`Item.description`.
+
+**Why two fields are wrong here.** First-pass design had
+`Container.code` (the auto-gen) plus `Container.label` (the user's
+pretty name). Two fields meant two questions on every UI screen, two
+columns in every export, two strings per QR label. Collapsing to
+`label = the code` and `Item.description = the friendly name` made
+everything cleaner.
+
+**The "honor the physical sharpie number" trick.** When a CSV row
+says `Tote #12`, the import parses out `(TOTE_27GAL, 12)` and asks
+the helper for code `T27-0012`. If that's free, it's assigned —
+which is the common case in a clean DB. The user's physical tote
+labels and the digital codes line up automatically. If `T27-0012`
+were already taken, the helper falls through to next-available and
+the import reports it as a warning. Either way, no manual
+intervention.
+
+## Chapter 20 — The mobile package's monorepo gotchas
+
+The `packages/mobile` Expo project has three configuration files
+that exist *only* because it's inside an npm-workspaces monorepo:
+
+- **`metro.config.js`** — pins React + React Native to mobile's own
+  copies (preventing duplicate React from the workspace root) and
+  watches the workspace root so `@stash/shared` edits trigger
+  reloads. Without it: "Invalid hook call" + "Cannot read property
+  'useContext' of null" at app launch. (See BUILD_LOG ch. 23.)
+- **`index.js`** — explicit `registerRootComponent(App)`. Required
+  in Expo SDK 50+; the older `"main": "App.tsx"` shortcut no longer
+  registers the root.
+- **`babel.config.js`** — references `babel-preset-expo`, which
+  must be installed at the workspace **root** (not just in the
+  mobile package's nested `node_modules`) because `@babel/core`
+  hoists to root and resolves from there.
+
+A standalone `expo init` project doesn't need any of these. They're
+all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
+23 so the next person doesn't rediscover.
 
 ---
 

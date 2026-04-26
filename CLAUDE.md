@@ -77,6 +77,7 @@ Four npm workspaces under `packages/`:
 - **Location** has two `LocationType`s: `ORIGIN` (Colorado rooms) and `DESTINATION` (NC rooms). Items carry both `originLocationId` (required) and `destinationLocationId` (optional, for move planning).
 - **Fate** enum (KEEP/SELL/DONATE/TRASH/UNDECIDED) drives most of the UI's filtering and export grouping.
 - Prisma uses `@@map` to snake_case every table name. When writing raw SQL or reading `pg_dump`, tables are `items`, `item_placements`, `activity_logs`, etc.
+- **Mobile package monorepo gotchas:** Expo + npm workspaces requires three things that wouldn't exist in a standalone Expo project — `babel-preset-expo` listed in the **root** `package.json` devDependencies (so it hoists where `@babel/core` can find it), `packages/mobile/index.js` with explicit `registerRootComponent(App)` (Expo SDK 50+ no longer auto-registers from `"main": "App.tsx"`), and `packages/mobile/metro.config.js` that pins `react`/`react-native`/`scheduler` to mobile's own `node_modules` (otherwise admin's hoisted React 18 collides with mobile's React 19 → `Invalid hook call`). All three are required for `npx expo start --tunnel` to even reach the login screen. Full background: BUILD_LOG ch. 23.
 
 ### Backend request pipeline
 1. `src/index.ts` — CORS, JSON body (10 MB limit), static mounts (`/api/files/*` serves `DATA_PATH`, `/api/public/*` serves `packages/backend/public`), then all routers.
