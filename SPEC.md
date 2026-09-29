@@ -22,6 +22,7 @@ tags: [project, active, software, stash, spec]
 - [x] Spec, data model, build order agreed (2026-09-28)
 - [~] **Phase 0 — Foundation** — built + rehearsed on a production copy (v1.4.0); **deploy + prune await James's OK**
 - [~] **Phase 1 — Find it** — built + tested locally (v1.5.0); **awaiting deploy + phone test**
+- [ ] **Phase 1b — Visual storage maps** — garage layout captured; storage unit details pending the visit
 - [ ] Phase 2 — Quick Add (manual)
 - [ ] Phase 3 — Ready for Storage + labels
 - [ ] Phase 4 — Check out, transfer, archive, delete
@@ -72,6 +73,26 @@ Hierarchical: **Place › Area › Spot**. In the app, names are always spelled 
 | | Unit Floor | |
 
 - Rooms not listed (laundry, mudroom, living room, etc.) are left out; can be added from the phone anytime.
+
+### Garage overhead shelves (revised 2026-09-29)
+
+Numbered **clockwise starting at the north-east** (north = house side / mudroom steps; south = garage door). Each wall shelf is **36" deep** from the wall. Capacities are in 27-gal totes, long side into the depth.
+
+| Shelf | Position | Layout | Approx. capacity |
+|---|---|---|---|
+| 1 | North wall, right of steps | ~4 wide × 2 high | 8 |
+| 2 | East wall, north half | ~6 wide × 2 high (~6" spare in front) | 12 |
+| 3 | East wall, south half — lower (garage door) | 1 high (~1.5 totes headroom) × ❓ wide | ❓ |
+| 4 | South wall, above garage door — lower | ~7 wide × 1 high | 7 |
+| 5 | West wall, south half — lower | 1 high × ❓ wide | ❓ |
+| 6 | West wall, north half | ~6 wide × 2 high | 12 |
+| 7 | North wall, left of steps | ~4 wide × 2 high | 8 |
+| 8 | Center, over left car | ~6 wide × 2 deep (back to back) × ❓ high | 12+ |
+| 9 | Center, over right car | ~6 wide × 2 deep × ❓ high | 12+ |
+
+Red (1, 2, 6, 7) = full height; purple (3, 4, 5) = reduced height; green (8, 9) = center. The NE (1/2) and NW (6/7) corners are odd shapes ❓.
+
+Storage unit racks: exact rack/shelf counts, measurements and a photo coming from James's visit (2026-09-29).
 - New locations can be created **inline** while storing a container.
 - Racks: ~2 × 27-gal totes side by side per shelf; height fits one tote. Exact dimensions TBD once built.
 - **Printable location legend**: a full-sheet sign for each area (e.g. the rack wall) with a photo/diagram showing how racks and shelves are numbered, to post at the location.
@@ -351,6 +372,23 @@ Each phase ends with something testable on the phone. Backend changes need a dep
 | **4. Check out, transfer, archive, delete** | Day-to-day life | Check out / return items. Container transfers with remembered home spot. Archive (in regular use) and Sold / Disposed delete |
 | **5. Reminders** | Nothing gets forgotten | Backend scheduler, in-app inbox + badge, admin reminder settings. **Decide the install method first** (it determines push notifications) |
 | **6. AI photo fill** | Photo → details filled in; books catalogued | Photo analysis endpoint with spend cap, category auto-pick, book path → OpenLibrary/Google Books, duplicate check fed by AI results |
+
+### Phase 1b — Visual storage maps (added 2026-09-29, after Phase 0/1 deploy, before Phase 2)
+
+**Places → map → front view → drag & drop.**
+
+1. Places shows the main storage areas (Storage Unit, Garage, House).
+2. Tapping one shows a **drawn top-down map** (not 3D, not a photo) with each rack / shelf where it physically is, clearly labeled — the unit's 6 racks and door; the garage's 9 shelves per the table above.
+3. Tapping a rack / shelf shows its **front view**: a grid of **slots** — filled slots show the container number in its lid color (tap → contents), empty slots are outlined.
+4. **Drag a container to another slot** to move it (occupied slot → offer to swap). Moving to a *different* rack: tap container → Move → tap a slot (dragging across screens is clumsy on a phone).
+
+Data model (additive):
+- A storage spot gets a **slot grid**: columns (side by side) × tiers (stacked high) × depth (front/back, for shelves 8–9). Rack shelves are 1 tier.
+- A container gets a **slot position** (column, tier, depth). The readable path stays full: *Garage › Overhead Shelf 2 › top row, spot 3*.
+- Map placement reuses the existing `floorPlanX/Y/Width/Height` columns on `Location`.
+- Drawn with SVG (`react-native-svg`); drag with `react-native-gesture-handler` + `reanimated` — all available in Expo Go.
+
+Open ❓: unit layout + rack counts (visit), shelves 3/5 width, 8/9 height, corner handling, whether stacked totes should warn "#12 is under #15", one-slot-per-tote vs. big totes spanning 2 slots.
 
 AI is last because it plugs into the Add flow built in Phase 2 and the cost discussion is still open. It can move up once that's settled — Phase 2 is built so AI drops in without rework.
 
