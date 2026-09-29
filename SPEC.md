@@ -82,15 +82,15 @@ Numbered **clockwise starting at the north-east** (north = house side / mudroom 
 |---|---|---|---|
 | 1 | North wall, right of steps | ~4 wide × 2 high | 8 |
 | 2 | East wall, north half | ~6 wide × 2 high (~6" spare in front) | 12 |
-| 3 | East wall, south half — lower (garage door) | 1 high (~1.5 totes headroom) × ❓ wide | ❓ |
-| 4 | South wall, above garage door — lower | ~7 wide × 1 high | 7 |
-| 5 | West wall, south half — lower | 1 high × ❓ wide | ❓ |
+| 3 | East wall, south half — lower (garage door) | ~6 wide × 1 high + a 14-gal fits on top of each 27-gal | 6 (+6 small) |
+| 4 | South wall, above garage door — lower | ~7 wide × 1 high + 14-gal on top | 7 (+7 small) |
+| 5 | West wall, south half — lower | ~6 wide × 1 high + 14-gal on top | 6 (+6 small) |
 | 6 | West wall, north half | ~6 wide × 2 high | 12 |
 | 7 | North wall, left of steps | ~4 wide × 2 high | 8 |
-| 8 | Center, over left car | ~6 wide × 2 deep (back to back) × ❓ high | 12+ |
-| 9 | Center, over right car | ~6 wide × 2 deep × ❓ high | 12+ |
+| 8 | Center, over left car — lower | ~6 wide × 2 deep (back to back) × 1 high + 14-gal on top | 12 (+12 small) |
+| 9 | Center, over right car — lower | ~6 wide × 2 deep × 1 high + 14-gal on top | 12 (+12 small) |
 
-Red (1, 2, 6, 7) = full height; purple (3, 4, 5) = reduced height; green (8, 9) = center. The NE (1/2) and NW (6/7) corners are odd shapes ❓.
+Red (1, 2, 6, 7) = full height, 27-gal totes stacked 2 high. Purple (3, 4, 5) and green (8, 9) = ~1.5 totes of headroom: one 27-gal per slot, and a 14-gal fits on top. Totes **stack directly on each other** (no divider), so the app should say when a tote is *under* another. The NE (1/2) and NW (6/7) corners are **usable but harder to reach** — mark those slots as "hard to reach". Exact shelf measurements pending (James).
 
 Storage unit racks: exact rack/shelf counts, measurements and a photo coming from James's visit (2026-09-29).
 - New locations can be created **inline** while storing a container.
@@ -388,7 +388,7 @@ Data model (additive):
 - Map placement reuses the existing `floorPlanX/Y/Width/Height` columns on `Location`.
 - Drawn with SVG (`react-native-svg`); drag with `react-native-gesture-handler` + `reanimated` — all available in Expo Go.
 
-Open ❓: unit layout + rack counts (visit), shelves 3/5 width, 8/9 height, corner handling, whether stacked totes should warn "#12 is under #15", one-slot-per-tote vs. big totes spanning 2 slots.
+Decided: stacked totes show "under #15" / "on top of #12"; corner slots flagged hard-to-reach; reduced-height shelves have a small-tote top tier. Open ❓: storage unit layout + measurements (visit), exact garage shelf measurements, one-slot-per-tote vs. big totes (40-gal) spanning 2 slots.
 
 AI is last because it plugs into the Add flow built in Phase 2 and the cost discussion is still open. It can move up once that's settled — Phase 2 is built so AI drops in without rework.
 
