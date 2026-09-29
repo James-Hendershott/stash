@@ -12,12 +12,12 @@ Stash becomes a permanent property inventory system.
 
 ```
 ┌─────────────────────┐         ┌──────────┐         ┌──────────────────────────────┐
-│  archpy (Dev)       │         │  GitHub   │         │  ShottsServer (Unraid)       │
-│  Dell Inspiron 15   │  push   │  Private  │  pull   │  Dell PowerEdge R730         │
+│  Dev machine        │         │  GitHub   │         │  ShottsServer (Unraid)       │
+│  Windows 11         │  push   │  Private  │  pull   │  Dell PowerEdge R730         │
 │                     │ ──────► │  Repo     │ ──────► │  192.168.1.153 (LAN)         │
-│  Arch Linux         │         │          │         │  100.122.58.114 (Tailscale)  │
-│  Node.js 25.7       │         └──────────┘         │                              │
-│  Docker 29.3        │                               │  Docker Containers:          │
+│  D:\Code\personal\  │         │          │         │  100.122.58.114 (Tailscale)  │
+│    stash            │         └──────────┘         │                              │
+│  Node.js 20+        │                               │  Docker Containers:          │
 │                     │                               │  ├─ stash-postgres (:5432)   │
 │  Local dev with     │                               │  ├─ stash-backend  (:3001)   │
 │  docker compose     │                               │  └─ stash-admin    (:3002)   │
@@ -37,12 +37,12 @@ Stash becomes a permanent property inventory system.
 
 | Layer       | Technology                          |
 |-------------|-------------------------------------|
-| Mobile      | React Native + Expo (SDK 51+)       |
+| Mobile      | React Native 0.81 + Expo SDK 54 (Expo Go) |
 | Admin       | React 18 + Vite                     |
 | Backend     | Node.js 20 + Express                |
 | Database    | PostgreSQL 16                       |
 | ORM         | Prisma                              |
-| Offline     | WatermelonDB                        |
+| Offline     | None — WatermelonDB was removed in v1.1.1 (needs a custom dev build) |
 | 3D          | Three.js                            |
 | Validation  | Zod                                 |
 | File Upload | Multer (disk storage)               |
@@ -66,7 +66,7 @@ Location ──┤     │
 
 - **Item** — Anything you own. Has a fate (Keep/Sell/Donate/Trash), dimensions, condition, photos.
 - **Container** — A special Item that holds other Items (U-Box, tote, box).
-- **BookDetails** — A 1:1 companion to Item for books — ISBN, edition, binding, cover art URL. Auto-populated from `POST /api/books/from-photo`.
+- **BookDetails** — A 1:1 companion to Item for books — ISBN, edition, binding, cover art URL. Populated by `POST /api/books/import-csv` from the enrichment script's CSV, or `POST /api/books/lookup` + `PATCH /api/books/:itemId`.
 - **ItemPlacement** — Tracks which items are in which container (with history).
 - **Location** — Rooms in origin house (Eagle Mountain, UT) and destination house (NC).
 - **Category** — Furniture, Electronics, Kitchen, etc.
@@ -163,8 +163,8 @@ sidecar table with their bibliographic data.
 
 ## API
 
-39 REST endpoints with JWT authentication. See [TEACH.md Step 3](TEACH.md) for
-the full endpoint table. Quick test:
+57 REST endpoints (including `/api/health`) with JWT authentication. See
+`packages/backend/src/routes/` for the full list. Quick test:
 
 ```bash
 # Login

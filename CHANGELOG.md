@@ -5,6 +5,25 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-28
+
+### Changed
+- **Mobile upgraded to Expo SDK 57** (from 54) so the app opens in the current App Store Expo Go: React 19.1 → 19.2, React Native 0.81 → 0.86, all `expo-*` packages → 57.x, `babel-preset-expo` → 57 at the workspace root.
+- `packages/mobile/metro.config.js`: `disableHierarchicalLookup` is now `false`. SDK 57 nests `expo-modules-core` under `expo/node_modules`, which Metro can't reach with hierarchical lookup disabled. Duplicate React is still prevented by the `resolveRequest` pin.
+- Mobile default API URL is now `https://stash-api.shottsserver.com/api` (was the Tailscale IP over HTTP).
+- `@expo/ngrok` added as a mobile devDependency — Expo's global-package lookup fails on this Windows setup, causing an install loop for `--tunnel`.
+- Docs (README, SETUP, GUIDE, IPHONE-GUIDE, TEACH, CLAUDE.md) reconciled with the current code; vault mirrors re-synced.
+
+### Added
+- **Change Password** section in the mobile Settings screen (client-side validation, server-verified current password) and `api.auth.changePassword`.
+- `scripts/reset-password.cjs` — reset a user's password by piping the script into the `stash-backend` container over SSH.
+
+### Removed
+- Top-level `splash` from `packages/mobile/app.json` (rejected by the SDK 57 config schema).
+
+### Fixed
+- `ItemDetailScreen`: `ImagePicker.MediaTypeOptions.Images` (deprecated) → `mediaTypes: ['images']`.
+
 ## [1.2.2] - 2026-04-25
 
 ### Added

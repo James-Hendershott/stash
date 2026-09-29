@@ -55,8 +55,56 @@ the bugs, the things we almost did but talked ourselves out of.
 
 # Part 1 — The work that happens before any code
 
-[Fill in chapters 1–5 as the project develops, capturing real
-decisions and reasoning.]
+## Chapter 1 — Understanding what's actually being asked
+
+The most expensive bug is building the wrong thing. Stash's v1 was
+designed for **a move** (origin house → destination house,
+Keep/Sell/Donate/Trash). Five months later the real use was
+**storage**: renting, unpacking into totes, a storage unit and garage
+shelves. Same data, different product.
+
+How that surfaced (BUILD_LOG ch. 25):
+
+- **Describe what exists first, honestly** — screen by screen, from
+  the code, not from memory. Gaps show up as broken *workflows*
+  ("scan a tote → nothing happens"), not missing screens.
+- **Ask about workflows and situations**, not screens: *Where are you
+  in the move? What's the main phone job? Who uses it? How does a box
+  live its life?*
+- **Write it down where the user lives.** The spec went into the
+  Obsidian vault (`stash-v2-spec.md`), not just chat — decisions
+  survive the conversation.
+
+## Chapter 3 — Architecture decisions and ADRs
+
+Stash records decisions as short ADR-style entries (template in
+Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):
+
+| ADR | Decision | Why | Rejected alternative |
+|---|---|---|---|
+| 001 | Container ID is a **plain number** (`12`) | 14/27-gal HDX totes share lids; an ID containing a color goes wrong when a lid swaps | `HDX27-12-Yellow`, `T27-0012` |
+| 002 | Locations are a **tree** (`parentId`) | Unit › Rack 5 › Shelf 3 and Garage › Shelf 2 need different depths | Fixed `house` / `floor` / `room` columns |
+| 003 | **One `Checkout` table** for items *and* containers | Containers are items; seasonal tote transfers and tool check-outs are the same shape | Separate transfer and checkout tables |
+| 004 | **Additive migrations** for v2 | Old rows and the admin site keep working while the phone catches up | Big-bang schema rewrite |
+| 005 | Labels go out through the **iPhone Share sheet** | Print (AirPrint), Mail, Files, Phomemo app — no SMTP, no Bluetooth native module | In-app email; direct Bluetooth printing (needs a custom native build) |
+| 006 | Sold / Disposed = **hard delete** | User's choice; activity log keeps a one-line record | Soft-delete with history |
+
+## Chapter 4 — Designing the data model
+
+The v2 model is one chain: **Item → Container → Location**. "Where is
+it?" means following the chain; every feature (labels, check-out,
+reminders) attaches to one link. Rules we followed:
+
+- **Never encode mutable facts in identifiers** (ADR-001).
+- **Prefer a catalog table over a growing enum** when users need to add
+  values (`ContainerModel` instead of more `ContainerType` values) —
+  enums need a migration per new value.
+- **Self-relations for hierarchies** (`Location.parentId`,
+  `Category.parentId`).
+- **Index for the query you'll run most.** Duplicate detection will
+  use `pg_trgm` trigram indexes instead of an O(n) scan per add.
+
+// TODO when we have data: chapters 2 and 5.
 
 ---
 
@@ -293,9 +341,12 @@ The `packages/mobile` Expo project has three configuration files
 that exist *only* because it's inside an npm-workspaces monorepo:
 
 - **`metro.config.js`** — pins React + React Native to mobile's own
-  copies (preventing duplicate React from the workspace root) and
-  watches the workspace root so `@stash/shared` edits trigger
-  reloads. Without it: "Invalid hook call" + "Cannot read property
+  copies via a custom `resolveRequest` (preventing duplicate React
+  from the workspace root) and watches the workspace root so
+  `@stash/shared` edits trigger reloads. **Hierarchical lookup stays
+  ON** (`disableHierarchicalLookup: false`): SDK 57 nests
+  `expo-modules-core` under `expo/node_modules`, which Metro can only
+  find by walking up the tree (BUILD_LOG ch. 24). Without it: "Invalid hook call" + "Cannot read property
   'useContext' of null" at app launch. (See BUILD_LOG ch. 23.)
 - **`index.js`** — explicit `registerRootComponent(App)`. Required
   in Expo SDK 50+; the older `"main": "App.tsx"` shortcut no longer
@@ -304,6 +355,15 @@ that exist *only* because it's inside an npm-workspaces monorepo:
   must be installed at the workspace **root** (not just in the
   mobile package's nested `node_modules`) because `@babel/core`
   hoists to root and resolves from there.
+
+- **`@expo/ngrok` as a devDependency** — Expo's *global* package
+  lookup fails on this Windows setup, so `--tunnel` loops on "install
+  ngrok" unless it's installed locally.
+
+**Expo Go and the SDK are coupled.** The App Store's Expo Go runs only
+the newest SDK. Coming back after months away usually means
+`npx expo install expo@^<latest>` + `npx expo install --fix` first.
+Smoke-test without a phone: `npx expo export --platform ios`.
 
 A standalone `expo init` project doesn't need any of these. They're
 all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
@@ -316,6 +376,10 @@ all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
 | Term | Meaning |
 |---|---|
 | ADR | Architecture Decision Record. Markdown file documenting one decision, its context, alternatives, and consequences. |
+| Expo Go SDK coupling | Expo Go only runs projects on its bundled (latest) SDK. |
+| hierarchical lookup | Module resolution that walks up the directory tree checking each `node_modules/`. |
+| pg_trgm | Postgres trigram extension for fuzzy text matching with an index. |
+| self-relation | A foreign key from a table to itself; how trees are stored. |
 | Composable | A function (convention: `useX`) that encapsulates reactive logic in Vue 3 / Composition API. |
 
 ---

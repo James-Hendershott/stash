@@ -32,9 +32,11 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// Don't walk up the directory tree looking for additional node_modules
-// folders — only the explicit paths above.
-config.resolver.disableHierarchicalLookup = true;
+// Keep hierarchical lookup ON (the Expo default). npm nests some packages
+// under their parent (e.g. expo/node_modules/expo-modules-core in SDK 57),
+// and Metro can only find those by walking up the tree. Duplicate React is
+// prevented by the resolveRequest pin below, not by disabling this.
+config.resolver.disableHierarchicalLookup = false;
 
 // Force React, react-native, and friends to always resolve to the mobile
 // package's own copy. Without this Metro happily loads two Reacts (one

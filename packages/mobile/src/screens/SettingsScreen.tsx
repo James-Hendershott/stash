@@ -1,21 +1,67 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useSync } from '../context/SyncContext';
-import { getBaseUrl, setBaseUrl } from '../lib/api';
+import { api, ApiError, getBaseUrl, setBaseUrl } from '../lib/api';
 
 export function SettingsScreen() {
   const { user, logout } = useAuth();
   const { status, lastSynced, error: syncError, sync } = useSync();
   const [serverUrl, setServerUrl] = useState(getBaseUrl().replace(/\/api$/, ''));
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSaving, setPwSaving] = useState(false);
+
   function handleSaveUrl() {
     setBaseUrl(serverUrl);
     Alert.alert('Saved', `Server URL set to: ${serverUrl}`);
   }
 
+  async function handleChangePassword() {
+    setPwError(null);
+    if (!currentPassword || !newPassword) {
+      setPwError('Fill in your current and new password.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New passwords do not match.');
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setPwError('New password must be different from the current one.');
+      return;
+    }
+
+    setPwSaving(true);
+    try {
+      await api.auth.changePassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert('Password changed', 'Use your new password next time you sign in.');
+    } catch (err) {
+      setPwError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
@@ -25,6 +71,55 @@ export function SettingsScreen() {
           <Text style={styles.value}>{user?.email}</Text>
           <Text style={styles.label}>Role</Text>
           <Text style={styles.value}>{user?.role}</Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Change Password</Text>
+        <View style={styles.card}>
+          <Text style={styles.label}>Current Password</Text>
+          <TextInput
+            style={styles.input}
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="password"
+          />
+          <Text style={styles.label}>New Password</Text>
+          <TextInput
+            style={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            placeholder="At least 8 characters"
+          />
+          <Text style={styles.label}>Confirm New Password</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+          />
+          {pwError && <Text style={styles.errorText}>{pwError}</Text>}
+          <TouchableOpacity
+            style={[styles.saveBtn, pwSaving && styles.btnDisabled]}
+            onPress={handleChangePassword}
+            disabled={pwSaving}
+          >
+            {pwSaving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveBtnText}>Change Password</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -72,12 +167,13 @@ export function SettingsScreen() {
       </TouchableOpacity>
 
       <Text style={styles.version}>Stash v0.8.0</Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', padding: 16 },
+  scroll: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { padding: 16, paddingBottom: 32 },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#64748b',
@@ -95,6 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: 8, alignItems: 'center',
   },
   saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  btnDisabled: { opacity: 0.6 },
   logoutBtn: {
     padding: 16, backgroundColor: '#fff', borderRadius: 12,
     borderWidth: 1, borderColor: '#fca5a5', alignItems: 'center',

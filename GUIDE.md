@@ -8,7 +8,7 @@ Complete guide to using Stash for inventory management and move planning.
 
 1. [Getting Started](#getting-started)
 2. [Adding Items](#adding-items)
-3. [Adding Books from a Photo](#adding-books-from-a-photo)
+3. [Bulk Cataloging Books](#bulk-cataloging-books)
 4. [Taking Photos](#taking-photos)
 5. [Changing an Item's Fate](#changing-an-items-fate)
 6. [Selling Items](#selling-items)
@@ -325,8 +325,10 @@ Containers are physical boxes, totes, and U-Boxes that hold items during the mov
 
 | Type | Dimensions | Max Weight | Use For |
 |------|-----------|------------|---------|
-| **U-Box** | 95"L × 56"W × 83"H | 2,000 lbs | Large shipment — furniture, boxes, everything |
-| **27-Gallon Tote** | 24"L × 16"W × 14"H | 50 lbs | Kitchen items, books, toys |
+| **U-Haul U-Box** | 95"L × 56"W × 83"H | 2,000 lbs | Large shipment — furniture, boxes, everything |
+| **HDX 35-Gal Tote** | 28"L × 15"W × 16"H | 85 lbs | Bulky soft goods, bedding, camping gear |
+| **HDX 27-Gal Tote** | 28.3"L × 18.5"W × 13.6"H | 75 lbs | Kitchen items, books, toys |
+| **HDX 14-Gal Tote** | 21"L × 14"W × 11.5"H | 50 lbs | Small or heavy items, books |
 | **Small Box** | 16"L × 12"W × 12"H | 40 lbs | Small items, fragile things |
 | **Medium Box** | 18"L × 18"W × 16"H | 50 lbs | General purpose |
 | **Large Box** | 24"L × 18"W × 18"H | 65 lbs | Bulky lightweight items |
@@ -334,12 +336,12 @@ Containers are physical boxes, totes, and U-Boxes that hold items during the mov
 
 ### How to Create a Container
 
-Containers are created through the API or seed data. In a future update, there will be a "Create Container" form in the admin dashboard.
+There is no "Create Container" form in the admin dashboard yet (it's on the backlog). Today, containers are created in one of two ways:
 
-For now, containers are created in the database seed. The seed creates 3 sample containers:
-- **UBOX-001** — U-Box #1 (Living Room)
-- **KITCHEN-T01** — Kitchen Tote #1
-- **OFFICE-B01** — Books Box (Office)
+1. **CSV import (normal path).** Add a `containerLabel` column to your items or books CSV. If the value matches an existing container code, the item is placed in it. If it's a legacy label like `Tote #12`, `Book Box #1`, or `Large Tote #01`, Stash creates a new container of the right type and places the item in one step.
+2. **API directly:** `POST /api/containers` with a container type (and optionally a label hint like "Tote #12").
+
+Every container gets an auto-generated, permanent **container code** in the format `{PREFIX}-{NNNN}` — for example `T27-0012` (27-gal tote), `T35-0001` (35-gal tote), `BXS-0001` (small box), `UBX-0001` (U-Box), `CST-0001` (custom). The code is what the QR label encodes, and it never changes. A number in a label hint (the "12" in "Tote #12") is used as the preferred code number so physical labels you already wrote still match. The friendly name goes in the item's description.
 
 ### Labeling Physical Containers
 
@@ -567,7 +569,9 @@ Admin users can manage other users' accounts.
 | Role | Can Do |
 |------|--------|
 | **User** | View/create/edit items, upload photos, use the mobile app |
-| **Admin** | Everything a User can do PLUS manage users, import/export, view activity log |
+| **Admin** | Everything a User can do PLUS manage users |
+
+> Note: only user management is restricted to admins on the server today. Import, export, and the activity log are available to any logged-in user.
 
 ### Resetting a Password
 

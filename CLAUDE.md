@@ -51,7 +51,7 @@ cd packages/mobile && npx expo start --tunnel   # Expo Go on phone; set server U
 ```
 
 ### Production (Unraid)
-Code lives at `/mnt/user/appdata/stash/repo`; data at `/mnt/user/appdata/stash/{postgres,images,qrcodes,exports,floorplans}`. Deploy loop:
+Code lives at `/mnt/user/appdata/stash/repo`; Postgres data at `/mnt/cache/appdata/stash/postgres` (direct NVMe, `POSTGRES_DATA_PATH`); files at `/mnt/user/appdata/stash/{images,qrcodes,exports,floorplans}` (`DATA_PATH`). Deploy loop:
 ```bash
 ssh unraid
 cd /mnt/user/appdata/stash/repo && git pull

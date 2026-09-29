@@ -102,7 +102,7 @@ Development data is stored in `./data/` (gitignored):
    ```
    Scan the QR code with **Expo Go** (SDK 54+) on your phone. Set the
    server URL in Settings to your computer's LAN IP (e.g., `http://192.168.1.74:3001`).
-   Note: WatermelonDB offline sync requires a custom dev build (not Expo Go).
+   There is no offline mode — the app talks to the API directly.
 
 ### Stopping Services
 

@@ -77,13 +77,13 @@ backend. Tell it:
 
    | Where you are | URL to paste |
    |---|---|
-   | At home (on your WiFi network) | `http://192.168.1.153:3001` |
+   | Anywhere (public HTTPS proxy) | `https://stash-api.shottsserver.com` |
    | Anywhere with Tailscale on | `http://100.122.58.114:3001` |
-   | (Future) After NPM proxy is set up | `https://stash-api.shottsserver.com` |
+   | At home (on your WiFi network) | `http://192.168.1.153:3001` |
 
-   **Recommended:** use the Tailscale URL `http://100.122.58.114:3001`. It
-   works at home and on the road, and your phone is already configured
-   for Tailscale.
+   **Recommended:** use `https://stash-api.shottsserver.com`. It's live
+   (since v1.2.2), uses HTTPS, and works at home or on the road without
+   needing Tailscale switched on.
 
 4. Tap **Save**.
 
@@ -91,11 +91,11 @@ backend. Tell it:
 
 | Email | Password |
 |---|---|
-| `jameshendershott85@gmail.com` | `password` *(initial — change via Users page)* |
-| `mama.shotts@gmail.com` | `password` *(initial)* |
+| `jameshendershott85@gmail.com` | the initial password set via `SEED_ADMIN_PASSWORD` when the database was seeded |
+| `mama.shotts@gmail.com` | the initial password set via `SEED_USER_PASSWORD` |
 
 > ⚠️ **Change both passwords on first login** by going to the admin
-> dashboard at http://192.168.1.153:3002 → Users → Reset Password for
+> dashboard at https://stash.shottsserver.com → Users → Reset Password for
 > each account. The mobile app currently doesn't have a change-password
 > screen.
 

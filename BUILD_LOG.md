@@ -3339,7 +3339,7 @@ hit this.
   the time.** Bug list in the error message says "you might have
   more than one copy of React" — believe it.
 - **Metro's default resolver is wrong for monorepos.** Always set
-  `disableHierarchicalLookup: true` and explicit
+  `disableHierarchicalLookup: true` *(⚠️ Revisited in Chapter 24 — this broke on SDK 57; hierarchical lookup is now back ON and the `resolveRequest` pin alone prevents duplicate React)* and explicit
   `nodeModulesPaths`. The official Expo docs cover this; the issue
   is that you don't know to look at them until after you've already
   failed.
@@ -3349,6 +3349,464 @@ hit this.
 - **`--clear` matters.** Metro's cache will replay a previously
   cached failure even after you fix the underlying problem. Habit:
   `--clear` after every config change.
+
+---
+
+# Chapter 24 — v1.3.0: Five months later — SDK 57, and a password you can change
+
+> 📌 **What this chapter teaches.** How mobile toolchains rot while
+> you're not looking (***SDK coupling*** between Expo Go and your
+> project), how to upgrade three major versions safely on a branch,
+> why a config rule that was correct in April was wrong in September,
+> how to test a mobile bundle **without a phone**, and a small but
+> complete feature (change password) end to end.
+
+**Date:** 2026-09-28. Last commit before this was `e019cb7` on
+2026-04-25 — five months of no code changes.
+
+## The ask
+
+> "Fix the stale vault docs first. Then let's go through the project
+> together and test out what we have so far on my phone."
+
+Nothing in the repo had changed since April. Everything *around* it
+had: the App Store version of Expo Go, the Expo CLI, Node (25 → 26).
+"It worked last time" is not a guarantee for mobile.
+
+## The plan
+
+1. Reconcile the docs with reality (the Obsidian vault mirrors five of
+   the repo's docs; both had drifted).
+2. Confirm production is still healthy (`/api/health`, admin 200).
+3. Start Expo, scan on the phone, and fix whatever breaks — on a
+   branch (`upgrade/expo-sdk-57`) so `master` stays deployable.
+
+## Step 1: Doc drift
+
+The vault's `stash.md` still said *"v1.2.0 — not yet deployed"* while
+production held 697 items. README listed WatermelonDB (removed in
+v1.1.1) and an endpoint (`/api/books/from-photo`) that never existed.
+GUIDE.md told you containers come from seed data (they haven't since
+v1.2.0).
+
+**Lesson:** docs rot fastest where they describe *state* ("not
+deployed", "39 endpoints") rather than *how things work*. When you can,
+point at the source of truth (`packages/backend/src/routes/`) instead
+of copying a number that will go stale.
+
+## Bug 1: "Project is incompatible with this version of Expo Go"
+
+**Symptom.** Scan the QR → Expo Go refuses to open the project.
+
+**Root cause.** ***Expo Go*** from the App Store ships with exactly
+one Expo SDK's native modules — the newest. In April that matched our
+SDK 54. By September Expo was on SDK 57 (`npm view expo dist-tags`
+showed `latest: 57.0.25`), the phone had auto-updated Expo Go, and our
+JS bundle expected native code the app no longer had.
+
+**Alternatives considered.**
+
+| Option | Why not |
+|---|---|
+| Install an old Expo Go | Not possible on iOS — the App Store only serves the current one |
+| Custom dev build (EAS Build) | Needs a $99/yr Apple Developer account; overkill for now |
+| **Upgrade the project to SDK 57** | ✅ Chosen. Free, and every future option needs it anyway |
+
+**The upgrade:**
+
+```bash
+git switch -c upgrade/expo-sdk-57
+cd packages/mobile
+npx expo install expo@^57.0.0   # move the SDK itself
+npx expo install --fix          # align every expo-* / RN package to SDK 57
+npx expo-doctor                 # health check
+```
+
+`expo install` (not `npm install`) matters: it picks the exact versions
+of `react-native`, `expo-camera`, etc. that were tested with that SDK.
+Result: React 19.1 → 19.2, React Native 0.81 → 0.86, all `expo-*`
+packages → 57.x.
+
+Three follow-up fixes the upgrade required:
+
+- **Root `package.json`:** `babel-preset-expo` bumped `^55` → `~57`
+  (it's listed at the root so it hoists — see Chapter 23, Bug 1).
+- **`app.json`:** removed the top-level `splash` key. SDK 57's config
+  schema rejects it (expo-doctor flagged it). Expo Go doesn't show
+  custom splash screens anyway.
+- **`ItemDetailScreen.tsx`:** the image-picker enum was deprecated:
+
+  ```ts
+  // before (deprecated since SDK 52)
+  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  // after
+  mediaTypes: ['images'],
+  ```
+
+## Bug 2: "Unable to resolve module expo-modules-core"
+
+**Symptom.** Before involving the phone at all, we bundled locally:
+
+```bash
+npx expo export --platform ios --output-dir <scratch dir>
+```
+
+This is a great trick: it runs Metro exactly as the phone would and
+fails loudly on any resolution error — no phone, no QR code, no tunnel.
+
+```
+Error: Unable to resolve module expo-modules-core from
+  packages\mobile\node_modules\expo\src\Expo.ts:
+  expo-modules-core could not be found within the project or in these directories:
+  node_modules
+  ..\..\node_modules
+```
+
+**Hypothesis: not installed?** Check:
+
+```bash
+find . -path '*/expo-modules-core/package.json'
+# ./packages/mobile/node_modules/expo/node_modules/expo-modules-core/package.json
+```
+
+Installed — but *nested* inside `expo/node_modules/`. npm nests a
+package under its parent when hoisting it higher would conflict with
+another version.
+
+**Root cause.** Chapter 23 set this in `metro.config.js`:
+
+```js
+config.resolver.disableHierarchicalLookup = true;
+```
+
+***Hierarchical lookup*** is Node's normal resolution rule: from the
+importing file, walk *up* the directory tree checking each
+`node_modules/`. Turning it off tells Metro "only look in the folders
+listed in `nodeModulesPaths`" — which can never see
+`expo/node_modules/expo-modules-core`. In SDK 54 nothing was nested
+there, so it didn't matter. In SDK 57 it was fatal.
+
+**Fix:**
+
+```js
+// Keep hierarchical lookup ON (the Expo default). npm nests some packages
+// under their parent (e.g. expo/node_modules/expo-modules-core in SDK 57),
+// and Metro can only find those by walking up the tree. Duplicate React is
+// prevented by the resolveRequest pin below, not by disabling this.
+config.resolver.disableHierarchicalLookup = false;
+```
+
+Why it's safe: the thing Chapter 23 was *really* protecting against —
+two copies of React — is handled by the custom `resolveRequest` that
+pins `react`, `react-native`, etc. to the mobile package. That pin
+still runs. Disabling hierarchical lookup was belt-and-braces that
+became a noose.
+
+Re-running `expo export`: `iOS Bundled 5628ms (819 modules)` ✅
+
+**Lesson.** Chapter 23's takeaway said *"Always set
+`disableHierarchicalLookup: true`."* That rule was derived from one
+dependency layout. Config that works around your `node_modules` shape
+is only valid for that shape — re-verify it on every major upgrade.
+`expo-doctor` had flagged exactly this line; the doctor was right.
+
+## Bug 3: the ngrok install loop
+
+**Symptom.**
+
+```
+✔ The package @expo/ngrok@^4.1.0 is required to use tunnels, would you like to install it globally? ... yes
+Installed @expo/ngrok@^4.1.0
+CommandError: Install @expo/ngrok@^4.1.0 and try again
+```
+
+…and again on every run, even though `npm ls -g @expo/ngrok` showed
+`4.1.3` installed.
+
+**Debugging.** Rather than guess, read the CLI's source. The prompt
+text led to `@expo/cli/build/src/start/doctor/ngrok/ExternalModule.js`:
+it tries a **local** resolve from the project root first, then
+`resolveGlobal()` from `@expo/require-utils`. Calling that function
+directly reproduced the failure:
+
+```
+ERR Cannot find module '@expo/ngrok/package.json'
+  - node_modules/@expo/require-utils/build/resolveGlobal.js
+```
+
+So the global install succeeded but Expo's *global lookup* can't find
+the global folder on this Windows / Node 26 setup.
+
+**Fix.** Skip the global path — install it where the local lookup
+looks first:
+
+```bash
+npm install -D -w packages/mobile @expo/ngrok@^4.1.0
+```
+
+Bonus: it's now in `package.json`, so it can't go missing on another
+machine.
+
+**Lesson.** When a tool says "install X" and X *is* installed, the bug
+is in how the tool *finds* X. Read the resolver code; reproduce the
+lookup in isolation.
+
+## Not a bug: Expo Go wants you signed in
+
+Current Expo Go requires the phone and the CLI to be logged into the
+same Expo account to open a project over a tunnel: `npx expo login` on
+the laptop, sign in inside Expo Go, restart the dev server (it reads
+auth at startup).
+
+## Bug 4: the app pointed at the wrong server
+
+`packages/mobile/src/lib/api.ts` defaulted to the Tailscale IP over
+plain HTTP, the login screen has no URL field, and the Settings value
+isn't persisted (it resets every launch). Since v1.2.2 the public
+HTTPS proxy is live, so it became the default:
+
+```ts
+// Default to the public HTTPS proxy — works on any network, no Tailscale
+// needed. Override in Settings screen (Tailscale: http://100.122.58.114:3001).
+let baseUrl = 'https://stash-api.shottsserver.com/api';
+```
+
+Verified with a deliberately wrong login: `401` means reachable and
+answering. (Persisting the Settings value is on the backlog.)
+
+## Step 2: Resetting a forgotten password (ops)
+
+Nobody remembered the April password, and a "forgot password" email
+flow needs an SMTP setup Stash doesn't have. The backend container
+already has `bcrypt` and the Prisma client, so a script piped into it
+is enough — `scripts/reset-password.cjs`:
+
+```powershell
+Get-Content scripts\reset-password.cjs | ssh unraid "docker exec -i -e EMAIL=you@example.com -e NEWPW='...' -w /app/packages/backend stash-backend node -"
+```
+
+Pieces worth knowing:
+
+- `node -` runs a script read from **stdin**, so nothing is copied
+  into the container.
+- `-w /app/packages/backend` sets the working directory so
+  `require('bcrypt')` resolves against the backend's `node_modules`.
+- It hashes with the same cost factor (`10`) as `routes/auth.ts`, so
+  logins can't tell the difference.
+
+## Step 3: Feature — Change Password on the phone
+
+The endpoint already existed (`POST /api/auth/change-password`: checks
+the current password, Zod requires ≥ 8 characters). Only the mobile
+side was missing.
+
+**API client** (`lib/api.ts`):
+
+```ts
+changePassword(currentPassword: string, newPassword: string) {
+  return request<{ message: string }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+},
+```
+
+**Screen** (`SettingsScreen.tsx`) — validate on the phone *before* the
+network call, in the order a person makes mistakes:
+
+```ts
+if (!currentPassword || !newPassword) { setPwError('Fill in your current and new password.'); return; }
+if (newPassword.length < 8)            { setPwError('New password must be at least 8 characters.'); return; }
+if (newPassword !== confirmPassword)   { setPwError('New passwords do not match.'); return; }
+if (newPassword === currentPassword)   { setPwError('New password must be different from the current one.'); return; }
+```
+
+Why duplicate the server's 8-character rule? The server's Zod error
+comes back as a generic `"Validation failed"`; the client check gives
+a human sentence instantly. **The server stays the authority** — the
+client check is UX only.
+
+Other details:
+
+- `err instanceof ApiError ? err.message : 'Could not reach the server.'`
+  separates "the server said no" (*Current password is incorrect*)
+  from "no network".
+- `textContentType="password"` / `"newPassword"` lets iOS offer
+  password autofill and strong-password suggestions.
+- The screen became a `ScrollView` with
+  `automaticallyAdjustKeyboardInsets` so the keyboard can't cover the
+  fields.
+
+## Verifying
+
+- `npx expo export --platform ios` → bundles clean (819 modules).
+- `tsc --noEmit` → no errors in the changed files.
+- On James's iPhone: the app opens on SDK 57, login works against
+  `https://stash-api.shottsserver.com`, and **the password was changed
+  successfully from the new screen.**
+
+## Chapter takeaways
+
+- **Mobile projects rot while idle.** Expo Go tracks the newest SDK;
+  an untouched project stops opening. Budget an upgrade whenever you
+  come back after months away.
+- **Upgrade on a branch, bundle before you scan.** `expo export` is a
+  phone-free smoke test.
+- **Config that works around dependency layout expires.** Chapter
+  23's `disableHierarchicalLookup: true` was right for SDK 54 and
+  wrong for 57. Re-check workarounds on every major bump — and listen
+  to `expo-doctor`.
+- **"Install X" when X is installed = a resolver bug.** Read the
+  tool's lookup code and reproduce it in isolation.
+- **Client-side validation is for humans; server-side is for truth.**
+
+---
+
+# Chapter 25 — Before code: redesigning Stash around how we actually use it
+
+> 📌 **What this chapter teaches.** The part of engineering that
+> happens before any code: turning a user's walkthrough into a spec,
+> asking the questions that change the design, recording decisions as
+> ***ADRs***, and ordering a build so every phase is usable on its own.
+> No version number — nothing shipped. The full spec lives in the
+> Obsidian vault note `stash-v2-spec.md`.
+
+**Date:** 2026-09-28, right after Chapter 24 got the app running on
+the phone again.
+
+## The ask
+
+After logging in on the phone, James asked: *"What does the app
+currently do? Then we need to walk through what it SHOULD do and how
+to make it work."*
+
+## Step 1: Describe what exists — honestly
+
+Before designing anything, we read every mobile screen and listed what
+it can and can't do. The findings that mattered:
+
+- Scanning a **container** QR showed a popup with an internal ID and
+  went nowhere — the single most important scan was a dead end.
+- The phone couldn't see containers at all, couldn't edit items
+  beyond fate/photo, and couldn't put an item in a box.
+- In short: the phone could *browse and decide*, but not *pack*.
+
+**Lesson:** a feature list ("has a Scan tab") hides gaps that a
+workflow walkthrough ("scan a tote, see what's inside") exposes
+immediately.
+
+## Step 2: Let the user describe workflows, not screens
+
+The question asked was not "what screens do you want?" but *where are
+you in the move, what's the main phone job, who uses it, and how does
+a box live its life?* James's answers reframed the whole project:
+
+- They're **renting** at 1642 W Blue Flax Dr and **unpacking** storage
+  into standard totes — the NC move is on the back burner.
+- Storage is a **storage unit** (6 wire racks × 5 shelves + floor) and
+  **9 overhead garage shelves** James built.
+- The core pain: *know what's in a tote without opening it.*
+- Hard requirement: **everything doable from the phone.**
+
+The existing data model assumed a move (ORIGIN house → DESTINATION
+house, Keep/Sell/Donate/Trash). The real use is *storage*. That's
+not a feature request — it's a different product shape.
+
+## Step 3: Find the core relationship
+
+Every use case reduced to one chain:
+
+```
+Item ──in──► Container ──at──► Location (Place › Area › Spot)
+```
+
+"Where are the baseball cards?" = follow the chain: *in #12 → Garage
+› Overhead Shelf 2*. Once that was clear, every later feature
+(labels, check-out, reminders) hung off one of those three links.
+
+## Step 4: Questions that changed the design
+
+Good clarifying questions offer a recommendation *and* the reason, so
+the user can say "yes" quickly or push back with information you
+didn't have.
+
+| Question | Why it mattered | Decision |
+|---|---|---|
+| Put the lid color in the container ID? (`HDX27-12-Yellow`) | 14- and 27-gal HDX totes **share lids** — swap a lid and a permanent printed ID becomes wrong | ID is **just a number**; brand/size/colors are editable fields |
+| Rack 5 Shelf 3 — which end is 1? | Ambiguity at the physical location defeats the whole app | Shelf 1 = bottom, racks left → right, plus a printed **legend** posted at the unit |
+| Sold/disposed: delete or hide? | Hidden records answer "did we get rid of that?" | James chose **hard delete**; the activity log keeps a one-liner |
+| What about the existing 697 items? | They're tagged to the *previous* house | Keep books + 7 known totes; back up, review, prune the rest |
+| Email labels? | "Email" implies an SMTP server | The iPhone **Share sheet** covers Print, Mail, Files — no server |
+
+One question James raised himself: **duplicate detection** — "are we
+getting more of the same, or was this an accident?" That became a
+pre-save check with four choices (another one / same item, I'm moving
+it / different item / cancel).
+
+## Step 5: The data model (additive)
+
+Full tables are in the spec; the shape:
+
+- `Location` gets a `parentId` — a ***self-relation*** turning a flat
+  room list into a tree.
+- `Category` gets a `parentId` for subcategories.
+- New `ContainerModel` catalog table instead of growing the
+  `ContainerType` enum — new tote models can be added from the phone
+  with no migration.
+- `Container` gets `number`, colors, `status` (Packing / Stored /
+  Away), `locationId`, `labelStatus`.
+- One new `Checkout` table serves **both** "checked out the drill" and
+  "Christmas totes are at the house" — because containers *are* items,
+  the same row shape works, and `fromLocationId` remembers the home
+  spot.
+
+**Why additive migrations?** Nothing is dropped. Old columns (`fate`,
+`originLocationId`) become optional and fall out of the phone UI, so
+the admin site and existing rows keep working while the new flows are
+built. Each migration can ship alone.
+
+### Duplicate search and Big-O
+
+Checking "does this name look like anything we own?" naively means
+comparing against every item: **O(n)** similarity computations per
+add. With Postgres's ***pg_trgm*** extension and a GIN index on
+trigrams, the database finds candidate rows sharing trigrams with the
+query without scanning every row — roughly proportional to the number
+of matching trigrams, not the table size. At 700 items either is
+instant; at 10,000 (thousands of books) the index is the difference
+between a snappy form and a lag on every add.
+
+## Step 6: Build order — every phase usable on its own
+
+| Phase | Delivers |
+|---|---|
+| 0. Foundation | Migration, real locations/categories/tote models, backup, data prune |
+| 1. Find it | Search with full whereabouts; scan a tote → contents |
+| 2. Quick Add | Camera-first add, put in a container, duplicate check |
+| 3. Ready for Storage + labels | Numbers, locations, Phomemo/sheet/legend printing |
+| 4. Check out / transfer / archive / delete | Day-to-day use |
+| 5. Reminders | Scheduler + in-app inbox (install method decided first) |
+| 6. AI photo fill | Photo → fields; books catalogued |
+
+Reasoning: **read before write** (Phase 1 is useful with just the 7
+existing totes), and **AI last** because it plugs into the Add flow
+without changing it — so its cost discussion doesn't block anything.
+This is the ***walking skeleton*** idea from LEARN.md Part 2 applied at
+the feature level.
+
+## Chapter takeaways
+
+- **Ask about workflows, not screens.** "How does a box live its
+  life?" produced the whole design; "what screens do you want?" would
+  have produced a wishlist.
+- **Find the core relationship first** (Item → Container → Location);
+  features hang off it.
+- **Offer a recommendation with each question.** It turns a
+  questionnaire into quick yes/no decisions — and the "no"s carry the
+  information you were missing.
+- **IDs should never encode mutable facts.** A lid color can change;
+  a printed number can't.
+- **Additive migrations let the old and new coexist** while you build.
 
 ---
 
@@ -3365,6 +3823,11 @@ Terms in **bold italic** in chapter text are defined here.
 | enums | Prisma / TypeScript types with a fixed set of named values. `Fate`, `Condition`, `ContainerType`. |
 | Expo | A React Native toolkit and managed runtime. Includes `expo-camera`, `expo-secure-store`, etc. |
 | Expo Go | The prebuilt Expo runtime that runs your JS without a native build. Can't load custom native modules. |
+| Expo Go SDK coupling | The App Store's Expo Go only runs projects on its bundled (latest) SDK. An idle project on an older SDK stops opening until upgraded (Chapter 24). |
+| hierarchical lookup | Node/Metro module resolution that walks up the directory tree checking each `node_modules/`. Needed to find packages npm nests under their parent (Chapter 24). |
+| pg_trgm | Postgres extension that splits text into 3-character "trigrams" for fuzzy matching; with a GIN index it finds similar names without scanning every row. Planned for duplicate detection (Chapter 25). |
+| self-relation | A table with a foreign key to itself (`Location.parentId → Location.id`) — how trees like Place › Area › Spot are stored. |
+| walking skeleton | Building the thinnest end-to-end version first, then thickening it. Applied per phase in Chapter 25. |
 | FUSE/shfs | Unraid's user-share filesystem at `/mnt/user/` that unions the array + cache pools. Adds I/O latency that's catastrophic for database containers — pin Postgres to `/mnt/cache/` instead. |
 | sidecar table | A 1:1 companion table that holds type-specific fields off a generic parent. `Container` and `BookDetails` are both sidecars on `Item`. Lets you query `WHERE binding='HARDBACK'` without polluting the parent schema with mostly-null columns. |
 | KSDT | Keep / Sell / Donate / Trash. The `Fate` enum. |

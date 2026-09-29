@@ -3,6 +3,16 @@
 This file is written as we build Stash, step by step. Each section explains
 what was built, why decisions were made, and teaches the underlying concepts.
 
+> **Historical journal (Steps 1–16, through v1.0.0).** Kept as written for
+> learning value — some details were later changed:
+> - **Step 8 (WatermelonDB)** was removed in v1.1.1 so the app runs in Expo Go.
+> - Example logins like `james@stash.local` / `password123` no longer exist —
+>   the seed now creates real accounts with passwords from `SEED_ADMIN_PASSWORD` /
+>   `SEED_USER_PASSWORD`.
+> - Container labels are now auto-generated codes (`T27-0012`) as of v1.2.1.
+>
+> For v1.1 onward, see **BUILD_LOG.md** (chapter-per-version) and **CHANGELOG.md** in the repo.
+
 ---
 
 ## Step 1: Project Scaffolding

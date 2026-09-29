@@ -144,6 +144,9 @@
     <input id="search" type="search" placeholder="Filter sections…" autocomplete="off" />
     <nav class="toc" id="toc">
         <a class="toc-l2" href="#table-of-contents">Table of contents</a>
+        <a class="toc-l2" href="#chapter-1-understanding-what39s-actually-being-asked">Chapter 1 — Understanding what&amp;#39;s actually being asked</a>
+        <a class="toc-l2" href="#chapter-3-architecture-decisions-and-adrs">Chapter 3 — Architecture decisions and ADRs</a>
+        <a class="toc-l2" href="#chapter-4-designing-the-data-model">Chapter 4 — Designing the data model</a>
         <a class="toc-l2" href="#chapter-7-reading-errors">Chapter 7 — Reading errors</a>
         <a class="toc-l2" href="#chapter-8-debugging">Chapter 8 — Debugging</a>
         <a class="toc-l2" href="#chapter-12-containers-nginx-deployment">Chapter 12 — Containers, nginx, deployment</a>
@@ -205,8 +208,88 @@ intentional.</p>
 </ul>
 <hr>
 <h1 id="part-1-the-work-that-happens-before-any-code">Part 1 — The work that happens before any code</h1>
-<p>[Fill in chapters 1–5 as the project develops, capturing real
-decisions and reasoning.]</p>
+<h2 id="chapter-1-understanding-what39s-actually-being-asked">Chapter 1 — Understanding what&#39;s actually being asked</h2>
+<p>The most expensive bug is building the wrong thing. Stash&#39;s v1 was
+designed for <strong>a move</strong> (origin house → destination house,
+Keep/Sell/Donate/Trash). Five months later the real use was
+<strong>storage</strong>: renting, unpacking into totes, a storage unit and garage
+shelves. Same data, different product.</p>
+<p>How that surfaced (BUILD_LOG ch. 25):</p>
+<ul>
+<li><strong>Describe what exists first, honestly</strong> — screen by screen, from
+the code, not from memory. Gaps show up as broken <em>workflows</em>
+(&quot;scan a tote → nothing happens&quot;), not missing screens.</li>
+<li><strong>Ask about workflows and situations</strong>, not screens: <em>Where are you
+in the move? What&#39;s the main phone job? Who uses it? How does a box
+live its life?</em></li>
+<li><strong>Write it down where the user lives.</strong> The spec went into the
+Obsidian vault (<code>stash-v2-spec.md</code>), not just chat — decisions
+survive the conversation.</li>
+</ul>
+<h2 id="chapter-3-architecture-decisions-and-adrs">Chapter 3 — Architecture decisions and ADRs</h2>
+<p>Stash records decisions as short ADR-style entries (template in
+Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):</p>
+<table>
+<thead>
+<tr>
+<th>ADR</th>
+<th>Decision</th>
+<th>Why</th>
+<th>Rejected alternative</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>001</td>
+<td>Container ID is a <strong>plain number</strong> (<code>12</code>)</td>
+<td>14/27-gal HDX totes share lids; an ID containing a color goes wrong when a lid swaps</td>
+<td><code>HDX27-12-Yellow</code>, <code>T27-0012</code></td>
+</tr>
+<tr>
+<td>002</td>
+<td>Locations are a <strong>tree</strong> (<code>parentId</code>)</td>
+<td>Unit › Rack 5 › Shelf 3 and Garage › Shelf 2 need different depths</td>
+<td>Fixed <code>house</code> / <code>floor</code> / <code>room</code> columns</td>
+</tr>
+<tr>
+<td>003</td>
+<td><strong>One <code>Checkout</code> table</strong> for items <em>and</em> containers</td>
+<td>Containers are items; seasonal tote transfers and tool check-outs are the same shape</td>
+<td>Separate transfer and checkout tables</td>
+</tr>
+<tr>
+<td>004</td>
+<td><strong>Additive migrations</strong> for v2</td>
+<td>Old rows and the admin site keep working while the phone catches up</td>
+<td>Big-bang schema rewrite</td>
+</tr>
+<tr>
+<td>005</td>
+<td>Labels go out through the <strong>iPhone Share sheet</strong></td>
+<td>Print (AirPrint), Mail, Files, Phomemo app — no SMTP, no Bluetooth native module</td>
+<td>In-app email; direct Bluetooth printing (needs a custom native build)</td>
+</tr>
+<tr>
+<td>006</td>
+<td>Sold / Disposed = <strong>hard delete</strong></td>
+<td>User&#39;s choice; activity log keeps a one-line record</td>
+<td>Soft-delete with history</td>
+</tr>
+</tbody></table>
+<h2 id="chapter-4-designing-the-data-model">Chapter 4 — Designing the data model</h2>
+<p>The v2 model is one chain: <strong>Item → Container → Location</strong>. &quot;Where is
+it?&quot; means following the chain; every feature (labels, check-out,
+reminders) attaches to one link. Rules we followed:</p>
+<ul>
+<li><strong>Never encode mutable facts in identifiers</strong> (ADR-001).</li>
+<li><strong>Prefer a catalog table over a growing enum</strong> when users need to add
+values (<code>ContainerModel</code> instead of more <code>ContainerType</code> values) —
+enums need a migration per new value.</li>
+<li><strong>Self-relations for hierarchies</strong> (<code>Location.parentId</code>,
+<code>Category.parentId</code>).</li>
+<li><strong>Index for the query you&#39;ll run most.</strong> Duplicate detection will
+use <code>pg_trgm</code> trigram indexes instead of an O(n) scan per add.</li>
+</ul>
+<p>// TODO when we have data: chapters 2 and 5.</p>
 <hr>
 <h1 id="part-2-writing-the-code">Part 2 — Writing the code</h1>
 <h2 id="chapter-7-reading-errors">Chapter 7 — Reading errors</h2>
@@ -385,19 +468,33 @@ intervention.</p>
 <p>The <code>packages/mobile</code> Expo project has three configuration files
 that exist <em>only</em> because it&#39;s inside an npm-workspaces monorepo:</p>
 <ul>
-<li><strong><code>metro.config.js</code></strong> — pins React + React Native to mobile&#39;s own
-copies (preventing duplicate React from the workspace root) and
-watches the workspace root so <code>@stash/shared</code> edits trigger
-reloads. Without it: &quot;Invalid hook call&quot; + &quot;Cannot read property
-&#39;useContext&#39; of null&quot; at app launch. (See BUILD_LOG ch. 23.)</li>
-<li><strong><code>index.js</code></strong> — explicit <code>registerRootComponent(App)</code>. Required
+<li><p><strong><code>metro.config.js</code></strong> — pins React + React Native to mobile&#39;s own
+copies via a custom <code>resolveRequest</code> (preventing duplicate React
+from the workspace root) and watches the workspace root so
+<code>@stash/shared</code> edits trigger reloads. <strong>Hierarchical lookup stays
+ON</strong> (<code>disableHierarchicalLookup: false</code>): SDK 57 nests
+<code>expo-modules-core</code> under <code>expo/node_modules</code>, which Metro can only
+find by walking up the tree (BUILD_LOG ch. 24). Without it: &quot;Invalid hook call&quot; + &quot;Cannot read property
+&#39;useContext&#39; of null&quot; at app launch. (See BUILD_LOG ch. 23.)</p>
+</li>
+<li><p><strong><code>index.js</code></strong> — explicit <code>registerRootComponent(App)</code>. Required
 in Expo SDK 50+; the older <code>&quot;main&quot;: &quot;App.tsx&quot;</code> shortcut no longer
-registers the root.</li>
-<li><strong><code>babel.config.js</code></strong> — references <code>babel-preset-expo</code>, which
+registers the root.</p>
+</li>
+<li><p><strong><code>babel.config.js</code></strong> — references <code>babel-preset-expo</code>, which
 must be installed at the workspace <strong>root</strong> (not just in the
 mobile package&#39;s nested <code>node_modules</code>) because <code>@babel/core</code>
-hoists to root and resolves from there.</li>
+hoists to root and resolves from there.</p>
+</li>
+<li><p><strong><code>@expo/ngrok</code> as a devDependency</strong> — Expo&#39;s <em>global</em> package
+lookup fails on this Windows setup, so <code>--tunnel</code> loops on &quot;install
+ngrok&quot; unless it&#39;s installed locally.</p>
+</li>
 </ul>
+<p><strong>Expo Go and the SDK are coupled.</strong> The App Store&#39;s Expo Go runs only
+the newest SDK. Coming back after months away usually means
+<code>npx expo install expo@^&lt;latest&gt;</code> + <code>npx expo install --fix</code> first.
+Smoke-test without a phone: <code>npx expo export --platform ios</code>.</p>
 <p>A standalone <code>expo init</code> project doesn&#39;t need any of these. They&#39;re
 all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
 23 so the next person doesn&#39;t rediscover.</p>
@@ -413,6 +510,22 @@ all monorepo tax. Documented in CHANGELOG v1.2.2 and BUILD_LOG ch.
 <tbody><tr>
 <td>ADR</td>
 <td>Architecture Decision Record. Markdown file documenting one decision, its context, alternatives, and consequences.</td>
+</tr>
+<tr>
+<td>Expo Go SDK coupling</td>
+<td>Expo Go only runs projects on its bundled (latest) SDK.</td>
+</tr>
+<tr>
+<td>hierarchical lookup</td>
+<td>Module resolution that walks up the directory tree checking each <code>node_modules/</code>.</td>
+</tr>
+<tr>
+<td>pg_trgm</td>
+<td>Postgres trigram extension for fuzzy text matching with an index.</td>
+</tr>
+<tr>
+<td>self-relation</td>
+<td>A foreign key from a table to itself; how trees are stored.</td>
 </tr>
 <tr>
 <td>Composable</td>
@@ -451,7 +564,7 @@ Bulleted list with one-line reasoning for each.
 </ul>
 
     <div class="foot">
-      <code>LEARN.md</code> wiki · 8 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>LEARN.md</code> wiki · 11 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

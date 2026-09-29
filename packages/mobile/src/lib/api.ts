@@ -7,8 +7,9 @@ import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'stash_token';
 
-// Default to Tailscale IP for production. Override in Settings screen.
-let baseUrl = 'http://100.122.58.114:3001/api';
+// Default to the public HTTPS proxy — works on any network, no Tailscale
+// needed. Override in Settings screen (Tailscale: http://100.122.58.114:3001).
+let baseUrl = 'https://stash-api.shottsserver.com/api';
 
 export function getBaseUrl(): string {
   return baseUrl;
@@ -75,6 +76,12 @@ export const api = {
     },
     me() {
       return request<any>('/auth/me');
+    },
+    changePassword(currentPassword: string, newPassword: string) {
+      return request<{ message: string }>('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
     },
   },
 
