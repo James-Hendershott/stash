@@ -67,81 +67,139 @@ enum LocationType {
   DESTINATION
 }
 
+// ── v2 (storage) enums — see SPEC.md "Data model changes" ──
+
+// Level in the location tree: Place › Area › Spot (depth can vary).
+enum LocationKind {
+  PLACE
+  AREA
+  SPOT
+}
+
+// Where a container is in its lifecycle.
+enum ContainerStatus {
+  PACKING // being filled, no permanent spot yet
+  STORED // sitting at its spot
+  AWAY // transferred out (e.g. holiday totes at the house); home spot remembered on the open Checkout
+}
+
+enum LabelStatus {
+  NONE // no label generated yet
+  NOT_PRINTED // generated but not printed — drives reminders
+  PRINTED
+}
+
+enum ItemStatus {
+  STORED // in a container / at a location
+  IN_USE // checked out, still belongs to its container
+  ARCHIVED // in regular use at home; kept in the catalog so it isn't re-added later
+}
+
 // ─── Models ───────────────────────────────────────────────
 
 model User {
-  id                String   @id @default(uuid())
-  email             String   @unique
-  passwordHash      String
-  name              String
-  role              Role     @default(USER)
-  mustChangePassword Boolean @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  name               String
+  role               Role     @default(USER)
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  addedItems        Item[]         @relation("AddedBy")
-  modifiedItems     Item[]         @relation("LastModifiedBy")
-  placements        ItemPlacement[] @relation("PlacedBy")
-  activityLogs      ActivityLog[]
+  addedItems    Item[]          @relation("AddedBy")
+  modifiedItems Item[]          @relation("LastModifiedBy")
+  placements    ItemPlacement[] @relation("PlacedBy")
+  activityLogs  ActivityLog[]
+  checkouts     Checkout[]
+  notifications Notification[]
 
   @@map("users")
 }
 
 model Location {
-  id              String       @id @default(uuid())
+  id              String        @id @default(uuid())
   name            String
-  type            LocationType
-  house           String
-  floor           String
-  color           String       @default("#6B7280")
+  // v1 (move) fields — optional in v2; v2 rows leave type/house null and
+  // use `floor` as a descriptive attribute ("Main Floor", "Basement").
+  type            LocationType?
+  house           String?
+  floor           String?
+  // v2 tree: Place › Area › Spot. Full path is built by walking parentId.
+  parentId        String?
+  kind            LocationKind?
+  shortCode       String?       @unique // printable, e.g. "BF-GAR-HS02", "U-R5-S3"
+  photoPath       String? // photo for the printed location legend
+  notes           String?
+  archivedAt      DateTime? // hidden from pickers (old Eagle Mountain / NC rooms)
+  color           String        @default("#6B7280")
   floorPlanX      Float?
   floorPlanY      Float?
   floorPlanWidth  Float?
   floorPlanHeight Float?
-  sortOrder       Int          @default(0)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   // Relations
-  originItems      Item[] @relation("OriginLocation")
-  destinationItems Item[] @relation("DestinationLocation")
+  parent           Location?   @relation("LocationTree", fields: [parentId], references: [id])
+  children         Location[]  @relation("LocationTree")
+  originItems      Item[]      @relation("OriginLocation")
+  destinationItems Item[]      @relation("DestinationLocation")
+  looseItems       Item[]      @relation("ItemLocation")
+  containers       Container[]
+  checkoutsFrom    Checkout[]  @relation("CheckoutFrom")
 
+  @@index([parentId])
   @@map("locations")
 }
 
 model Category {
   id        String   @id @default(uuid())
-  name      String   @unique
+  // Unique per parent (v2): "Towels" can live under both Linens and Bath.
+  // Top-level uniqueness (parentId NULL) is enforced by the app, because
+  // Postgres treats NULLs as distinct in a unique index.
+  name      String
+  parentId  String?
   icon      String
   color     String
+  sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  items Item[]
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  items    Item[]
 
+  @@unique([parentId, name])
   @@map("categories")
 }
 
 model Item {
-  id                    String    @id @default(uuid())
+  id                    String     @id @default(uuid())
   name                  String
   description           String?
   categoryId            String
-  condition             Condition @default(GOOD)
-  quantity              Int       @default(1)
+  condition             Condition  @default(GOOD)
+  quantity              Int        @default(1)
   lengthIn              Float?
   widthIn               Float?
   heightIn              Float?
   weightLbs             Float?
-  shapeType             ShapeType @default(BOX)
-  fate                  Fate      @default(UNDECIDED)
-  originLocationId      String
+  shapeType             ShapeType  @default(BOX)
+  fate                  Fate       @default(UNDECIDED)
+  originLocationId      String? // v1 (move) — optional in v2
   destinationLocationId String?
+  // v2 (storage)
+  status                ItemStatus @default(STORED)
+  locationId            String? // for items NOT in a container (furniture on the Unit Floor, archived items)
+  upc                   String? // barcode, for exact duplicate matching
+  aiSuggestion          Json? // what the AI proposed from the photo (Phase 6), for auditing accuracy
   photoPath             String?
   qrCodePath            String?
-  isContainer           Boolean   @default(false)
+  isContainer           Boolean    @default(false)
   estimatedSaleValue    Float?
   llmPriceSuggestion    Float?
   llmPriceRationale     String?
@@ -150,21 +208,29 @@ model Item {
   notes                 String?
   addedById             String
   lastModifiedById      String
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
   deletedAt             DateTime?
 
   // Relations
-  category            Category    @relation(fields: [categoryId], references: [id])
-  originLocation      Location    @relation("OriginLocation", fields: [originLocationId], references: [id])
-  destinationLocation Location?   @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
-  addedBy             User        @relation("AddedBy", fields: [addedById], references: [id])
-  lastModifiedBy      User        @relation("LastModifiedBy", fields: [lastModifiedById], references: [id])
+  category            Category        @relation(fields: [categoryId], references: [id])
+  originLocation      Location?       @relation("OriginLocation", fields: [originLocationId], references: [id])
+  location            Location?       @relation("ItemLocation", fields: [locationId], references: [id])
+  destinationLocation Location?       @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  addedBy             User            @relation("AddedBy", fields: [addedById], references: [id])
+  lastModifiedBy      User            @relation("LastModifiedBy", fields: [lastModifiedById], references: [id])
   container           Container?
   bookDetails         BookDetails?
   placements          ItemPlacement[] @relation("PlacedItem")
+  checkouts           Checkout[]
 
   @@index([categoryId])
+  @@index([status])
+  @@index([locationId])
+  @@index([upc])
+  // Trigram index for fuzzy duplicate detection (the pg_trgm extension is
+  // created in the migration SQL).
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "items_name_trgm_idx")
   @@index([originLocationId])
   @@index([destinationLocationId])
   @@index([fate])
@@ -173,25 +239,39 @@ model Item {
 }
 
 model Container {
-  id               String        @id @default(uuid())
-  itemId           String        @unique
+  id               String          @id @default(uuid())
+  itemId           String          @unique
   containerType    ContainerType
   // Auto-generated container code, format {PREFIX}-{NNNN} (e.g. T27-0012,
   // BXS-0001, UBX-0001). Unique across the DB. Immutable after create —
   // QR code labels encode this. Friendly text lives on `item.description`.
-  label            String        @unique
+  label            String          @unique
+  // v2: the number printed on the label ("12"). Unique, never reused.
+  number           Int?            @unique
+  modelId          String?
+  bodyColor        String? // Clear / Black / …
+  lidColor         String? // Red / Yellow / Green / Blue / …
+  status           ContainerStatus @default(PACKING)
+  locationId       String? // where the container is right now
+  labelStatus      LabelStatus     @default(NONE)
+  labelPrintedAt   DateTime?
+  readyAt          DateTime? // when marked Ready for Storage
   internalLengthIn Float
   internalWidthIn  Float
   internalHeightIn Float
   maxWeightLbs     Float?
   qrCodePath       String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   // Relations
   item       Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  model      ContainerModel? @relation(fields: [modelId], references: [id])
+  location   Location?       @relation(fields: [locationId], references: [id])
   placements ItemPlacement[]
 
+  @@index([locationId])
+  @@index([status])
   @@map("containers")
 }
 
@@ -218,38 +298,38 @@ model ItemPlacement {
 }
 
 model BookDetails {
-  id               String      @id @default(uuid())
-  itemId           String      @unique
+  id     String @id @default(uuid())
+  itemId String @unique
 
   // Identifiers
-  isbn10           String?
-  isbn13           String?
+  isbn10 String?
+  isbn13 String?
 
   // Bibliographic data
-  title            String
-  authors          String[]
-  publisher        String?
-  publishedYear    Int?
-  edition          String?
-  pageCount        Int?
-  language         String?
+  title         String
+  authors       String[]
+  publisher     String?
+  publishedYear Int?
+  edition       String?
+  pageCount     Int?
+  language      String?
 
   // Physical attributes
-  binding          BookBinding @default(UNKNOWN)
+  binding BookBinding @default(UNKNOWN)
 
   // External references
-  coverImageUrl    String?
-  openLibraryId    String?
-  googleBooksId    String?
+  coverImageUrl String?
+  openLibraryId String?
+  googleBooksId String?
 
   // Metadata source tracking — set by /api/books/from-photo
   lookupSource     String?
   lookupConfidence Float?
 
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  item             Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([isbn13])
   @@index([isbn10])
@@ -273,4 +353,79 @@ model ActivityLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ─── v2 (storage) models ──────────────────────────────────
+
+// Catalog of tote/bin models. A table (not an enum) so new models can be
+// added from the phone without a migration. Dimensions are optional.
+model ContainerModel {
+  id               String   @id @default(uuid())
+  brand            String // "HDX", "Sam's Club Tough Box", "Sterilite", "Generic"
+  name             String // "27 Gal Tough Storage Tote"
+  capacity         String? // "27 gal", "6.5 qt"
+  internalLengthIn Float?
+  internalWidthIn  Float?
+  internalHeightIn Float?
+  maxWeightLbs     Float?
+  notes            String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  containers Container[]
+
+  @@unique([brand, name])
+  @@map("container_models")
+}
+
+// A check-out of an item OR a container (containers are items).
+// Covers "checked out the drill" and "Christmas totes are at the house".
+model Checkout {
+  id             String    @id @default(uuid())
+  itemId         String
+  userId         String
+  checkedOutAt   DateTime  @default(now())
+  dueAt          DateTime?
+  willReturn     Boolean   @default(true)
+  purpose        String?
+  fromLocationId String? // the home spot to return to (containers)
+  returnedAt     DateTime?
+  lastRemindedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  item         Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id])
+  fromLocation Location? @relation("CheckoutFrom", fields: [fromLocationId], references: [id])
+
+  @@index([itemId])
+  @@index([userId])
+  @@index([returnedAt])
+  @@map("checkouts")
+}
+
+// In-app reminder inbox (Phase 5). Works regardless of how the app is installed.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String // "CHECKOUT_DUE", "LABEL_NOT_PRINTED", …
+  entityId  String?
+  message   String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// Admin-editable key/value settings (e.g. reminder intervals).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
 }

@@ -96,7 +96,8 @@ router.post('/import-csv', csvUpload.single('file'), async (req: Request, res: R
   // Pre-load reference data so name → ID resolution doesn't N+1 the DB.
   const [locations, booksCategory] = await Promise.all([
     prisma.location.findMany(),
-    prisma.category.findUnique({ where: { name: 'Books & Media' } }),
+    // Category names are unique per parent (v2), so look up the top-level one.
+    prisma.category.findFirst({ where: { name: 'Books & Media', parentId: null } }),
   ]);
 
   const categoryId =

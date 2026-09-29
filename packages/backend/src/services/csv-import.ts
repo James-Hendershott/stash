@@ -117,7 +117,7 @@ export async function importCsvRows(
 
   // Defaults
   const defaultCategoryId = categories[0]?.id;
-  const defaultLocationId = locations.find((l: { type: string }) => l.type === 'ORIGIN')?.id || locations[0]?.id;
+  const defaultLocationId = locations.find((l: { type: string | null }) => l.type === 'ORIGIN')?.id || locations[0]?.id;
 
   // Cache containers we've already resolved or created during this import
   // so multiple items in the same Tote share one DB lookup.

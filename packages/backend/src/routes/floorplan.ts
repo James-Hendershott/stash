@@ -31,6 +31,7 @@ router.get('/:house', async (req: Request, res: Response) => {
   // Build a map: locationId → { KEEP: 3, SELL: 1, ... }
   const fateMap = new Map<string, Record<string, number>>();
   for (const row of fateCountsRaw) {
+    if (!row.originLocationId) continue; // v2 items may have no origin room
     if (!fateMap.has(row.originLocationId)) fateMap.set(row.originLocationId, {});
     fateMap.get(row.originLocationId)![row.fate] = row._count;
   }
@@ -58,8 +59,9 @@ router.get('/:house', async (req: Request, res: Response) => {
   // Group by floor
   const floors = new Map<string, typeof result>();
   for (const loc of result) {
-    if (!floors.has(loc.floor)) floors.set(loc.floor, []);
-    floors.get(loc.floor)!.push(loc);
+    const floor = loc.floor ?? 'Other';
+    if (!floors.has(floor)) floors.set(floor, []);
+    floors.get(floor)!.push(loc);
   }
 
   res.json({

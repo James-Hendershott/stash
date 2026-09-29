@@ -110,7 +110,7 @@ router.get('/csv/items', async (req: Request, res: Response) => {
     item.condition,
     item.quantity,
     item.fate,
-    csvEscape(item.originLocation.name),
+    csvEscape(item.originLocation?.name || ''),
     csvEscape(item.destinationLocation?.name || ''),
     item.lengthIn || '',
     item.widthIn || '',

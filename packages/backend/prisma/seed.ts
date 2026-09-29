@@ -20,8 +20,9 @@
  *
  * If unset, both default to a placeholder that the script will warn about.
  *
- * This script is idempotent — it deletes ALL existing data before inserting.
- * Do NOT run against a populated production database; use `prisma migrate
+ * ⚠️ DESTRUCTIVE — it deletes ALL existing data before inserting, and
+ * refuses to run if items exist unless SEED_FORCE=yes. For an existing
+ * database run prisma/v2-reference-data.cjs instead. Never use `prisma migrate
  * deploy` to apply schema changes without touching data.
  */
 
@@ -33,6 +34,19 @@ const prisma = new PrismaClient();
 const PLACEHOLDER_PASSWORD = 'ChangeMeNow2026!';
 
 async function main() {
+  // ── Safety guard ───────────────────────────────────────────
+  // This seed WIPES every table. Refuse to run against a database that
+  // already holds items unless explicitly forced — one stray
+  // `prisma db seed` in production would otherwise erase everything.
+  const existingItems = await prisma.item.count();
+  if (existingItems > 0 && process.env.SEED_FORCE !== 'yes') {
+    throw new Error(
+      `Refusing to seed: the database already has ${existingItems} items and the seed deletes ALL data. ` +
+        'For reference data on an existing database run prisma/v2-reference-data.cjs instead. ' +
+        'To wipe and re-seed anyway (dev only), set SEED_FORCE=yes.',
+    );
+  }
+
   console.log('🌱 Seeding database...');
 
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || PLACEHOLDER_PASSWORD;
@@ -169,6 +183,12 @@ async function main() {
   ];
   await Promise.all(categories.map((c) => prisma.category.create({ data: c })));
   console.log(`  ✓ ${categories.length} categories`);
+
+  // ── v2 reference data (tote models, category tree, Blue Flax + storage
+  // unit locations). Shared with the production script so both stay in sync.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { applyReferenceData } = require('./v2-reference-data.cjs');
+  await applyReferenceData(prisma, (...args: unknown[]) => console.log('  ✓', ...args));
 
   console.log('\n✅ Seed complete!');
   console.log('');
