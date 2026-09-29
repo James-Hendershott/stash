@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Start here — current direction (read before doing anything)
+
+**Stash is being rebuilt around storage, not the move.** As of 2026-09-28 the owners rent 1642 W Blue Flax Dr (Saratoga Springs, UT) and are unpacking old storage into standard totes kept in the garage (overhead shelves 1–9) and a storage unit (Lehi Indoor Storage #3204, racks 1–6). The core need: *know what's in a tote without opening it, and find any item fast — 100% from the phone.*
+
+- **The spec is `SPEC.md`** (mirror of the vault note `D:\James_Journey\projects\active\stash\stash-v2-spec.md`). Read it before planning any work. It holds the data model, the decisions (ADR-001–006 in `LEARN.md` Part 1), and the **phased build order (Phases 0–6)**. Work proceeds phase by phase; each phase must be testable on the phone.
+- **Back-burnered:** NC move, destination rooms, fate-based move planning, Home Mode. Don't extend these; don't delete them either.
+- **Status:** v1.3.0 (Expo SDK 57) on branch `upgrade/expo-sdk-57`, not yet merged or deployed. Next up: **Phase 0 — Foundation** (DB backup, additive migration, real locations/categories/tote models, data prune).
+
+## Session rules
+
+1. **Follow the `teach-as-you-build` skill for every change.** Finishing a feature, fix, or decision means: a new `BUILD_LOG.md` chapter (ask → plan → steps → bugs → verifying → takeaways), `LEARN.md` updates (new decisions become ADRs in Part 1, Ch. 3), a `CHANGELOG.md` entry, then `npm run build:wiki`. Write these *before* committing, not after. James is learning engineering through this project — the docs are a deliverable.
+2. **Destructive data operations need explicit confirmation.** Before deleting or bulk-changing production data: `pg_dump` backup first, show the exact list, wait for a yes.
+3. **Keep docs mirrored.** `README.md`, `SETUP.md`, `GUIDE.md`, `IPHONE-GUIDE.md`, `TEACH.md`, `SPEC.md` have lowercase copies in the vault folder (`readme.md`, `setup.md`, `guide.md`, `iphone-guide.md`, `teach.md`, `stash-v2-spec.md`). Edit one → copy to the other so they stay identical. The vault's `stash.md` is the project hub note — update its status when a phase ships.
+4. **Phone-first.** New workflows are designed for the mobile app first; the admin site is for bulk work (imports, sheet printing).
+5. **Deploying** needs SSH to Unraid (`ssh unraid`). If auto mode blocks remote writes, give James the exact commands rather than working around the block.
+
 ## Commands
 
 All commands run from the repo root unless noted. The project is an npm workspaces monorepo; root scripts delegate into `packages/*`.
@@ -66,18 +82,18 @@ Four npm workspaces under `packages/`:
 - `shared` — pure-TS types, enums, constants, and formatting utils. **Consumed by all other packages via `@stash/shared`.** Must be rebuilt (`npm run build:shared`) before backend/admin will typecheck against new changes.
 - `backend` — Express + Prisma API. Entry `src/index.ts` mounts routers from `src/routes/*`; every router except `auth` applies `requireAuth` at the top.
 - `admin` — React 18 + Vite SPA. Routes in `src/App.tsx`, all app pages behind `<ProtectedRoute>` + `<Layout>`.
-- `mobile` — React Native + Expo SDK 54. Entry `App.tsx`; screens in `src/screens`. WatermelonDB offline sync requires a **custom dev build** — Expo Go alone is not enough for offline mode.
+- `mobile` — React Native 0.86 + Expo SDK 57 (React 19.2), runs in **Expo Go**. Entry `index.js` → `App.tsx`; screens in `src/screens`. No offline mode (WatermelonDB was removed in v1.1.1). Default API URL is `https://stash-api.shottsserver.com/api` (`src/lib/api.ts`). Expo Go only runs the newest SDK — after a long gap, upgrade with `npx expo install expo@^<latest>` + `npx expo install --fix`, and smoke-test with `npx expo export --platform ios` (no phone needed).
 
 ### Data model (see `packages/backend/prisma/schema.prisma`)
 - **Item** is the central entity. An Item with `isContainer=true` has a companion **Container** row (1:1 via `Container.itemId`) that carries internal dimensions and container type. This dual-table pattern means "a container is just an item with extra geometry" — code that operates on items may also need to handle the container side.
 - **ItemPlacement** is the history of which item sits in which container. `placedAt`/`removedAt` make it a temporal log — do not delete rows, set `removedAt` instead.
 - **Item.deletedAt** is the soft-delete marker. All list queries filter `{ deletedAt: null }`; sync endpoints use `deletedAt != null` to send deletions to mobile.
-- **Container.label** is the auto-generated unique container code in the format `{PREFIX}-{NNNN}` (`T27-0012`, `BXS-0001`, `UBX-0001`). It's immutable; QR codes encode it; sorting + lookup use it. Friendly text lives on the associated `Item.description` (e.g., "Tote #12 — Halloween decorations · Red lid"). The helper `services/container-codes.ts` exposes `nextContainerCode(tx, type, preferredNumber?)` (used by container creation routes) and `parseLegacyLabel()` (used by CSV import to recognize old-style labels like `Tote #12`, `Book Box #1`, `Large Tote #01`).
+- **Container.label** is the auto-generated unique container code in the format `{PREFIX}-{NNNN}` (`T27-0012`, `BXS-0001`, `UBX-0001`). It's immutable; sorting + lookup use it. (QR codes currently encode `${BACKEND_URL}/api/{items|containers}/<uuid>`, not the code. v2 replaces the code with a plain `Container.number` and QR URLs like `/c/12` — see `SPEC.md`.) Friendly text lives on the associated `Item.description` (e.g., "Tote #12 — Halloween decorations · Red lid"). The helper `services/container-codes.ts` exposes `nextContainerCode(tx, type, preferredNumber?)` (used by container creation routes) and `parseLegacyLabel()` (used by CSV import to recognize old-style labels like `Tote #12`, `Book Box #1`, `Large Tote #01`).
 - **BookDetails** is a second sidecar — 1:1 with `Item` via `BookDetails.itemId`. Same dual-table reasoning as `Container`: a book is still an Item with a fate / room / photo / placement, plus bibliographic data (ISBN, edition, binding, cover URL) that doesn't apply to non-books. **No in-app AI** — the bulk pipeline is: photos → free chat UI (Claude.ai / ChatGPT) → text list → `scripts/enrich-books.mjs` (OpenLibrary + Google Books, free) → CSV → `POST /api/books/import-csv`. See `GUIDE.md` "Bulk Cataloging Books" and `BUILD_LOG.md` Chapter 21 for the full design rationale.
-- **Location** has two `LocationType`s: `ORIGIN` (Colorado rooms) and `DESTINATION` (NC rooms). Items carry both `originLocationId` (required) and `destinationLocationId` (optional, for move planning).
+- **Location** (v1) is a flat list with two `LocationType`s: `ORIGIN` (Eagle Mountain, UT — the *previous* house, now stale) and `DESTINATION` (NC placeholders, back-burnered). v2 turns it into a tree (`parentId`: Place › Area › Spot) for the Blue Flax house and storage unit — see `SPEC.md`. Items carry both `originLocationId` (required) and `destinationLocationId` (optional, for move planning).
 - **Fate** enum (KEEP/SELL/DONATE/TRASH/UNDECIDED) drives most of the UI's filtering and export grouping.
 - Prisma uses `@@map` to snake_case every table name. When writing raw SQL or reading `pg_dump`, tables are `items`, `item_placements`, `activity_logs`, etc.
-- **Mobile package monorepo gotchas:** Expo + npm workspaces requires three things that wouldn't exist in a standalone Expo project — `babel-preset-expo` listed in the **root** `package.json` devDependencies (so it hoists where `@babel/core` can find it), `packages/mobile/index.js` with explicit `registerRootComponent(App)` (Expo SDK 50+ no longer auto-registers from `"main": "App.tsx"`), and `packages/mobile/metro.config.js` that pins `react`/`react-native`/`scheduler` to mobile's own `node_modules` (otherwise admin's hoisted React 18 collides with mobile's React 19 → `Invalid hook call`). All three are required for `npx expo start --tunnel` to even reach the login screen. Full background: BUILD_LOG ch. 23.
+- **Mobile package monorepo gotchas:** Expo + npm workspaces requires three things that wouldn't exist in a standalone Expo project — `babel-preset-expo` listed in the **root** `package.json` devDependencies (so it hoists where `@babel/core` can find it), `packages/mobile/index.js` with explicit `registerRootComponent(App)` (Expo SDK 50+ no longer auto-registers from `"main": "App.tsx"`), and `packages/mobile/metro.config.js` that pins `react`/`react-native`/`scheduler` to mobile's own `node_modules` via `resolveRequest` (otherwise admin's hoisted React 18 collides with mobile's React 19 → `Invalid hook call`). **Keep `disableHierarchicalLookup: false`** — SDK 57 nests `expo-modules-core` under `expo/node_modules` and Metro can't find it otherwise. `@expo/ngrok` is a mobile devDependency because Expo's global lookup fails on Windows. `--tunnel` also requires `npx expo login` + the same account signed in on Expo Go. Full background: BUILD_LOG ch. 23–24.
 
 ### Backend request pipeline
 1. `src/index.ts` — CORS, JSON body (10 MB limit), static mounts (`/api/files/*` serves `DATA_PATH`, `/api/public/*` serves `packages/backend/public`), then all routers.
@@ -86,8 +102,8 @@ Four npm workspaces under `packages/`:
 4. DB access goes through the singleton `prisma` in `src/lib/prisma.ts`. Business logic that spans multiple tables lives in `src/services/*` (pricing via Claude API, QR generation, PDF export, CSV import).
 5. File uploads use `multer` with disk storage under `DATA_PATH` (set to `./data` locally, `/mnt/user/appdata/stash` in prod). Photos, QR PNGs, exports, and floorplans are all on disk; only the relative path is stored in Postgres.
 
-### Mobile sync
-`POST /api/sync/pull` (in `routes/sync.ts`) implements WatermelonDB's pull protocol. It returns `{ changes: { items: {created, updated, deleted}, ... }, timestamp }`. First sync is detected by `lastPulledAt == null` and returns everything as "created". Soft-deleted items are reported via the `deleted` bucket.
+### Mobile sync (legacy, unused)
+`routes/sync.ts` and the mobile `SyncContext` / `SyncIndicator` are leftovers from the removed WatermelonDB work; the current app doesn't depend on them. `POST /api/sync/pull` implements WatermelonDB's pull protocol. It returns `{ changes: { items: {created, updated, deleted}, ... }, timestamp }`. First sync is detected by `lastPulledAt == null` and returns everything as "created". Soft-deleted items are reported via the `deleted` bucket.
 
 ### Env vars that matter (`src/config.ts`)
 `BACKEND_PORT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `ANTHROPIC_API_KEY` (required for `/api/pricing/*` — LLM price estimates call `claude-sonnet-4-6`), `BACKEND_URL`, `DATA_PATH`. `dataPath` is resolved relative to CWD, so the backend must run from its package root or get an absolute `DATA_PATH`.
@@ -110,6 +126,6 @@ for the format, voice, and regeneration flow.
 - **Don't edit `packages/*/dist`.** These are build outputs.
 - **After editing `packages/shared`**, run `npm run build:shared` before other packages' TS will pick up the change (the admin Vite server will error otherwise).
 - **After editing `schema.prisma`**, run `prisma migrate dev --name <desc>` (with the local-port `DATABASE_URL`). Never hand-edit files under `prisma/migrations/`.
-- **Never bypass soft-delete** — don't hard-delete items; set `deletedAt`. The sync endpoint and all list queries assume this.
+- **Soft-delete today** — current code sets `deletedAt` and all list queries filter on it; don't hard-delete ad hoc. (v2 Phase 4 deliberately adds a hard delete for Sold/Disposed items — ADR-006 — implement it there, with confirmation.)
 - **Static file URLs** are served from `/api/files/<subdir>/<file>`, not from the admin's origin. Paths in the DB (`photoPath`, `qrCodePath`) are stored relative to `DATA_PATH`.
 - **Two compose files are always used together** in dev: `-f docker-compose.yml -f docker-compose.dev.yml`. The base file alone is production-shaped (no port for postgres, no bind mounts).

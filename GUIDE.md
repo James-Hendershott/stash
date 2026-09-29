@@ -1,6 +1,15 @@
 # Stash — User Guide
 
-Complete guide to using Stash for inventory management and move planning.
+Complete guide to the features Stash has **today** (v1.3.0).
+
+> **Heads-up — v2 in progress.** Stash is being rebuilt around storage:
+> numbered totes with QR labels, locations for the house, garage shelves,
+> and storage unit, and check-out/check-in — all from the phone. See
+> [SPEC.md](SPEC.md). This guide is updated as each phase ships.
+>
+> Move-planning features described below (**destination rooms**, the
+> **Destination (NC)** floor plan, Keep/Sell/Donate/Trash fates) still work
+> but are **back-burnered**.
 
 ---
 
@@ -399,7 +408,7 @@ The origin room is where the item is RIGHT NOW (in your current house):
 3. Change the **Origin Room** dropdown
 4. Click **Save**
 
-### Assigning a Destination Room
+### Assigning a Destination Room *(back-burnered — move planning)*
 
 The destination room is where the item will go in the new house:
 
@@ -475,6 +484,8 @@ QR codes are generated for items and containers:
 ---
 
 ## Floor Plan View
+
+> The floor plan is built on the v1 move rooms (Eagle Mountain / NC). It will be revisited after the v2 locations land.
 
 The floor plan shows a visual overview of your entire house, room by room.
 

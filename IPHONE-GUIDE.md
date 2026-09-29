@@ -16,7 +16,8 @@ This guide has two parts:
 | Laptop with Node.js 20+ | (Windows, Mac, or Linux) |
 | The `stash` repo cloned locally | `D:\Code\personal\stash` |
 | Both phones | iPhones, iOS 17+ |
-| **Tailscale** installed on both phones | (You already have this) |
+| A free **Expo account** | Needed by Expo Go to open projects over the tunnel ([expo.dev/signup](https://expo.dev/signup)) |
+| **Tailscale** on the phones | Optional — only if you want to use the Tailscale URL instead of the public one |
 
 ## Step 1 — Install Expo Go on each phone
 
@@ -24,11 +25,22 @@ On both your iPhone and Savanah's iPhone:
 
 1. Open the **App Store**.
 2. Search for **Expo Go**.
-3. Tap **Get** to install. Free, no account needed.
+3. Tap **Get** to install.
+4. Open Expo Go → **Settings** → **Sign in** with the Expo account (the same one the laptop uses in Step 2).
+
+> Expo Go only runs projects built for the **newest Expo SDK**. If it says
+> *"Project is incompatible with this version of Expo Go"*, the project needs
+> an SDK upgrade (see BUILD_LOG ch. 24). Stash is on SDK 57 as of v1.3.0.
 
 ## Step 2 — Start the dev server on your laptop
 
-Open a terminal on your laptop:
+Open a terminal on your laptop. The first time only, log in to Expo:
+
+```bash
+npx expo login
+```
+
+Then start the server:
 
 ```bash
 cd D:\Code\personal\stash\packages\mobile
@@ -66,14 +78,11 @@ On each iPhone:
 If the Camera app doesn't show the banner: open Expo Go directly, tap
 **Scan QR code**, then point at your laptop's terminal.
 
-## Step 4 — Set the API server URL in the app
+## Step 4 — Server URL (usually nothing to do)
 
-When Stash opens for the first time, it doesn't know how to reach the
-backend. Tell it:
-
-1. In the app, tap the **Settings** tab (gear icon, bottom right).
-2. Find the **Server URL** field.
-3. Paste one of these URLs:
+As of v1.3.0 the app **defaults to `https://stash-api.shottsserver.com`**,
+which works on any network. You only need Settings → **Server URL** if you
+want a different route (it resets to the default when the app restarts):
 
    | Where you are | URL to paste |
    |---|---|
@@ -81,11 +90,7 @@ backend. Tell it:
    | Anywhere with Tailscale on | `http://100.122.58.114:3001` |
    | At home (on your WiFi network) | `http://192.168.1.153:3001` |
 
-   **Recommended:** use `https://stash-api.shottsserver.com`. It's live
-   (since v1.2.2), uses HTTPS, and works at home or on the road without
-   needing Tailscale switched on.
-
-4. Tap **Save**.
+   Type the URL and tap **Save**.
 
 ## Step 5 — Log in
 
@@ -94,10 +99,10 @@ backend. Tell it:
 | `jameshendershott85@gmail.com` | the initial password set via `SEED_ADMIN_PASSWORD` when the database was seeded |
 | `mama.shotts@gmail.com` | the initial password set via `SEED_USER_PASSWORD` |
 
-> ⚠️ **Change both passwords on first login** by going to the admin
-> dashboard at https://stash.shottsserver.com → Users → Reset Password for
-> each account. The mobile app currently doesn't have a change-password
-> screen.
+> ⚠️ **Change your password on first login:** in the app, **Settings →
+> Change Password**. Forgot it entirely? An admin can reset it from the
+> admin site (Users → Reset PW), or run `scripts/reset-password.cjs` on the
+> server (instructions at the top of that file).
 
 After login, you'll see the bottom tab bar: Items / Scan / Settings.
 Skip ahead to [Part 2](#part-2--day-to-day-use) for what each tab does.
@@ -262,8 +267,10 @@ The Scan tab is for finding things by their printed QR labels.
 ## Settings tab
 
 - **Your account** — name, email, role
-- **Server URL** — where the app talks to. You shouldn't need to
-  change this after first setup.
+- **Change Password** — enter your current password, then the new one
+  twice (8+ characters).
+- **Server URL** — where the app talks to. Defaults to the public HTTPS
+  address; you shouldn't need to change it.
 - **Sign Out**
 
 ## Troubleshooting

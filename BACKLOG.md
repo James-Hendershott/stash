@@ -1,68 +1,82 @@
 # Stash — Backlog
 
-Future enhancements and ideas. Not prioritized — revisit after v1.0.
+Everything not yet done. **Scheduled work lives in [SPEC.md](SPEC.md)** (Phases 0–6) — items
+below that belong to a phase are marked with it. Unscheduled ideas stay here until they're pulled
+into a phase.
 
-## Features
+## Scheduled in the v2 spec
+
+- [ ] Real locations for 1642 W Blue Flax Dr + storage unit 3204 (Place › Area › Spot) — **Phase 0**
+- [ ] Two-level categories, tote model catalog, container numbers — **Phase 0**
+- [ ] Automated database backups (`pg_dump` to the Unraid share) — **Phase 0**
+- [ ] Mobile: container screen with contents; scan a tote → contents; full "where is it" chain in search — **Phase 1**
+- [ ] Full property-wide search ("where is my X?") — **Phase 1**
+- [ ] Mobile: camera-first Add Item, put item in a container, make any item a container — **Phase 2**
+- [ ] Duplicate detection on add + admin "possible duplicates" list — **Phase 2**
+- [ ] Barcode / UPC scanning for retail items (feeds duplicate matching) — **Phase 2**
+- [ ] Admin "Create Container" form (phone flow first) — **Phase 2**
+- [ ] Ready for Storage flow; QR labels for Phomemo M110 (50×80 mm), 2″×2″ sheets, location legends — **Phase 3**
+- [ ] Batch QR label generation — **Phase 3**
+- [ ] Check out / return items; container transfers with remembered home spot; archive; Sold/Disposed delete — **Phase 4**
+- [ ] Home Mode check-in / check-out log — **Phase 4** (replaced by the Checkout model)
+- [ ] Reminders: scheduler, in-app inbox, admin-configurable intervals; decide install method for push — **Phase 5**
+- [ ] AI photo fill (Claude vision) with spend cap; book catalog from phone photos — **Phase 6**
+- [ ] LLM-powered item descriptions from photos for non-book items — **Phase 6**
+
+## Unscheduled features
+
+- [ ] Admin "Books → Import CSV" page — drag-drop CSV upload, preview, results table
+- [ ] Admin Books list filters — by ISBN, author, binding, edition
+- [ ] Book CSV export with bibliographic columns (round-trip the import format)
+- [ ] Books: where do books live? (shelves/dressers everywhere — separate location question)
+- [ ] Permanent install for the phones (self-hosted web app on Unraid vs EAS Update vs TestFlight) — decide before Phase 5
+- [ ] Persist the mobile Server URL setting (currently resets on app restart)
+- [ ] Image thumbnail generation + compression / WebP on upload (sharp)
+- [ ] Insurance valuation export
+- [ ] Add Stash to Homarr dashboard on ShottsServer
+- [ ] Add Stash to the shottsserver logins-and-credentials doc
+
+## Back-burnered (v1 move planning)
+
+Still in the code, not being extended while the v2 storage work is in progress.
 
 - [ ] Update destination locations with real NC property data
-- [ ] Floor plan v2: image overlay with draggable room zones (uses floorPlanX/Y/Width/Height)
-- [ ] Interactive floor plan furniture placement (v3 of floor plan view)
+- [ ] Floor plan v2: image overlay with draggable room zones
+- [ ] Interactive floor plan furniture placement
 - [ ] iGUIDE 3D walkthrough integration
-- [ ] Home Mode: check-in / check-out log for items
-- [ ] Full property-wide search ("where is my X?")
-- [ ] Barcode / UPC scanning for retail items
-- [ ] Insurance valuation export
 - [ ] Multi-property support
-- [ ] Native mobile QR label printing (direct to Bluetooth printer)
-- [ ] Batch QR code generation (generate all at once for a container set)
-- [ ] Image thumbnail generation on upload (sharp library, save 200px thumbs)
-- [ ] Image compression / WebP conversion on upload for storage savings
-- [ ] Batch price estimation (estimate all SELL items at once)
-- [ ] Price comparison (show owner's estimate vs AI estimate side by side)
-- [x] ~~Books schema (`BookDetails` 1:1 with Item, `BookBinding` enum)~~ (v1.2.0)
-- [x] ~~Free book metadata lookup helpers (OpenLibrary + Google Books)~~ (v1.2.0)
-- [x] ~~Offline enrichment script `scripts/enrich-books.mjs`~~ (v1.2.0)
-- [x] ~~Bulk CSV import endpoint `POST /api/books/import-csv` with placement columns~~ (v1.2.0)
-- [ ] **Admin "Books → Import CSV" page** — drag-drop CSV upload, preview top rows, confirm, show results table
-- [ ] **Admin Books list filters** — by ISBN, author, binding, edition; book-aware columns in the items list
-- [ ] Book CSV export with bibliographic columns (round-trip the import format)
-- [ ] LLM-powered item description generation from photos for non-book items (Sonnet vision, when ANTHROPIC_API_KEY is configured)
-- [ ] Push notifications for sync conflicts
+- [ ] Batch price estimation / price comparison (owner vs AI estimate)
+- [ ] Facebook Marketplace / OfferUp listing integration
 - [ ] Shared packing list views for helpers
-- [ ] Facebook Marketplace / OfferUp API integration for listings
-- [ ] Add Stash to Homarr dashboard on ShottsServer
-- [ ] Add Stash to shottsserver-logins-and-credentials doc
+- [ ] 3D view: save repositioned item positions; undo/redo
+- [ ] Export: room-by-room PDF report
 
-## Technical Debt
+## Technical debt
 
+- [ ] **Security:** refuse to start in production without `JWT_SECRET` (config falls back to a dev secret)
+- [ ] **Security:** `/api/files/*` (photos, QR, exports) is served without auth
+- [ ] **Security:** rate limiting on `/api/auth/login` (express-rate-limit); tighten open CORS
+- [ ] **Security:** import / export / activity routes are available to any logged-in user — decide which are admin-only
+- [ ] Remove leftover WatermelonDB sync code (`routes/sync.ts`, mobile `SyncContext` / `SyncIndicator`), or wire up `Container3DScreen`
 - [ ] Add unit tests (backend services, shared utils)
 - [ ] Add integration tests (API endpoints)
-- [ ] Add E2E tests (admin dashboard flows — Playwright or Cypress)
-- [ ] Admin dark mode toggle
-- [ ] Admin responsive layout (mobile sidebar collapse)
-- [ ] Admin item bulk selection and bulk fate update
-- [ ] Admin container packing wizard (drag items into containers)
-- [ ] Mobile: WatermelonDB offline sync (requires custom Expo dev build, not Expo Go)
-- [ ] Mobile: auto-sync on app foreground and on connectivity change
-- [ ] Mobile: conflict resolution UI (show both versions, let user pick)
-- [x] ~~3D view: click items to see details / highlight~~ (done — hover tooltips + click select)
-- [x] ~~3D view: drag-and-drop item placement within container~~ (done — drag, rotate, collision, stacking)
-- [x] ~~3D add-item screen: live shape preview while entering dimensions~~ (done — shape preview on create page)
-- [ ] 3D view: save repositioned item positions to database
-- [ ] 3D view: undo/redo for position changes
-- [ ] Mobile: barcode/UPC scanning with product lookup
-- [ ] Mobile: haptic feedback on fate selection
-- [ ] Mobile: push notifications for sync status
-- [ ] Export: room-by-room PDF report (items grouped by origin location)
-- [ ] Export: custom QR label layout (configurable sizes, with/without text)
-- [ ] Export: insurance valuation report PDF
+- [ ] Add E2E tests (admin flows — Playwright)
 - [ ] Add mobile UI tests
 - [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Database backups (automated pg_dump to Unraid share)
-- [ ] Rate limiting on API endpoints (express-rate-limit)
 - [ ] Request logging / observability (morgan or pino)
-- [ ] API pagination on item list endpoint (cursor-based)
-- [ ] Bulk fate update endpoint (update multiple items at once)
-- [ ] Image optimization / thumbnail generation on upload
-- [ ] Auto-generate @stash/shared types from Prisma schema (prisma-generator or zod-prisma)
-- [ ] Add database connection pooling (PgBouncer or Prisma Accelerate) for production
+- [ ] API pagination on the item list endpoint (cursor-based)
+- [ ] Debounce mobile search (currently refetches every keystroke) and surface fetch errors
+- [ ] Mobile: `@types/react` pinned to 18 by the root override (admin) — split per workspace
+- [ ] Mobile: React Navigation v6 → v7
+- [ ] Auto-generate `@stash/shared` types from the Prisma schema
+- [ ] Admin dark mode, bulk selection + bulk actions
+- [ ] Mobile: haptic feedback on actions
+- [ ] Database connection pooling (PgBouncer) if needed
+
+## Done
+
+- [x] ~~Mobile Change Password screen~~ (v1.3.0)
+- [x] ~~Expo SDK 57 upgrade~~ (v1.3.0)
+- [x] ~~Books schema, free metadata lookup, enrichment script, bulk CSV import~~ (v1.2.0)
+- [x] ~~Container codes + CSV auto-create~~ (v1.2.1)
+- [x] ~~3D view: click/highlight, drag, rotate, collision, stacking; live shape preview~~ (v1.1.0)

@@ -5,6 +5,14 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Docs
+- Realigned all docs with the v2 storage direction: `README.md` intro, `GUIDE.md` / `TAILSCALE.md` / `SETUP.md` / `IPHONE-GUIDE.md` (Expo login, SDK coupling, HTTPS default, Change Password), `BACKLOG.md` regrouped by spec phase.
+- `CLAUDE.md`: "Start here — current direction" and "Session rules" (teach-as-you-build every change, confirm destructive ops, keep mirrors in sync); corrected stale architecture notes.
+- Added `SPEC.md` (mirror of the vault's `stash-v2-spec.md`) with a phase progress checklist.
+- BUILD_LOG ch. 26; LEARN ch. 16 + ADR-007.
+
 ## [1.3.0] - 2026-09-28
 
 ### Changed

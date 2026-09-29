@@ -151,6 +151,7 @@
         <a class="toc-l2" href="#chapter-8-debugging">Chapter 8 — Debugging</a>
         <a class="toc-l2" href="#chapter-12-containers-nginx-deployment">Chapter 12 — Containers, nginx, deployment</a>
         <a class="toc-l2" href="#chapter-13-observability">Chapter 13 — Observability</a>
+        <a class="toc-l2" href="#chapter-16-documenting-for-the-right-audience">Chapter 16 — Documenting for the right audience</a>
         <a class="toc-l2" href="#chapter-18-the-data-model">Chapter 18 — The data model</a>
         <a class="toc-l2" href="#chapter-19-the-container-code-system">Chapter 19 — The container code system</a>
         <a class="toc-l2" href="#chapter-20-the-mobile-package39s-monorepo-gotchas">Chapter 20 — The mobile package&amp;#39;s monorepo gotchas</a>
@@ -273,6 +274,12 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):</p>
 <td>Sold / Disposed = <strong>hard delete</strong></td>
 <td>User&#39;s choice; activity log keeps a one-line record</td>
 <td>Soft-delete with history</td>
+</tr>
+<tr>
+<td>007</td>
+<td><strong>Spec + key docs mirrored</strong> repo ↔ vault, with the sync rule written into both <code>CLAUDE.md</code> files</td>
+<td>James plans in Obsidian; sessions code in the repo; both need the same truth</td>
+<td>Single copy in one place (the other audience never sees it)</td>
 </tr>
 </tbody></table>
 <h2 id="chapter-4-designing-the-data-model">Chapter 4 — Designing the data model</h2>
@@ -403,6 +410,46 @@ tracker, and a per-route latency histogram. None of those are
 needed today.</p>
 <hr>
 <h1 id="part-4-the-work-that39s-actually-about-other-humans">Part 4 — The work that&#39;s actually about other humans</h1>
+<h2 id="chapter-16-documenting-for-the-right-audience">Chapter 16 — Documenting for the right audience</h2>
+<p>Stash&#39;s docs have four audiences, each with a different entry point:</p>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>Entry point</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>James, planning</td>
+<td>Vault <code>stash.md</code> → <code>stash-v2-spec.md</code></td>
+<td>Direction, status, decisions</td>
+</tr>
+<tr>
+<td>Savanah / phone users</td>
+<td><code>IPHONE-GUIDE.md</code>, <code>GUIDE.md</code></td>
+<td>Steps for features that exist <em>today</em></td>
+</tr>
+<tr>
+<td>James, learning</td>
+<td><code>BUILD_LOG.md</code>, <code>LEARN.md</code></td>
+<td>Why, alternatives, lessons</td>
+</tr>
+<tr>
+<td>AI coding sessions</td>
+<td><code>CLAUDE.md</code> (repo and vault)</td>
+<td>Direction + rules first, reference second</td>
+</tr>
+</tbody></table>
+<p>Rules we follow (BUILD_LOG ch. 26):</p>
+<ul>
+<li><strong>Direction at the top of every entry point.</strong> A reader who stops
+after one screen should still know what&#39;s being built now.</li>
+<li><strong>User guides describe what exists</strong>, with banners for what&#39;s
+changing — not the future.</li>
+<li><strong>Back-burner, don&#39;t delete</strong> docs for code that still runs.</li>
+<li><strong>Mirrors need a written sync rule</strong> (ADR-007).</li>
+</ul>
 <p>[Fill in chapters 14–17.]</p>
 <hr>
 <h1 id="part-5-codebase-tour">Part 5 — Codebase tour</h1>
@@ -564,7 +611,7 @@ Bulleted list with one-line reasoning for each.
 </ul>
 
     <div class="foot">
-      <code>LEARN.md</code> wiki · 11 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>LEARN.md</code> wiki · 12 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

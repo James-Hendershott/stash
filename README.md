@@ -1,12 +1,27 @@
 # Stash
 
-Self-hosted inventory and move management application.
+Self-hosted home inventory for everything we own — what's in each tote, and where each tote is.
 
 Stash answers one question: **"Where is this thing?"**
 
-Built for cataloging household items, assigning them to containers (boxes, totes, U-Box),
-tracking what to Keep/Sell/Donate/Trash, and managing a full household move. After the move,
-Stash becomes a permanent property inventory system.
+## Current direction (v2, in progress)
+
+We rent a smaller home and keep most belongings in standard totes — on overhead garage shelves
+and in a storage unit. Stash v2 is built around that, **100% from the phone**:
+
+```
+Item ──in──► Container (numbered tote, QR label) ──at──► Location (Place › Area › Spot)
+```
+
+Snap a photo to add an item (AI fills the details; books get catalogued), put it in a tote, mark
+the tote *Ready for Storage* to print its QR label and assign a spot, scan any tote to see what's
+inside, and check items or whole totes out and back in with reminders.
+
+**The spec, data model, and phased build order are in [SPEC.md](SPEC.md).** Current version:
+**1.3.0**; next up: **Phase 0 — Foundation**.
+
+Stash was originally built (v1) to plan a household move — Keep/Sell/Donate/Trash fates, origin
+and destination rooms. Those features still exist in the admin site but are **back-burnered**.
 
 ## Architecture
 
@@ -37,7 +52,7 @@ Stash becomes a permanent property inventory system.
 
 | Layer       | Technology                          |
 |-------------|-------------------------------------|
-| Mobile      | React Native 0.81 + Expo SDK 54 (Expo Go) |
+| Mobile      | React Native 0.86 + Expo SDK 57 (Expo Go) |
 | Admin       | React 18 + Vite                     |
 | Backend     | Node.js 20 + Express                |
 | Database    | PostgreSQL 16                       |
@@ -68,7 +83,7 @@ Location ──┤     │
 - **Container** — A special Item that holds other Items (U-Box, tote, box).
 - **BookDetails** — A 1:1 companion to Item for books — ISBN, edition, binding, cover art URL. Populated by `POST /api/books/import-csv` from the enrichment script's CSV, or `POST /api/books/lookup` + `PATCH /api/books/:itemId`.
 - **ItemPlacement** — Tracks which items are in which container (with history).
-- **Location** — Rooms in origin house (Eagle Mountain, UT) and destination house (NC).
+- **Location** — v1: flat rooms in the previous house (Eagle Mountain, UT) and NC destination placeholders. v2: a tree (Place › Area › Spot) for the current house and storage unit — see [SPEC.md](SPEC.md).
 - **Category** — Furniture, Electronics, Kitchen, etc.
 - **ActivityLog** — Audit trail of who changed what and when.
 
@@ -124,8 +139,8 @@ Login: the admin email seeded by `prisma db seed` (see `packages/backend/prisma/
 
 React Native + Expo app with bottom tab navigation:
 - **Items** — Search, filter, card grid, tap to view/edit, camera photo capture
-- **Scan** — Point camera at QR code labels to jump to items
-- **Settings** — Server URL configuration, account info, logout
+- **Scan** — Point camera at QR code labels to jump to items (opening a container's contents is Phase 1)
+- **Settings** — Change password, server URL, account info, logout
 
 Runs in Expo Go for development. See [IPHONE-GUIDE.md](IPHONE-GUIDE.md) for user guide.
 
@@ -178,10 +193,14 @@ curl http://localhost:3001/api/items -H "Authorization: Bearer <token>"
 
 ## Documentation
 
+- [SPEC.md](SPEC.md) — **v2 spec: current direction, data model, build phases (start here)**
+- [BUILD_LOG.md](BUILD_LOG.md) — Chronological build journal, one chapter per version (teach-as-you-build)
+- [LEARN.md](LEARN.md) — Topical engineering reference + architecture decisions (ADRs)
 - [GUIDE.md](GUIDE.md) — Complete user guide (how to add items, containers, sell, export, etc.)
 - [SETUP.md](SETUP.md) — Local dev and Unraid production setup
 - [TAILSCALE.md](TAILSCALE.md) — Remote access configuration
-- [TEACH.md](TEACH.md) — Step-by-step learning notes
+- [TEACH.md](TEACH.md) — Original Steps 1–16 learning journal (historical)
 - [IPHONE-GUIDE.md](IPHONE-GUIDE.md) — iPhone user guide for Savanah
 - [CHANGELOG.md](CHANGELOG.md) — Release history
-- [BACKLOG.md](BACKLOG.md) — Future enhancements
+- [BACKLOG.md](BACKLOG.md) — Everything not yet scheduled into a SPEC phase
+- [CLAUDE.md](CLAUDE.md) — Guidance for AI coding sessions

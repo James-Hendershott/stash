@@ -88,6 +88,7 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):
 | 004 | **Additive migrations** for v2 | Old rows and the admin site keep working while the phone catches up | Big-bang schema rewrite |
 | 005 | Labels go out through the **iPhone Share sheet** | Print (AirPrint), Mail, Files, Phomemo app — no SMTP, no Bluetooth native module | In-app email; direct Bluetooth printing (needs a custom native build) |
 | 006 | Sold / Disposed = **hard delete** | User's choice; activity log keeps a one-line record | Soft-delete with history |
+| 007 | **Spec + key docs mirrored** repo ↔ vault, with the sync rule written into both `CLAUDE.md` files | James plans in Obsidian; sessions code in the repo; both need the same truth | Single copy in one place (the other audience never sees it) |
 
 ## Chapter 4 — Designing the data model
 
@@ -255,6 +256,26 @@ needed today.
 ---
 
 # Part 4 — The work that's actually about other humans
+
+## Chapter 16 — Documenting for the right audience
+
+Stash's docs have four audiences, each with a different entry point:
+
+| Audience | Entry point | Needs |
+|---|---|---|
+| James, planning | Vault `stash.md` → `stash-v2-spec.md` | Direction, status, decisions |
+| Savanah / phone users | `IPHONE-GUIDE.md`, `GUIDE.md` | Steps for features that exist *today* |
+| James, learning | `BUILD_LOG.md`, `LEARN.md` | Why, alternatives, lessons |
+| AI coding sessions | `CLAUDE.md` (repo and vault) | Direction + rules first, reference second |
+
+Rules we follow (BUILD_LOG ch. 26):
+
+- **Direction at the top of every entry point.** A reader who stops
+  after one screen should still know what's being built now.
+- **User guides describe what exists**, with banners for what's
+  changing — not the future.
+- **Back-burner, don't delete** docs for code that still runs.
+- **Mirrors need a written sync rule** (ADR-007).
 
 [Fill in chapters 14–17.]
 

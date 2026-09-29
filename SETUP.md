@@ -98,11 +98,16 @@ Development data is stored in `./data/` (gitignored):
    ```bash
    cd packages/mobile
    npm install
+   npx expo login          # first time only — same account as Expo Go
    npx expo start --tunnel
    ```
-   Scan the QR code with **Expo Go** (SDK 54+) on your phone. Set the
-   server URL in Settings to your computer's LAN IP (e.g., `http://192.168.1.74:3001`).
-   There is no offline mode — the app talks to the API directly.
+   Sign in to **Expo Go** on your phone with the same Expo account, then scan
+   the QR code. The project targets **Expo SDK 57**; Expo Go only runs the
+   newest SDK, so upgrade the project if Expo Go reports it as incompatible
+   (BUILD_LOG ch. 24). The app defaults to the production API
+   (`https://stash-api.shottsserver.com`); to test against your local
+   backend, set Settings → Server URL to your computer's LAN IP (e.g.
+   `http://192.168.1.74:3001`). There is no offline mode.
 
 ### Stopping Services
 

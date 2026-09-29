@@ -338,6 +338,13 @@
         <a class="toc-l3" href="#duplicate-search-and-big-o">Duplicate search and Big-O</a>
         <a class="toc-l2" href="#step-6-build-order-every-phase-usable-on-its-own">Step 6: Build order — every phase usable on its own</a>
         <a class="toc-l2" href="#chapter-takeaways-26">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-25">The ask</a>
+        <a class="toc-l2" href="#the-plan-20">The plan</a>
+        <a class="toc-l2" href="#step-1-rules-not-just-facts">Step 1: Rules, not just facts</a>
+        <a class="toc-l2" href="#step-2-back-burner-don39t-delete">Step 2: Back-burner, don&amp;#39;t delete</a>
+        <a class="toc-l2" href="#step-3-one-source-mirrored">Step 3: One source, mirrored</a>
+        <a class="toc-l2" href="#verifying-9">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-27">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -3788,6 +3795,120 @@ a printed number can&#39;t.</li>
 <li><strong>Additive migrations let the old and new coexist</strong> while you build.</li>
 </ul>
 <hr>
+<h1 id="chapter-26-docs-that-point-the-same-direction-for-humans-and-ai-sessions">Chapter 26 — Docs that point the same direction (for humans and AI sessions)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Documentation has several
+audiences — you in six months, Savanah using the app, and AI coding
+sessions that start with zero memory. After a change of direction,
+every entry point has to say the same thing, or the next session
+builds the old product.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-28, after Chapter 25&#39;s spec was agreed.</p>
+<h2 id="the-ask-25">The ask</h2>
+<blockquote>
+<p>&quot;Clean up all the documentation to ensure it&#39;s in line with the new
+direction, and also ensure that any new session that reads this code
+base or vault documentation knows to follow the skill and what we
+are doing.&quot;</p>
+</blockquote>
+<h2 id="the-plan-20">The plan</h2>
+<p>List every place a reader (or a session) <em>starts</em>, and make each one
+answer three questions in its first screen: <strong>what are we building
+now, where&#39;s the plan, and what are the rules?</strong></p>
+<table>
+<thead>
+<tr>
+<th>Entry point</th>
+<th>Who lands there</th>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Repo <code>CLAUDE.md</code></td>
+<td>Every coding session (auto-loaded)</td>
+<td>SDK 54, WatermelonDB, &quot;Colorado rooms&quot;, &quot;never hard-delete&quot;</td>
+<td>&quot;Start here&quot; + session rules at the top; stale facts fixed</td>
+</tr>
+<tr>
+<td>Vault folder</td>
+<td>Sessions started in Obsidian</td>
+<td><strong>No <code>CLAUDE.md</code> at all</strong></td>
+<td>New <code>CLAUDE.md</code> pointing to the spec, repo, and rules</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>Humans on GitHub</td>
+<td>&quot;move management application&quot;</td>
+<td>Storage direction + link to <code>SPEC.md</code></td>
+</tr>
+<tr>
+<td><code>SPEC.md</code></td>
+<td>Everyone</td>
+<td>Only in the vault</td>
+<td>Mirrored into the repo, with a Progress checklist</td>
+</tr>
+<tr>
+<td><code>BACKLOG.md</code></td>
+<td>Planning</td>
+<td>Flat wish list</td>
+<td>Grouped: scheduled (→ phase), unscheduled, back-burnered, tech debt, done</td>
+</tr>
+<tr>
+<td><code>GUIDE.md</code> / <code>IPHONE-GUIDE.md</code> / <code>SETUP.md</code> / <code>TAILSCALE.md</code></td>
+<td>Users</td>
+<td>Pre-SDK-57 steps, &quot;no change-password screen&quot;</td>
+<td>Expo login, SDK coupling, HTTPS default, Change Password</td>
+</tr>
+<tr>
+<td>Vault <code>stash.md</code></td>
+<td>James</td>
+<td>&quot;Inventory &amp; Move Manager&quot;, v1.2.2</td>
+<td>Storage direction, v1.3.0 status, roadmap = spec phases</td>
+</tr>
+</tbody></table>
+<h2 id="step-1-rules-not-just-facts">Step 1: Rules, not just facts</h2>
+<p>A <code>CLAUDE.md</code> that only describes the code tells a session <em>what is</em>,
+not <em>what to do</em>. The new &quot;Session rules&quot; section is explicit:</p>
+<ol>
+<li>Follow <code>teach-as-you-build</code> for every change — chapter, LEARN/ADR,
+CHANGELOG, <code>build:wiki</code> — <strong>before committing</strong>.</li>
+<li>Destructive data changes: backup, show the list, wait for a yes.</li>
+<li>Keep doc mirrors identical (repo ↔ vault).</li>
+<li>Phone-first.</li>
+<li>If auto mode blocks a deploy, hand over the commands — don&#39;t work
+around it.</li>
+</ol>
+<h2 id="step-2-back-burner-don39t-delete">Step 2: Back-burner, don&#39;t delete</h2>
+<p>GUIDE.md still documents destination rooms and the NC floor plan —
+because those features <em>still exist</em>. Deleting the docs would make a
+working feature undiscoverable; leaving them unmarked would suggest
+it&#39;s the focus. The middle path: a banner (&quot;back-burnered&quot;) on each.</p>
+<h2 id="step-3-one-source-mirrored">Step 3: One source, mirrored</h2>
+<p>The spec lives where James thinks (Obsidian) <em>and</em> where sessions code
+(the repo). Two copies drift unless a rule says otherwise, so both
+<code>CLAUDE.md</code> files state the mirror pairs and the rule: <em>edit one, copy
+to the other.</em> That decision is ADR-007 in <code>LEARN.md</code>.</p>
+<h2 id="verifying-9">Verifying</h2>
+<ul>
+<li>Grep for stale terms across all docs (<code>SDK 54</code>, <code>WatermelonDB</code>,
+<code>Colorado</code>, <code>stash.local</code>, <code>from-photo</code>) — remaining hits are
+intentional (historical chapters, &quot;removed in v1.1.1&quot; notes).</li>
+<li><code>cmp</code> confirms each vault mirror is byte-identical to its repo file.</li>
+<li><code>npm run build:wiki</code> regenerated the HTML.</li>
+</ul>
+<h2 id="chapter-takeaways-27">Chapter takeaways</h2>
+<ul>
+<li><strong>Every entry point should answer: what now, where&#39;s the plan,
+what are the rules.</strong></li>
+<li><strong>AI sessions start from zero</strong> — <code>CLAUDE.md</code> is their onboarding
+doc. Put direction and rules at the top, reference detail below.</li>
+<li><strong>Back-burner with a banner; don&#39;t delete docs for code that still
+runs.</strong></li>
+<li><strong>Mirrored docs need a written sync rule</strong>, or they drift (Chapter
+24 started by fixing exactly that drift).</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -3919,7 +4040,7 @@ a printed number can&#39;t.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 195 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 202 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

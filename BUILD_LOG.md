@@ -3810,6 +3810,87 @@ the feature level.
 
 ---
 
+# Chapter 26 — Docs that point the same direction (for humans *and* AI sessions)
+
+> 📌 **What this chapter teaches.** Documentation has several
+> audiences — you in six months, Savanah using the app, and AI coding
+> sessions that start with zero memory. After a change of direction,
+> every entry point has to say the same thing, or the next session
+> builds the old product.
+
+**Date:** 2026-09-28, after Chapter 25's spec was agreed.
+
+## The ask
+
+> "Clean up all the documentation to ensure it's in line with the new
+> direction, and also ensure that any new session that reads this code
+> base or vault documentation knows to follow the skill and what we
+> are doing."
+
+## The plan
+
+List every place a reader (or a session) *starts*, and make each one
+answer three questions in its first screen: **what are we building
+now, where's the plan, and what are the rules?**
+
+| Entry point | Who lands there | Before | After |
+|---|---|---|---|
+| Repo `CLAUDE.md` | Every coding session (auto-loaded) | SDK 54, WatermelonDB, "Colorado rooms", "never hard-delete" | "Start here" + session rules at the top; stale facts fixed |
+| Vault folder | Sessions started in Obsidian | **No `CLAUDE.md` at all** | New `CLAUDE.md` pointing to the spec, repo, and rules |
+| `README.md` | Humans on GitHub | "move management application" | Storage direction + link to `SPEC.md` |
+| `SPEC.md` | Everyone | Only in the vault | Mirrored into the repo, with a Progress checklist |
+| `BACKLOG.md` | Planning | Flat wish list | Grouped: scheduled (→ phase), unscheduled, back-burnered, tech debt, done |
+| `GUIDE.md` / `IPHONE-GUIDE.md` / `SETUP.md` / `TAILSCALE.md` | Users | Pre-SDK-57 steps, "no change-password screen" | Expo login, SDK coupling, HTTPS default, Change Password |
+| Vault `stash.md` | James | "Inventory & Move Manager", v1.2.2 | Storage direction, v1.3.0 status, roadmap = spec phases |
+
+## Step 1: Rules, not just facts
+
+A `CLAUDE.md` that only describes the code tells a session *what is*,
+not *what to do*. The new "Session rules" section is explicit:
+
+1. Follow `teach-as-you-build` for every change — chapter, LEARN/ADR,
+   CHANGELOG, `build:wiki` — **before committing**.
+2. Destructive data changes: backup, show the list, wait for a yes.
+3. Keep doc mirrors identical (repo ↔ vault).
+4. Phone-first.
+5. If auto mode blocks a deploy, hand over the commands — don't work
+   around it.
+
+## Step 2: Back-burner, don't delete
+
+GUIDE.md still documents destination rooms and the NC floor plan —
+because those features *still exist*. Deleting the docs would make a
+working feature undiscoverable; leaving them unmarked would suggest
+it's the focus. The middle path: a banner ("back-burnered") on each.
+
+## Step 3: One source, mirrored
+
+The spec lives where James thinks (Obsidian) *and* where sessions code
+(the repo). Two copies drift unless a rule says otherwise, so both
+`CLAUDE.md` files state the mirror pairs and the rule: *edit one, copy
+to the other.* That decision is ADR-007 in `LEARN.md`.
+
+## Verifying
+
+- Grep for stale terms across all docs (`SDK 54`, `WatermelonDB`,
+  `Colorado`, `stash.local`, `from-photo`) — remaining hits are
+  intentional (historical chapters, "removed in v1.1.1" notes).
+- `cmp` confirms each vault mirror is byte-identical to its repo file.
+- `npm run build:wiki` regenerated the HTML.
+
+## Chapter takeaways
+
+- **Every entry point should answer: what now, where's the plan,
+  what are the rules.**
+- **AI sessions start from zero** — `CLAUDE.md` is their onboarding
+  doc. Put direction and rules at the top, reference detail below.
+- **Back-burner with a banner; don't delete docs for code that still
+  runs.**
+- **Mirrored docs need a written sync rule**, or they drift (Chapter
+  24 started by fixing exactly that drift).
+
+---
+
 # Glossary
 
 Terms in **bold italic** in chapter text are defined here.

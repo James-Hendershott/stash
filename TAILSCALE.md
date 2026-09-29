@@ -11,19 +11,20 @@ Tailscale is already configured on ShottsServer, phones, and development machine
 
 ### Mobile App (Expo Go)
 
-Open the Stash app in Expo Go. In Settings, set the server URL to:
+The app defaults to the public proxy (works everywhere, with SSL) — no
+Tailscale needed:
+```
+https://stash-api.shottsserver.com
+```
+
+To route over Tailscale instead, set Settings → Server URL to:
 ```
 http://100.122.58.114:3001
 ```
 
-When on the local network, you can also use:
+Or on the home network:
 ```
 http://192.168.1.153:3001
-```
-
-Or via the proxy (works everywhere, with SSL):
-```
-https://stash-api.shottsserver.com
 ```
 
 ### Admin Dashboard
