@@ -107,13 +107,13 @@ const LOCATIONS = [
 // Numbers honor the physical labels already on the totes. Brand/colors are
 // best guesses from v1 data — confirm on the phone.
 const KEPT_CONTAINERS = [
-  { label: 'BXS-0001', number: 1, model: ['Generic', 'Cardboard Box'], category: ['Books & Media', 'Books'] },
-  { label: 'T27-0010', number: 10, model: ['HDX', '27 Gal Tough Storage Tote'], category: ['Games & Tabletop', 'Miniatures & Wargaming'] },
-  { label: 'T27-0011', number: 11, model: ['HDX', '27 Gal Tough Storage Tote'], category: ['Games & Tabletop', null] },
-  { label: 'T27-0012', number: 12, model: ['HDX', '27 Gal Tough Storage Tote'], category: ['Games & Tabletop', 'Role-Playing Games'] },
-  { label: 'T27-0013', number: 13, model: ['HDX', '27 Gal Tough Storage Tote'], category: ['Games & Tabletop', null] },
-  { label: 'T27-0020', number: 20, model: ['HDX', '27 Gal Tough Storage Tote'], lidColor: 'Red', category: ['Games & Tabletop', 'Trading Card Games'] },
-  { label: 'T27-0021', number: 21, model: ['HDX', '27 Gal Tough Storage Tote'], lidColor: 'Red', category: null },
+  { label: 'BXS-0001', number: 1, model: ['Generic', 'Cardboard Box'] },
+  { label: 'T27-0010', number: 10, model: ['HDX', '27 Gal Tough Storage Tote'] },
+  { label: 'T27-0011', number: 11, model: ['HDX', '27 Gal Tough Storage Tote'] },
+  { label: 'T27-0012', number: 12, model: ['HDX', '27 Gal Tough Storage Tote'] },
+  { label: 'T27-0013', number: 13, model: ['HDX', '27 Gal Tough Storage Tote'] },
+  { label: 'T27-0020', number: 20, model: ['HDX', '27 Gal Tough Storage Tote'], lidColor: 'Red' },
+  { label: 'T27-0021', number: 21, model: ['HDX', '27 Gal Tough Storage Tote'], lidColor: 'Red' },
 ];
 
 async function applyReferenceData(prisma, log = console.log) {
@@ -176,8 +176,9 @@ async function applyReferenceData(prisma, log = console.log) {
   for (const [i, place] of LOCATIONS.entries()) await upsertLocation(place, null, i);
   summary.locationsCreated = locsCreated;
 
-  // 5. Kept totes: number, model, colors, status, and item categories.
-  let numbered = 0, recategorized = 0;
+  // 5. Kept totes: number, model, colors, status. (Item categories are
+  //    applied per item by v2-item-categories.cjs.)
+  let numbered = 0;
   for (const k of KEPT_CONTAINERS) {
     const container = await prisma.container.findUnique({ where: { label: k.label } });
     if (!container) continue; // fresh install — nothing to number
@@ -195,25 +196,8 @@ async function applyReferenceData(prisma, log = console.log) {
       });
       numbered++;
     }
-    if (k.category) {
-      const [topName, subName] = k.category;
-      const target = subName ? catIds[topName].subs[subName] : catIds[topName].id;
-      const misc = catIds['Miscellaneous'].id;
-      // Only move items still sitting in Miscellaneous (the April import's
-      // fallback) — never override a category someone chose deliberately.
-      const placements = await prisma.itemPlacement.findMany({
-        where: { containerId: container.id, removedAt: null },
-        select: { itemId: true },
-      });
-      const r = await prisma.item.updateMany({
-        where: { id: { in: placements.map((p) => p.itemId) }, categoryId: misc },
-        data: { categoryId: target },
-      });
-      recategorized += r.count;
-    }
   }
   summary.containersNumbered = numbered;
-  summary.itemsRecategorized = recategorized;
 
   log('v2 reference data applied:', JSON.stringify(summary));
   return summary;

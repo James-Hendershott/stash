@@ -4259,6 +4259,89 @@ Settings → Server URL at the laptop's local backend to test first).
 
 ---
 
+# Chapter 29 — v1.5.1: The user changed the plan (and that's the point of reviewing)
+
+> 📌 **What this chapter teaches.** Why destructive steps get a human
+> review *before* they run, how to present a review so it can actually
+> be read, and how to turn "keep it after all" into a safer script.
+
+**Date:** 2026-09-29, morning.
+
+## The ask
+
+Reviewing the prune list, James first said *"I think the list got cut
+short?"* — then, once he could read it properly: *"Keep all the items
+but remove them from the totes. Try and categorize them with our new
+categories."* Later: delete the empty tote records (*"we are going to
+start fresh with all containers"*) and remove one unknown entry.
+
+## Step 1: A review nobody can read isn't a review
+
+The CSV was complete (136 rows) but looked truncated:
+
+- It was **sorted by tote code**, and `(not in a tote)` sorts before
+  `CST-…`, so 115 loose rows came first and the actual totes were buried.
+- Excel opened the UTF-8 file as ANSI, mangling `Don’t` into `Donâ€™t`.
+- Several "totes" held **one row** describing the whole tote (entered
+  that way in April), which looked like missing data.
+
+The fix was presentation, not data: a grouped Obsidian note (tote →
+contents, loose items by category, checkboxes) and the CSV re-saved with
+a UTF-8 BOM (`encoding='utf-8-sig'`) so Excel reads it correctly.
+
+## Step 2: Prune → unpack
+
+The prune became `v2-unpack.cjs`. Same safety model (ADR-009) — dry run
+by default, `CONFIRM=yes` to act, one transaction, activity log — but
+the default outcome is **keep**:
+
+- Placements get `removedAt` instead of the item being deleted.
+- `DELETE_EMPTY_TOTES=yes` deletes a tote record **only if nothing is
+  left in it**.
+- One item removal, guarded two ways:
+
+```js
+const REMOVE_ITEMS = [{ id: 'e9853031-…', name: 'Mommy and Baby Shark' }];
+// … delete only if the row with that id still has exactly that name
+```
+
+A stale id alone can never delete the wrong row.
+
+## Step 3: Per-item categories instead of per-tote
+
+Chapter 27 set categories per tote, which mislabeled anything off-theme.
+This time every one of the 265 items got its own category in
+`v2-item-categories.json` (reviewable, diffable, re-runnable), grouped
+by how the family actually looks for things: the whole camping kit under
+Camping Gear, the Subaru emergency tote under Emergency, games split
+five ways, grandma's china under Heirlooms.
+
+## Bug-in-waiting we noticed
+
+Deleting a tote record **cascades** to its `item_placements` rows, so
+the 21 unpacked items lose their "was in Suitcase #1" history rows. The
+activity-log entry keeps every tote and item name, so the fact isn't
+lost — but it's a reminder that `onDelete: Cascade` is a design choice
+with consequences worth writing down.
+
+## Verifying (restored production copy)
+
+- Categories: 265 items + 431 books changed; second run: 0.
+- Unpack dry run: 21 items in 8 totes, 8 tote records, 1 item removal.
+- Execute: 703 records (431 books, 7 totes, 265 items), 191 still in the
+  kept totes, spot checks correct (*Bears vs Babies* → Board Games).
+
+## Chapter takeaways
+
+- **Review before destroy — and make the review readable.** The data was
+  right; the presentation hid it.
+- **When the user says "keep it", make keeping the default** in the
+  script, with deletion as an explicit, narrow flag.
+- **Guard deletions by more than an id.**
+- **Know what cascades.**
+
+---
+
 # Glossary
 
 Terms in **bold italic** in chapter text are defined here.

@@ -270,7 +270,9 @@ Two levels — broad category, optional subcategory. AI picks both.
   | Tote #20 (Red) | Magic the Gathering Cards & Decks | 6 |
   | Tote #21 (Red) | Magic the Gathering continued & office | 7 (5 with no category) |
 
-  These may be renumbered freely. Everything else non-book gets removed. **Database backup first**, exact removal list reviewed before deleting.
+  These may be renumbered freely.
+
+- **Decided 2026-09-29 (replaces the prune):** keep **every** item. All 265 non-book items are categorized individually (`prisma/v2-item-categories.json`); books → Books & Media › Books. The 21 items inside the 8 retired totes are taken out and those 8 empty tote records deleted — containers start fresh. *Mommy and Baby Shark* is removed. Result: 703 records (431 books, 7 totes, 265 items).
 - Old Eagle Mountain rooms and NC placeholder rooms get retired/hidden.
 
 ---

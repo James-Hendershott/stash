@@ -1,0 +1,1069 @@
+{
+ "_about": "Per-item categories for the 265 non-book items (Mommy and Baby Shark removed by James) (reviewed 2026-09-29). Applied by prisma/v2-item-categories.cjs. Keys are item ids.",
+ "books": [
+  "Books & Media",
+  "Books"
+ ],
+ "items": {
+  "eefef840-4fee-495c-9883-9ee78e22da60": [
+   "Tools & Hardware",
+   "Fasteners & Hardware"
+  ],
+  "4f7c53cc-4b4d-49c0-91c3-8bc12126cccb": [
+   "Tools & Hardware",
+   "Fasteners & Hardware"
+  ],
+  "5aa7356b-d63a-467b-b78c-6390c772637f": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "8a0ba0ce-59ea-4eb7-85c0-abee498e88ee": [
+   "Home Decor",
+   "Lighting"
+  ],
+  "562d7773-0a1c-4c26-80af-cc9f3e1c509c": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "7897a294-cb30-4b46-baf4-3398264dee6f": [
+   "Electronics & Tech",
+   "Batteries"
+  ],
+  "02434f8b-df39-441b-b352-2c5fba48199a": [
+   "Electronics & Tech",
+   "Batteries"
+  ],
+  "756cd452-50bf-467e-ba5c-99b233dd7e44": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "837d7239-4869-4397-803e-46f8d704afea": [
+   "Camping & Outdoors",
+   "Hiking"
+  ],
+  "06cf995a-2068-4941-a90c-e2d5c7b203ed": [
+   "Camping & Outdoors",
+   "Hiking"
+  ],
+  "bac92951-8d4f-42a7-8d2f-8023a0635b33": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ],
+  "1828780e-a30f-4b11-b560-f5f1234f0404": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "f89d5b03-c44d-431c-85fc-3ddfe41105f5": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "06909975-62ff-4acf-9102-7482140b0c3d": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "adfca022-1b99-46d1-af90-027efc4de005": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "e19e10f3-9334-43f2-b3bc-e582e0b1848a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "7fc8734b-ff13-462a-974e-88757d3b42f9": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "246fe535-4142-4a26-9482-3a795617c943": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "34143236-9f89-410a-a160-48e24a2f54d9": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "6280d714-e604-4fb2-8a8c-eb6471c86ecd": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "3e5e2204-c2f4-42dc-a3da-01a5d359bda3": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1fe2f921-ac5b-4107-bc1b-b748937175f3": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "45618ce9-a333-47bc-bb57-9c2f5250764d": [
+   "Tools & Hardware",
+   "Power Tools"
+  ],
+  "73ef7bd1-dfaf-4425-98cd-85ca495e79e6": [
+   "Household Supplies",
+   "Cleaning"
+  ],
+  "f755bc76-a51d-4d60-b1db-12e62a695494": [
+   "Home Decor",
+   "Vases & Accents"
+  ],
+  "f9e8ade9-f726-42b7-9802-36f0bc41e190": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "7d74937c-f482-44f9-89c0-8cb846d8198d": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "31f43233-6631-4ace-b537-f5134459b789": [
+   "Arts & Crafts",
+   "Sewing"
+  ],
+  "3ee4624d-c9a4-49a8-b4d3-8742ed9d52c7": [
+   "Emergency & Preparedness",
+   "Food Storage"
+  ],
+  "531f88cc-bb3b-4ba1-baa9-d68c136e8df8": [
+   "Camping & Outdoors",
+   "Fishing & Hunting"
+  ],
+  "f41d0731-76f3-4f18-b417-ae5cb078c7bf": [
+   "Health & First Aid",
+   "First Aid"
+  ],
+  "97e2fe86-9da3-4ea9-8efa-c950ce2f9048": [
+   "Household Supplies",
+   "Paper Goods"
+  ],
+  "80fb597b-7f3b-4fcc-805f-24b7bab576c8": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "4cff42f6-5d5d-4c47-bd90-9e3103735757": [
+   "Household Supplies",
+   "Cleaning"
+  ],
+  "da72dc82-b42b-42d8-b2a6-df89f3553dc3": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "3be52957-180c-4041-b01b-801bfdc10e4d": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "7d21e24a-721e-48e0-b3cc-60cafc2cde74": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "151dd966-918a-4ec1-a03a-cc4fe9f43b4d": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "2e8ffae7-e1e7-4aad-9d86-ea6f7ed4714d": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "cf5d97a0-70ea-4ff8-b2b6-17d55f1918aa": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "8f92f829-c75a-46f9-b3b8-fb70b5d33667": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "ba8e0866-339e-4979-8433-ad2da374917e": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "ace671bd-d09e-42b3-ad98-fc3999850bb0": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "c085846e-3cc8-4809-84c6-c9c1123010d2": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "39ed12f0-eb51-4f61-8517-6cba45dbb7fa": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "a2bb7fd6-9d30-416d-88a5-529685f95bce": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "ea66823d-3a94-4fc4-8a1f-54c0519b386f": [
+   "Bath & Personal Care",
+   "Toiletries"
+  ],
+  "ca13caf5-64a5-4aa4-b773-44517fe2ee85": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "3835ed6d-f722-4db6-bf83-10ed85881462": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "75aafd1e-5804-4265-af7f-4eed19b1f84f": [
+   "Camping & Outdoors",
+   "Hiking"
+  ],
+  "41684391-f303-4189-a427-f137f8885a9a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "84bb0a46-25a8-482f-90f1-4a1dc816c514": [
+   "Clothing & Accessories",
+   "Costumes & Dress-Up"
+  ],
+  "0ced1885-38e1-457e-8e78-cce461dec071": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "9fbe1b55-4ef4-4562-a75b-3c3c33830917": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "8fa6cd79-013b-4107-9da9-1bff21f4ad1a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1b3b9988-7c02-4fd6-920e-e396f1709a04": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "d6530adb-0541-46c5-ad82-720c0c1339af": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "10180c6d-78d3-441a-aeb9-94a40e0f82a7": [
+   "Household Supplies",
+   "Cleaning"
+  ],
+  "ea306b8c-56f4-4bb3-8158-471dfbe44dfd": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "1739456a-c2b9-4eb9-9b52-33c5eb42926d": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "70235fe7-6195-4198-987b-1a4490224b87": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "f4010699-59b0-4510-90e0-e8e7a944435c": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "19f08417-5447-442a-8c77-8889eab670a6": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "d95e82de-782b-46b2-9453-b54486eb5dc1": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "3fee286f-9912-4c7c-b3d5-1aa7c0249763": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "efff3428-71bd-4e89-9bec-0ab27937c54e": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "47658f86-3408-4479-8c0e-725b0c18775a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "d5ecdd78-3f93-4508-9094-9cbfe0075e6c": [
+   "Clothing & Accessories",
+   "Costumes & Dress-Up"
+  ],
+  "2f112ba6-2cbe-4a3f-8078-a1490fea2cb4": [
+   "Tools & Hardware",
+   "Fasteners & Hardware"
+  ],
+  "a85a8c81-06eb-491a-8160-eddfb01b4a41": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "b3933c4f-68cf-448f-8576-8bb2ead89693": [
+   "Tools & Hardware",
+   "Hand Tools"
+  ],
+  "30eb0275-8af6-45e8-84c9-ee8de328804c": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "0039b1d7-4d4c-49b2-b73c-82f187391d23": [
+   "Clothing & Accessories",
+   "Outerwear & Winter"
+  ],
+  "b1c91979-1b84-4010-a76f-b9290e63f226": [
+   "Tools & Hardware",
+   "Fasteners & Hardware"
+  ],
+  "864fb08a-3f4c-4708-b8e8-d37c07e74eb1": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "54c45c18-6834-4b4e-990e-05d84257e5a0": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "4548e3a0-c210-4233-b542-235f4cf88f55": [
+   "Tools & Hardware",
+   "Power Tools"
+  ],
+  "6f34f7fb-000a-4f25-a6e2-fd1cc45e1a01": [
+   "Household Supplies",
+   "Cleaning"
+  ],
+  "4381f765-f355-463b-88b1-ec51801d7995": [
+   "Arts & Crafts",
+   "Sewing"
+  ],
+  "e172ec58-bda9-42a7-87dd-cfb36468a5dd": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "a5da7ace-426e-4fac-b360-49bbe0eb01a3": [
+   "Yard & Garden",
+   "Garden Tools"
+  ],
+  "c0e10eb3-fec7-437d-b5b2-22dce1096031": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1d0280da-82b0-45ed-a05d-818cf93a2288": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "f6ba2774-e84f-4ead-80d0-47e93bf99d9a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "42b6a1c1-0e96-4cbe-88eb-f090364cb229": [
+   "Household Supplies",
+   "Cleaning"
+  ],
+  "d74905cb-7961-4207-b641-3b72299b56be": [
+   "Bath & Personal Care",
+   "Toiletries"
+  ],
+  "27141e9a-68a3-4b8f-a1d9-1aca6880b6e6": [
+   "Home Decor",
+   "Vases & Accents"
+  ],
+  "e570bf67-83c3-4e9a-9b9b-beb34320249a": [
+   "Sports & Recreation",
+   null
+  ],
+  "e4bbad38-4d5e-4702-86b3-281701764422": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "cb50e734-415a-40c4-b58d-f8fe829cf283": [
+   "Electronics & Tech",
+   null
+  ],
+  "a0819ace-daea-45e6-b976-36ca0e27f8d9": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "6162b1e3-8d19-4f9d-89cb-f0fae4d0955c": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "fce60046-f851-4e33-8cd2-435dfaf419ac": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "f50e3b26-e580-40ed-818b-dbfad9a0dfdb": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1f4f37b7-e06b-4299-900a-1573b9ac8b3e": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "bd377884-689d-4d36-ae0d-d7bac3dbe24f": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ],
+  "7fa5889e-2ccf-4a79-8278-66e677480557": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1b6fc6ed-a22f-4bdd-9b76-8341dc0d254a": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "e72713ff-5c8a-4ab2-a657-7664d07b8a1d": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ],
+  "8f7705ad-04d8-44c6-96d0-dec683b5ece2": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "cc4101b4-980a-4d71-a2d3-21b2978a737d": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "d04b7e01-1b79-4276-9132-4c701cfc15e8": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "73552670-1d79-4fa2-b7a9-0bb37f1ab606": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "cc0bbc9d-96f3-47c1-9285-866e2ec103b6": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "cbc7c27d-1a6c-4c18-95df-f4a2008b4144": [
+   "Bath & Personal Care",
+   "Toiletries"
+  ],
+  "366d2fab-a596-4901-ab48-2ed5a2b85e64": [
+   "Camping & Outdoors",
+   "Camping Gear"
+  ],
+  "1fcc6f4c-cfc7-42b5-b349-4632acff659b": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ],
+  "a5e0ac76-911b-416a-943a-8fc88bc9d111": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ],
+  "a149dec2-49c9-48f6-b6ac-224e731346f9": [
+   "Arts & Crafts",
+   "Sewing"
+  ],
+  "358653fe-5355-4d1c-ac15-efac2bdd4208": [
+   "Arts & Crafts",
+   "Sewing"
+  ],
+  "00e40300-02b0-43d7-85b0-6463c1831fff": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "c290ea4e-4b5b-4870-94ab-e19f532004ed": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "302fffdf-f643-4614-8fbf-475e97418c53": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "d5051b77-6917-42c9-a662-f3140f01b5dd": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "e94109c4-d69f-4799-b33d-b1620a05a3a6": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "fd31d4b8-8ad0-4a3a-88fa-1f6ba4fcf358": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "460ec6e1-f69d-465d-80ef-b4aa5146e3ae": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "a5319f6e-92e3-46b6-9f99-b27355e9240a": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "bfb4f7ed-3be0-49d3-ab8f-04d478f4dd9c": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "0541196e-7530-45d1-b869-464a47fe35a4": [
+   "Emergency & Preparedness",
+   "Water"
+  ],
+  "821df6b9-d326-4f41-946c-af985f464c66": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "4f4325a8-fa5a-4212-a8ea-8aff6dbbcac8": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "b61421cf-45a8-4adc-a018-2f4a908d35ea": [
+   "Emergency & Preparedness",
+   "Emergency Gear"
+  ],
+  "fef2ed09-9a4e-442f-8f69-500dd6b7ca7f": [
+   "Emergency & Preparedness",
+   "Water"
+  ],
+  "4d51b15e-cb8c-45a9-8374-cced6468cd32": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "445fdfb5-2cd5-4c73-9f92-3e114d5b4365": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "7aa1329c-d731-4651-afe2-e329f993e4ed": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "cd30f740-7767-4b91-b6b1-4d23fe94e4ef": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "acbb292c-5e93-45ca-9279-732edd0238ee": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "a724ec15-69cd-4016-ba66-f9411c4016ac": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "d268eff7-fe33-44fc-b29a-6d7558485623": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "c4c9faf3-9fff-4cff-b200-cfab6777b7b2": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "a53a66a6-40e7-4c7f-8bb8-9cab884bdd94": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "bddf2b9e-8454-4e5d-b65a-99ab9c7a061f": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "a8a11d7a-f54a-4096-8e6c-1ad592daf408": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "6866dedd-22c4-4d50-a94c-8dd52033e4b9": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "51aa5316-b7d2-4b80-ac7f-58ff8f53fe73": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "60238d3e-84a1-40d2-a690-3c48ba6793cb": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "4aa926be-55fa-43dc-857d-0dd9ad45b327": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "691306e2-d9d7-4986-8e44-c5ea8a85d361": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "6efd6d7c-68b4-4fc9-9aae-8d1227785729": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "dc046e81-af42-4394-8709-8ca62e668ac6": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "6b7373d4-3c96-4f4d-b709-604ec0e5ae4f": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "62b3804b-ccc1-4fc0-818f-1a9a2b772b86": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "d964d491-8ce0-4bae-b7be-ca8b039a72dc": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "0cfa54f3-7a80-44c0-a203-47fc2447d1e9": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "0b1f1130-bacd-4a3a-a2b9-18d26ea069ee": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "548687c8-b273-4b78-8f67-38863dcf9d9e": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "99775af2-ded0-41d4-9851-f00cef8cc7cf": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "4b1e97de-321d-430c-863d-b2eec91a6ee3": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "18a001f6-be19-42ca-902c-6fbdc27b5e9f": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "c97f6d63-34f0-4472-9753-1d27de192591": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "f3cc59ed-48e9-4d33-9dbe-8d47c365bf8e": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "b3d3d967-32b1-4b64-bb43-68b3a8ca43bd": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "d504d243-4453-415f-8b63-488802f11617": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "0f085bef-7e45-4a41-8b5d-79ad5c258ce2": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "f876a16d-75a3-4b8f-b1f1-50d9c4366a7b": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "a8a77fc5-1802-4f75-bbca-e62889d9594a": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "287ec957-8ef7-4146-992e-09cfa928377b": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "923f7355-bf91-44fc-a414-c3311e6c016b": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "32264990-cab9-4eb5-aef3-ec3d2e456f87": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "1e5337b1-1ef1-4c2e-b15d-10affd62ca85": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "34f7e949-395a-4ee4-89c8-74e8a02d6fb6": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "dfc01eba-31a2-4a34-ae5c-bf9d82f92b82": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "d7f2f8ce-38cd-4097-9887-95d56e1cda76": [
+   "Games & Tabletop",
+   "Miniatures & Wargaming"
+  ],
+  "06a5a423-9334-4ac8-956f-6f90c91ab101": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "3e646223-1c2e-4be6-8f9f-52b6afe20400": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "00f56b30-03e1-4d6a-bc19-57de3c5066dc": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "690bf8b2-2c97-4676-ab67-b88d365d033f": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "b97068bc-f370-412a-84ea-5d21e2aa9a8d": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "87cfb5aa-33d3-46de-bed3-1fbe53f1de29": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "0c38a5c1-a14e-46c2-926d-40199132261d": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "47159e00-be96-48be-ad39-3865e92b3d50": [
+   "Books & Media",
+   "Books"
+  ],
+  "4bf73aec-fb88-4abc-ab08-61cf60b57974": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "72ff3cd1-d7d6-44f8-937e-1be240e0b9a1": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "37e353ef-8685-480f-8bc3-fe8d0a2d7710": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "181761ef-7e09-4373-b070-9f5e5d4857e7": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "c74c21b5-42a4-4365-99cf-0ec5a6892a52": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "066dada2-fa97-4e84-be64-0d5fe58f22e1": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "bdea44ca-f7b2-4bcc-9da2-3031471beef8": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "3b654324-d695-4abf-936b-1b51daaeb1af": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "29c5898c-f145-42c9-8fb6-92dcd5a2a111": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "bf73a6cc-1825-4eea-b5bd-a9785d0649cd": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "c74e2ae6-6c7d-4382-9478-c8342904f2ca": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "5c8e0697-c2a8-4206-bb36-360629bc0c74": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "3cd82291-2c21-48bc-b0c9-3a82726f29bd": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "d141681b-80f8-4a16-9e35-1ac92aa0163c": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "09468ed9-fa18-4845-8881-401237e2b5fc": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "18fb3074-4fe8-479d-97c1-fdb1943fe8c6": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "fb91310b-bd99-49fc-a0bd-68a41a543538": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "3f8efe03-a055-4026-978b-39cc59dd05a1": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "7e96bcc3-cd05-4247-8ad7-65d6b7f6f29d": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "9c4efc95-6e00-44c8-9558-4e2f600d6532": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "2d966bda-edd0-475b-bf2b-a76b4cb9d76f": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "4ff7074b-e02e-470e-8ce7-ecb35458a1b9": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "1bce116b-fd0a-4057-94fc-097fe893328f": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "e89434de-0fbe-477d-a005-0f604becc898": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "fff5cf11-39da-4592-914c-4e5d6d3094a0": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "7cae1cd9-6d30-48da-b53c-8d491b7bac59": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "123a0cf4-6275-4de2-9951-b7e9851ad40d": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "ff946865-e7f2-4ee6-a5eb-6d860ae9b445": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "d77abeb3-7433-4039-bc77-673e714c7fd4": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "1c0ced36-82d8-434b-a183-67b89011adcc": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "20993ef7-95a9-4dcc-9135-09e7e4b5c981": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "ada128c1-8b11-41be-aea2-2e132ae599ba": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "80122c7c-3c63-4337-b884-b33500b2f4bc": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "7eb52784-44e6-4129-8494-8d8ff94d9a23": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "60dd2ccc-7183-4897-871b-b956dcd81426": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "823c009f-5ddc-4131-9668-298e7e5b7d2b": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "009aeb6c-d503-42a9-a380-3cd24f33b097": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "ce952c55-76d2-46b5-af6d-b189c9dbd460": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "94a21b13-1546-4535-8344-e5e8349d940e": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "702fdcd0-83bc-4288-9d5f-cc4c7c7ed61f": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "80950a4c-3c51-46e4-8a04-6e6bacf6f9c0": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "85c3554e-f9bf-4625-92f5-2bb9be359474": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "ad3eacea-4543-426e-8ecc-9ec631b2e82a": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "245bc879-e266-49d3-a91f-eb1f394b1e89": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "28428ac4-573a-4632-a06f-bcc25f81e3a0": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "c97db3dd-ab47-4733-9b3e-f057badf816b": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "4e5e8a77-7860-4476-8022-b19946cf4db0": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "196ac151-cef4-4fb4-b228-e683ac1f182a": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "cea31ed1-b187-4e48-8da8-16df38aa58fd": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "f053ba51-7bf1-49b3-99ab-558873dc3c3d": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "4816b94d-805e-438a-8d32-d4c7e79779e6": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "43b9c19d-351b-43dc-a37c-6b94badd8010": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "0884a5f8-3a40-4720-a6de-a010f50703a5": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "e1464690-e9f7-49fc-9f8e-96260b8c59dc": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "9fb50161-e992-4041-b422-f8b659c639b1": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "0444e0c3-efae-44eb-921e-7f141312220b": [
+   "Games & Tabletop",
+   "Role-Playing Games"
+  ],
+  "0bfb3f55-f3f3-4f17-bb8e-809cab338848": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "381a2515-e9e2-4dba-8e7d-c3074f34f6c2": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "6be97229-3caa-400d-afa4-16f669879ff2": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "8151c6a4-d928-4cda-9469-6f833bbfbccc": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "e8d015e8-902e-4f48-a02a-d2bc5256ef59": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "72c38122-6814-4831-bf85-aa3c315a9ff2": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "f3efccdb-1268-48f3-a120-16a11fcb9fff": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "d3fa3c04-50c4-4456-9db3-1719e04a6ddf": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "6aba9df0-a41c-4645-aa6d-6a3ba2147961": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "eaddc0d6-f804-48d1-9d56-007f27924122": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "062457ab-8594-4e12-9de0-74524f562214": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "2df14f84-16d1-40b4-873d-37dcf83a0f1b": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "9ea7e745-09df-4c4c-9ef8-505ac6da6c50": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "2445e0c0-f552-4786-9eae-1b332d013ef7": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "6500deb0-9fc4-4c12-bf99-8b6c40dd63ac": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "003ab1cc-ee67-45d9-bec2-1c26ca6d9758": [
+   "Games & Tabletop",
+   "Puzzles"
+  ],
+  "d5415220-b858-4c17-b2f8-2fe35862a933": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "396104c6-cbf1-4166-8245-67321e68c73a": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "a514f5ed-e0fb-46a2-ae96-1afc01d4a2e4": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "36f3e28c-d0c1-4608-93c6-3db10cde12f3": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "4224b4ed-e5b0-433d-8d7a-99337ec576ff": [
+   "Games & Tabletop",
+   "Board Games"
+  ],
+  "a2c698ed-5d23-48f6-99bb-802be08d4064": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "2a5cb72a-6c78-4416-b354-8d6410e00d67": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "9e0590a4-1664-4c9c-b0d1-5afd8a497505": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "dce5a776-071e-4051-b345-6b0cfa5a612a": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "0f7d4aad-da32-4814-8d93-134c6b7a1476": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "20d46d27-292a-496c-86c2-0febc41d5760": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "fbdc2ba8-dfe1-42e9-bf06-c9787865cbac": [
+   "Keepsakes & Collectibles",
+   "Sports Cards & Memorabilia"
+  ],
+  "8eb8034f-fa22-4746-a461-84e1fd05afe3": [
+   "Books & Media",
+   "Books"
+  ],
+  "e8f919d5-d7ce-42ef-876a-c966eae1f354": [
+   "Electronics & Tech",
+   null
+  ],
+  "3385b4f6-33d8-456a-9f4e-ba955ac9291a": [
+   "Keepsakes & Collectibles",
+   "Sports Cards & Memorabilia"
+  ],
+  "b0af03de-4eab-4411-a345-ca476d7d16d9": [
+   "Office & Documents",
+   "Stationery"
+  ],
+  "14539503-ccc8-404d-a346-13177f374d41": [
+   "Games & Tabletop",
+   "Trading Card Games"
+  ],
+  "0d033124-e6e7-4932-b466-a1a4446430f8": [
+   "Home Decor",
+   "Vases & Accents"
+  ],
+  "69705cc2-105d-4941-ba64-87a1842150c3": [
+   "Keepsakes & Collectibles",
+   "Heirlooms"
+  ],
+  "e24f46c8-f53d-49cc-9d73-d642ed5c204d": [
+   "Holiday & Seasonal",
+   "Halloween"
+  ]
+ }
+}

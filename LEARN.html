@@ -283,9 +283,15 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):</p>
 </tr>
 <tr>
 <td>009</td>
-<td>Destructive data scripts are <strong>dry-run by default</strong> (<code>CONFIRM=yes</code> to act), abort on unexpected state, and write an activity-log record</td>
-<td>The prune is irreversible without a restore</td>
+<td>Destructive data scripts are <strong>dry-run by default</strong> (<code>CONFIRM=yes</code> to act), abort on unexpected state, match deletions by id <strong>and</strong> name, and write an activity-log record</td>
+<td>Deletes are irreversible without a restore. (Revised 2026-09-29: the prune became an <em>unpack</em> that keeps every item — BUILD_LOG ch. 29)</td>
 <td>Interactive prompts (don&#39;t work over <code>docker exec</code>), or trusting a one-off SQL <code>DELETE</code></td>
+</tr>
+<tr>
+<td>011</td>
+<td>Categories assigned <strong>per item from a reviewed mapping file</strong> (<code>v2-item-categories.json</code>), not per container</td>
+<td>Per-tote rules mislabeled anything off-theme (<em>Bears vs Babies</em> ≠ RPG); a file is reviewable and re-runnable</td>
+<td>Per-tote defaults; leaving it all to later manual edits</td>
 </tr>
 <tr>
 <td>010</td>

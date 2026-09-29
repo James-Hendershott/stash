@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **The spec is `SPEC.md`** (mirror of the vault note `D:\James_Journey\projects\active\stash\stash-v2-spec.md`). Read it before planning any work. It holds the data model, the decisions (ADR-001–006 in `LEARN.md` Part 1), and the **phased build order (Phases 0–6)**. Work proceeds phase by phase; each phase must be testable on the phone.
 - **Back-burnered:** NC move, destination rooms, fate-based move planning, Home Mode. Don't extend these; don't delete them either.
-- **Status:** branch `upgrade/expo-sdk-57` holds v1.3.0 (SDK 57), v1.4.0 (**Phase 0** — migration, reference data, prune script) and v1.5.0 (**Phase 1** — Find it). All built and rehearsed against a restored copy of production; **not yet merged or deployed**, and the production prune has **not** run (needs James's OK). The deploy runbook is BUILD_LOG ch. 27 / the vault note `stash-deploy-runbook.md`. Next after deploy: **Phase 2 — Quick Add**.
+- **Status:** branch `upgrade/expo-sdk-57` holds v1.3.0 (SDK 57), v1.4.0 (**Phase 0** — migration, reference data, prune script) and v1.5.0 (**Phase 1** — Find it). All built and rehearsed against a restored copy of production; **not yet merged or deployed**, and the production data cleanup has **not** run. (Plan changed 2026-09-29: no prune — `v2-item-categories.cjs` + `v2-unpack.cjs` keep every item; see the runbook.) The deploy runbook is BUILD_LOG ch. 27 / the vault note `stash-deploy-runbook.md`. Next after deploy: **Phase 2 — Quick Add**.
 
 ## Session rules
 

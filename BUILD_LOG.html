@@ -364,6 +364,13 @@
         <a class="toc-l2" href="#verifying-11">Verifying</a>
         <a class="toc-l2" href="#known-limits-next-phases">Known limits (next phases)</a>
         <a class="toc-l2" href="#chapter-takeaways-29">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-28">The ask</a>
+        <a class="toc-l2" href="#step-1-a-review-nobody-can-read-isn39t-a-review">Step 1: A review nobody can read isn&amp;#39;t a review</a>
+        <a class="toc-l2" href="#step-2-prune-unpack">Step 2: Prune → unpack</a>
+        <a class="toc-l2" href="#step-3-per-item-categories-instead-of-per-tote">Step 3: Per-item categories instead of per-tote</a>
+        <a class="toc-l2" href="#bug-in-waiting-we-noticed">Bug-in-waiting we noticed</a>
+        <a class="toc-l2" href="#verifying-restored-production-copy">Verifying (restored production copy)</a>
+        <a class="toc-l2" href="#chapter-takeaways-30">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -4243,6 +4250,75 @@ reach them.</li>
 <li><strong>Pull parsing out of UI code</strong> so it&#39;s testable without the device.</li>
 </ul>
 <hr>
+<h1 id="chapter-29-v151-the-user-changed-the-plan-and-that39s-the-point-of-reviewing">Chapter 29 — v1.5.1: The user changed the plan (and that&#39;s the point of reviewing)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Why destructive steps get a human
+review <em>before</em> they run, how to present a review so it can actually
+be read, and how to turn &quot;keep it after all&quot; into a safer script.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-29, morning.</p>
+<h2 id="the-ask-28">The ask</h2>
+<p>Reviewing the prune list, James first said <em>&quot;I think the list got cut
+short?&quot;</em> — then, once he could read it properly: <em>&quot;Keep all the items
+but remove them from the totes. Try and categorize them with our new
+categories.&quot;</em> Later: delete the empty tote records (<em>&quot;we are going to
+start fresh with all containers&quot;</em>) and remove one unknown entry.</p>
+<h2 id="step-1-a-review-nobody-can-read-isn39t-a-review">Step 1: A review nobody can read isn&#39;t a review</h2>
+<p>The CSV was complete (136 rows) but looked truncated:</p>
+<ul>
+<li>It was <strong>sorted by tote code</strong>, and <code>(not in a tote)</code> sorts before
+<code>CST-…</code>, so 115 loose rows came first and the actual totes were buried.</li>
+<li>Excel opened the UTF-8 file as ANSI, mangling <code>Don’t</code> into <code>Donâ€™t</code>.</li>
+<li>Several &quot;totes&quot; held <strong>one row</strong> describing the whole tote (entered
+that way in April), which looked like missing data.</li>
+</ul>
+<p>The fix was presentation, not data: a grouped Obsidian note (tote →
+contents, loose items by category, checkboxes) and the CSV re-saved with
+a UTF-8 BOM (<code>encoding=&#39;utf-8-sig&#39;</code>) so Excel reads it correctly.</p>
+<h2 id="step-2-prune-unpack">Step 2: Prune → unpack</h2>
+<p>The prune became <code>v2-unpack.cjs</code>. Same safety model (ADR-009) — dry run
+by default, <code>CONFIRM=yes</code> to act, one transaction, activity log — but
+the default outcome is <strong>keep</strong>:</p>
+<ul>
+<li>Placements get <code>removedAt</code> instead of the item being deleted.</li>
+<li><code>DELETE_EMPTY_TOTES=yes</code> deletes a tote record <strong>only if nothing is
+left in it</strong>.</li>
+<li>One item removal, guarded two ways:</li>
+</ul>
+<pre><code class="language-js">const REMOVE_ITEMS = [{ id: &#39;e9853031-…&#39;, name: &#39;Mommy and Baby Shark&#39; }];
+// … delete only if the row with that id still has exactly that name
+</code></pre>
+<p>A stale id alone can never delete the wrong row.</p>
+<h2 id="step-3-per-item-categories-instead-of-per-tote">Step 3: Per-item categories instead of per-tote</h2>
+<p>Chapter 27 set categories per tote, which mislabeled anything off-theme.
+This time every one of the 265 items got its own category in
+<code>v2-item-categories.json</code> (reviewable, diffable, re-runnable), grouped
+by how the family actually looks for things: the whole camping kit under
+Camping Gear, the Subaru emergency tote under Emergency, games split
+five ways, grandma&#39;s china under Heirlooms.</p>
+<h2 id="bug-in-waiting-we-noticed">Bug-in-waiting we noticed</h2>
+<p>Deleting a tote record <strong>cascades</strong> to its <code>item_placements</code> rows, so
+the 21 unpacked items lose their &quot;was in Suitcase #1&quot; history rows. The
+activity-log entry keeps every tote and item name, so the fact isn&#39;t
+lost — but it&#39;s a reminder that <code>onDelete: Cascade</code> is a design choice
+with consequences worth writing down.</p>
+<h2 id="verifying-restored-production-copy">Verifying (restored production copy)</h2>
+<ul>
+<li>Categories: 265 items + 431 books changed; second run: 0.</li>
+<li>Unpack dry run: 21 items in 8 totes, 8 tote records, 1 item removal.</li>
+<li>Execute: 703 records (431 books, 7 totes, 265 items), 191 still in the
+kept totes, spot checks correct (<em>Bears vs Babies</em> → Board Games).</li>
+</ul>
+<h2 id="chapter-takeaways-30">Chapter takeaways</h2>
+<ul>
+<li><strong>Review before destroy — and make the review readable.</strong> The data was
+right; the presentation hid it.</li>
+<li><strong>When the user says &quot;keep it&quot;, make keeping the default</strong> in the
+script, with deletion as an explicit, narrow flag.</li>
+<li><strong>Guard deletions by more than an id.</strong></li>
+<li><strong>Know what cascades.</strong></li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -4406,7 +4482,7 @@ reach them.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 221 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 228 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>
