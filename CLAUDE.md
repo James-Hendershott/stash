@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **The spec is `SPEC.md`** (mirror of the vault note `D:\James_Journey\projects\active\stash\stash-v2-spec.md`). Read it before planning any work. It holds the data model, the decisions (ADR-001–006 in `LEARN.md` Part 1), and the **phased build order (Phases 0–6)**. Work proceeds phase by phase; each phase must be testable on the phone.
 - **Back-burnered:** NC move, destination rooms, fate-based move planning, Home Mode. Don't extend these; don't delete them either.
-- **Status:** branch `upgrade/expo-sdk-57` holds v1.3.0 (SDK 57), v1.4.0 (**Phase 0** — migration, reference data, prune script) and v1.5.0 (**Phase 1** — Find it). All built and rehearsed against a restored copy of production; **not yet merged or deployed**, and the production data cleanup has **not** run. (Plan changed 2026-09-29: no prune — `v2-item-categories.cjs` + `v2-unpack.cjs` keep every item; see the runbook.) The deploy runbook is BUILD_LOG ch. 27 / the vault note `stash-deploy-runbook.md`. Next after deploy: **Phase 2 — Quick Add**.
+- **Status:** **v1.5.1 is live in production** (deployed 2026-09-29, BUILD_LOG ch. 30): Phase 0 (v2 schema, locations, categories, tote models, per-item categories, unpack) and Phase 1 (Find it). Production: 703 items (431 books, 7 totes #1/#10–13/#20/#21, 265 other items), 64 locations. Awaiting James's phone test of Phase 1. Next: **Phase 1b — Visual storage maps** (garage layout in SPEC; storage unit measurements pending), then Phase 2 — Quick Add. `stash-postgres` was created by hand (no Compose labels): deploy with `--no-deps stash-backend stash-admin`. Old containers parked as `stash-backend-old` / `stash-admin-old` until the phone test passes.
 
 ## Session rules
 
@@ -70,9 +70,10 @@ cd packages/mobile && npx expo start --tunnel   # Expo Go on phone; set server U
 Code lives at `/mnt/user/appdata/stash/repo`; Postgres data at `/mnt/cache/appdata/stash/postgres` (direct NVMe, `POSTGRES_DATA_PATH`); files at `/mnt/user/appdata/stash/{images,qrcodes,exports,floorplans}` (`DATA_PATH`). Deploy loop:
 ```bash
 ssh unraid
-cd /mnt/user/appdata/stash/repo && git pull
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-docker compose exec stash-backend npx prisma migrate deploy   # only if schema changed
+cd /mnt/user/appdata/stash/repo && git -c safe.directory=/mnt/user/appdata/stash/repo pull --ff-only
+docker exec stash-postgres pg_dump -U stash -d stash -Fc > /mnt/user/appdata/stash/backups/stash-$(date +%Y%m%d-%H%M).dump
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --no-deps stash-backend stash-admin
+docker exec -w /app/packages/backend stash-backend npx prisma@6.19.3 migrate deploy   # only if schema changed
 ```
 
 ## Architecture

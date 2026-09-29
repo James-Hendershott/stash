@@ -4342,6 +4342,95 @@ with consequences worth writing down.
 
 ---
 
+# Chapter 30 — Deploying v1.5.1: when Compose doesn't recognize its own containers
+
+> 📌 **What this chapter teaches.** Running a production deploy from a
+> rehearsed runbook, what to do when a step fails halfway, how Docker
+> Compose decides which containers it owns (***labels***), and why you
+> *park* old containers instead of deleting them.
+
+**Date:** 2026-09-29. James: *"Just do as much as you can, ensure we are
+documenting everything correctly."* Deploy ran end to end with two
+checkpoints (fresh backup; unpack dry run must match the rehearsal).
+
+## The run
+
+| Step | Result |
+|---|---|
+| C1 merge + push | `master` fast-forwarded `e019cb7 → 8af15a4` |
+| C2 backup ✅ | `stash-20260929-1729-pre-deploy.dump`, 9 tables, 712 items (same size as last night → nothing changed overnight) |
+| C3 pull + rebuild | ⚠️ **failed** — container name conflicts (below) |
+| C4 migrate | `20260929000000_v2_storage_foundation` applied |
+| C5 reindex + collation | `changing version from 2.36 to 2.41`; warning gone |
+| C6 reference data + categories | **identical** numbers to the rehearsal |
+| C7 unpack ✅ | dry run matched exactly (21 items, 8 totes, 1 removal) → executed |
+| C8 verify | 703 items, 7 containers, 431 books, 191 in kept totes, 64 locations, 8 models; whereabouts service answers on real data |
+
+## Bug: "The container name /stash-postgres is already in use"
+
+**Symptom.** `docker compose … up -d --build` built both images, then:
+
+```
+Error response from daemon: Conflict. The container name "/stash-postgres" is already in use by container "f4a6af…"
+```
+
+**Investigation — ask Docker who owns what:**
+
+```bash
+docker inspect stash-postgres --format '{{index .Config.Labels "com.docker.compose.project"}}'
+# (empty)
+docker inspect stash-backend  --format '{{index .Config.Labels "com.docker.compose.project"}}'
+# repo
+```
+
+Compose finds "its" containers by **labels** it stamps on them
+(`com.docker.compose.project`, `…service`, `…config-hash`). The running
+`stash-postgres` had **no labels at all** — it was created by hand
+(`docker run`) at some point, likely when Postgres moved to
+`/mnt/cache`. The backend/admin had a project label but were still not
+matched (likely created by a different Compose version/setup), so Compose
+tried to *create* new ones with the same fixed `container_name` → conflict.
+
+**Fix, in order of caution:**
+
+1. **Don't touch the database container.** Postgres is the one thing with
+   state; it kept running the whole time. Deploy only the stateless
+   services: `up -d --no-deps stash-backend stash-admin`.
+2. That still conflicted, so before removing anything, **compare** what
+   the old containers had with what Compose would create: network
+   (`shottsproxy`), bind mounts (`/mnt/user/appdata/stash/{images,…}`),
+   ports (3001, 3002→80). All matched `.env` + the compose files.
+3. **Park, don't delete:**
+
+   ```bash
+   docker stop stash-backend && docker rename stash-backend stash-backend-old
+   docker stop stash-admin   && docker rename stash-admin   stash-admin-old
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps stash-backend stash-admin
+   ```
+
+   Rollback would be: stop the new ones, rename the `-old` ones back,
+   start them — seconds, no rebuild. Downtime was ~15 s.
+
+**From now on,** deploys use `up -d --build --no-deps stash-backend
+stash-admin` until Postgres is adopted into Compose (tech debt, needs its
+own careful change with a backup).
+
+## Chapter takeaways
+
+- **A rehearsal pays off twice:** steps C4–C7 produced the *exact* numbers
+  from the local rehearsal, which is what made "continue automatically if
+  it matches" safe.
+- **Production drifts from the compose file.** Hand-made fixes (a manual
+  `docker run`) leave containers Compose can't see. Check labels before
+  assuming.
+- **Stateless first, stateful never-by-accident.** Recreate backend/admin
+  freely; treat the database container as off-limits unless that's the
+  whole point of the change.
+- **Park old containers** (`docker rename … -old`) until the new ones are
+  proven — a free, instant rollback.
+
+---
+
 # Glossary
 
 Terms in **bold italic** in chapter text are defined here.
@@ -4349,6 +4438,7 @@ Terms in **bold italic** in chapter text are defined here.
 | Term | Meaning |
 |---|---|
 | AABB | Axis-Aligned Bounding Box. Collision check via comparing min/max on x/y/z. Fast and correct when shapes don't rotate freely. |
+| container labels | Key/value metadata Docker stores on a container. Compose uses `com.docker.compose.project` / `.service` labels to know which containers it manages (Chapter 30). |
 | additive migration | A schema change that only adds (tables, columns, indexes) or relaxes (NOT NULL → nullable) — never drops data. Old code keeps working (Chapter 27). |
 | custom format (pg_dump -Fc) | Compressed Postgres backup that `pg_restore` can list (`-l`) and restore selectively. |
 | debounce | Wait until input pauses before acting — one search request per pause instead of one per keystroke (Chapter 28). |

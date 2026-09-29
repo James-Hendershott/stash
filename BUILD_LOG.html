@@ -371,6 +371,9 @@
         <a class="toc-l2" href="#bug-in-waiting-we-noticed">Bug-in-waiting we noticed</a>
         <a class="toc-l2" href="#verifying-restored-production-copy">Verifying (restored production copy)</a>
         <a class="toc-l2" href="#chapter-takeaways-30">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-run">The run</a>
+        <a class="toc-l2" href="#bug-quotthe-container-name-stash-postgres-is-already-in-usequot">Bug: &quot;The container name /stash-postgres is already in use&quot;</a>
+        <a class="toc-l2" href="#chapter-takeaways-31">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -4319,6 +4322,111 @@ script, with deletion as an explicit, narrow flag.</li>
 <li><strong>Know what cascades.</strong></li>
 </ul>
 <hr>
+<h1 id="chapter-30-deploying-v151-when-compose-doesn39t-recognize-its-own-containers">Chapter 30 — Deploying v1.5.1: when Compose doesn&#39;t recognize its own containers</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Running a production deploy from a
+rehearsed runbook, what to do when a step fails halfway, how Docker
+Compose decides which containers it owns (<em><strong>labels</strong></em>), and why you
+<em>park</em> old containers instead of deleting them.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-29. James: <em>&quot;Just do as much as you can, ensure we are
+documenting everything correctly.&quot;</em> Deploy ran end to end with two
+checkpoints (fresh backup; unpack dry run must match the rehearsal).</p>
+<h2 id="the-run">The run</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1 merge + push</td>
+<td><code>master</code> fast-forwarded <code>e019cb7 → 8af15a4</code></td>
+</tr>
+<tr>
+<td>C2 backup ✅</td>
+<td><code>stash-20260929-1729-pre-deploy.dump</code>, 9 tables, 712 items (same size as last night → nothing changed overnight)</td>
+</tr>
+<tr>
+<td>C3 pull + rebuild</td>
+<td>⚠️ <strong>failed</strong> — container name conflicts (below)</td>
+</tr>
+<tr>
+<td>C4 migrate</td>
+<td><code>20260929000000_v2_storage_foundation</code> applied</td>
+</tr>
+<tr>
+<td>C5 reindex + collation</td>
+<td><code>changing version from 2.36 to 2.41</code>; warning gone</td>
+</tr>
+<tr>
+<td>C6 reference data + categories</td>
+<td><strong>identical</strong> numbers to the rehearsal</td>
+</tr>
+<tr>
+<td>C7 unpack ✅</td>
+<td>dry run matched exactly (21 items, 8 totes, 1 removal) → executed</td>
+</tr>
+<tr>
+<td>C8 verify</td>
+<td>703 items, 7 containers, 431 books, 191 in kept totes, 64 locations, 8 models; whereabouts service answers on real data</td>
+</tr>
+</tbody></table>
+<h2 id="bug-quotthe-container-name-stash-postgres-is-already-in-usequot">Bug: &quot;The container name /stash-postgres is already in use&quot;</h2>
+<p><strong>Symptom.</strong> <code>docker compose … up -d --build</code> built both images, then:</p>
+<pre><code>Error response from daemon: Conflict. The container name &quot;/stash-postgres&quot; is already in use by container &quot;f4a6af…&quot;
+</code></pre>
+<p><strong>Investigation — ask Docker who owns what:</strong></p>
+<pre><code class="language-bash">docker inspect stash-postgres --format &#39;{{index .Config.Labels &quot;com.docker.compose.project&quot;}}&#39;
+# (empty)
+docker inspect stash-backend  --format &#39;{{index .Config.Labels &quot;com.docker.compose.project&quot;}}&#39;
+# repo
+</code></pre>
+<p>Compose finds &quot;its&quot; containers by <strong>labels</strong> it stamps on them
+(<code>com.docker.compose.project</code>, <code>…service</code>, <code>…config-hash</code>). The running
+<code>stash-postgres</code> had <strong>no labels at all</strong> — it was created by hand
+(<code>docker run</code>) at some point, likely when Postgres moved to
+<code>/mnt/cache</code>. The backend/admin had a project label but were still not
+matched (likely created by a different Compose version/setup), so Compose
+tried to <em>create</em> new ones with the same fixed <code>container_name</code> → conflict.</p>
+<p><strong>Fix, in order of caution:</strong></p>
+<ol>
+<li><p><strong>Don&#39;t touch the database container.</strong> Postgres is the one thing with
+state; it kept running the whole time. Deploy only the stateless
+services: <code>up -d --no-deps stash-backend stash-admin</code>.</p>
+</li>
+<li><p>That still conflicted, so before removing anything, <strong>compare</strong> what
+the old containers had with what Compose would create: network
+(<code>shottsproxy</code>), bind mounts (<code>/mnt/user/appdata/stash/{images,…}</code>),
+ports (3001, 3002→80). All matched <code>.env</code> + the compose files.</p>
+</li>
+<li><p><strong>Park, don&#39;t delete:</strong></p>
+<pre><code class="language-bash">docker stop stash-backend &amp;&amp; docker rename stash-backend stash-backend-old
+docker stop stash-admin   &amp;&amp; docker rename stash-admin   stash-admin-old
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps stash-backend stash-admin
+</code></pre>
+<p>Rollback would be: stop the new ones, rename the <code>-old</code> ones back,
+start them — seconds, no rebuild. Downtime was ~15 s.</p>
+</li>
+</ol>
+<p><strong>From now on,</strong> deploys use <code>up -d --build --no-deps stash-backend stash-admin</code> until Postgres is adopted into Compose (tech debt, needs its
+own careful change with a backup).</p>
+<h2 id="chapter-takeaways-31">Chapter takeaways</h2>
+<ul>
+<li><strong>A rehearsal pays off twice:</strong> steps C4–C7 produced the <em>exact</em> numbers
+from the local rehearsal, which is what made &quot;continue automatically if
+it matches&quot; safe.</li>
+<li><strong>Production drifts from the compose file.</strong> Hand-made fixes (a manual
+<code>docker run</code>) leave containers Compose can&#39;t see. Check labels before
+assuming.</li>
+<li><strong>Stateless first, stateful never-by-accident.</strong> Recreate backend/admin
+freely; treat the database container as off-limits unless that&#39;s the
+whole point of the change.</li>
+<li><strong>Park old containers</strong> (<code>docker rename … -old</code>) until the new ones are
+proven — a free, instant rollback.</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -4331,6 +4439,10 @@ script, with deletion as an explicit, narrow flag.</li>
 <tbody><tr>
 <td>AABB</td>
 <td>Axis-Aligned Bounding Box. Collision check via comparing min/max on x/y/z. Fast and correct when shapes don&#39;t rotate freely.</td>
+</tr>
+<tr>
+<td>container labels</td>
+<td>Key/value metadata Docker stores on a container. Compose uses <code>com.docker.compose.project</code> / <code>.service</code> labels to know which containers it manages (Chapter 30).</td>
 </tr>
 <tr>
 <td>additive migration</td>
@@ -4482,7 +4594,7 @@ script, with deletion as an explicit, narrow flag.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 228 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 231 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

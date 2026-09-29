@@ -104,7 +104,7 @@ want a different route (it resets to the default when the app restarts):
 > admin site (Users → Reset PW), or run `scripts/reset-password.cjs` on the
 > server (instructions at the top of that file).
 
-After login, you'll see the bottom tab bar: Items / Scan / Settings.
+After login, you'll see the bottom tab bar: Items / Places / Scan / Settings.
 Skip ahead to [Part 2](#part-2--day-to-day-use) for what each tab does.
 
 ## Step 6 — (Optional) EAS Update so your laptop doesn't have to be on
@@ -163,26 +163,28 @@ If sign-in fails:
 
 ## The main screens
 
-After signing in, three tabs at the bottom:
+After signing in, four tabs at the bottom:
 
 | Tab | Icon | What it does |
 |-----|------|--------------|
-| **Items** | Box | Browse, search, add, edit |
-| **Scan** | Camera | Scan QR codes on boxes/items |
-| **Settings** | Gear | Account info + server URL |
+| **Items** | 📦 | Browse, search, add; every card shows **where the item is** |
+| **Places** | 📍 | Browse storage: the house, garage shelves, storage unit → totes → items |
+| **Scan** | 📷 | Scan a tote's QR label to see what's inside |
+| **Settings** | ⚙️ | Change password, account info, server URL |
 
 ## Items tab
 
-The items list shows everything in your Stash database as cards. With
-your library, that's currently **697 items**: 432 books, 14 toted
-non-book items, plus the items still in the original Eagle Mountain
-rooms.
+The items list shows everything in Stash as cards (about 700 — 431 of
+them books). Under each name you'll see its **category** and, in blue,
+**where it is** — e.g. *In #12 · Lehi Indoor Storage — Unit 3204 ›
+Rack 5 › Shelf 3*. Amber *Location not set* means it still needs a home.
 
 **Search:** tap the search bar at the top, type any word. Results
-filter as you type — try `mixer`, `desk`, `Atwood`.
+update when you pause typing — try `warhammer`, `puzzle`, `tarp`.
 
 **Filter by fate:** the buttons under the search bar filter by
-KEEP / SELL / DONATE / TRASH / UNDECIDED. Tap **All** to clear.
+KEEP / SELL / DONATE / TRASH / UNDECIDED (left over from move
+planning). Tap **All** to clear.
 
 **Pull to refresh:** scroll to the top, pull down, release. Pulls the
 latest data from the server.
@@ -193,6 +195,8 @@ Tap any card. You'll see:
 
 - **Photo** (if one has been uploaded)
 - **Name and fate**
+- **Where it is** — the tote it's in and the full location. Tap it to
+  open the tote.
 - **Fate buttons** — tap any to change the fate; saves instantly
 - **Details** — category, condition, room, dimensions, weight
 - **Container placements** — which box/tote this item is in
@@ -252,17 +256,45 @@ The most common action during the move:
 The suggestion is a starting point. Adjust based on how fast you want
 the item gone.
 
+## Places tab
+
+Browse storage from the top down.
+
+- **Needs a spot** (top) — totes that don't have a location yet. Tap
+  one, then **Set location**.
+- **Places** — *1642 W Blue Flax Dr* and *Lehi Indoor Storage — Unit
+  3204*. Tap to go inside: areas (Garage, Kitchen, James Office…) →
+  spots (Overhead Shelf 1–9, Rack 1–6 → Shelf 1–5). Each tile shows how
+  many totes are inside.
+- Tap a tote anywhere to see its contents.
+
+Garage overhead shelves are numbered **clockwise from the north-east**;
+storage-unit racks **left to right**, and **Shelf 1 is the bottom**.
+
+## A tote's screen
+
+Shows the tote's **number** big, its model and lid color, **where it
+is**, and **everything inside** (with photos). Tap an item to open it.
+
+### Putting a tote somewhere (or moving it)
+
+1. Open the tote (from Places, a scan, or an item's *Where it is* card).
+2. Tap **Set location** / **Move to another spot**.
+3. Drill down — e.g. *Lehi Indoor Storage → Rack 5 → Shelf 3*. Tapping a
+   spot with nothing inside saves right away; for a spot with things
+   inside, tap **Here** or the green **Put … here** button.
+4. Need a spot that doesn't exist? Type it in **New spot** and tap
+   **Add**, then pick it.
+
 ## Scanning QR codes
 
-The Scan tab is for finding things by their printed QR labels.
-
 1. Tap the **Scan** tab.
-2. Point camera at a QR code on a box or item.
-3. The app auto-recognizes it and jumps to that item or container's
-   detail page.
+2. Point the camera at a Stash QR label.
+3. A tote label opens **that tote's contents**; an item label opens the
+   item.
 
-> No QR codes are printed yet — you generate label sheets via the admin
-> dashboard's Export tab and print them out, then stick on the boxes.
+> Printed labels arrive in Phase 3 (Phomemo M110 or 2″×2″ sheets). Older
+> labels from v1 still scan.
 
 ## Settings tab
 

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.1] - 2026-09-29 — Keep everything: unpack instead of prune
 
+**Deployed to production 2026-09-29** together with 1.3.0–1.5.0 (BUILD_LOG ch. 30).
+
 ### Changed
 - **Replaced `prisma/v2-prune.cjs` with `prisma/v2-unpack.cjs`** — keeps every item. Takes the 21 items out of the 8 retired totes; with `DELETE_EMPTY_TOTES=yes` deletes the emptied tote records; removes items listed in `REMOVE_ITEMS` only when id *and* name match. Dry-run by default; activity-logged.
 - `v2-reference-data.cjs` no longer assigns categories per tote.

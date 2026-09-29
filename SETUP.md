@@ -243,10 +243,12 @@ Add `-v` to also remove volumes (deletes all local data).
 ```bash
 ssh unraid
 cd /mnt/user/appdata/stash/repo
-git pull
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Run migrations if schema changed:
-docker compose exec stash-backend npx prisma migrate deploy
+git -c safe.directory=/mnt/user/appdata/stash/repo pull --ff-only
+# Rebuild ONLY the stateless services. stash-postgres was created by hand
+# (no Compose labels) — `up` without --no-deps fails on a name conflict.
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --no-deps stash-backend stash-admin
+# Run migrations if schema changed (version pinned — the CLI isn't a prod dependency):
+docker exec -w /app/packages/backend stash-backend npx prisma@6.19.3 migrate deploy
 ```
 
 > ⚠️ **Never run `prisma db seed` on production.** It deletes every table

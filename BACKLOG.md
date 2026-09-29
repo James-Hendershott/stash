@@ -53,6 +53,8 @@ Still in the code, not being extended while the v2 storage work is in progress.
 
 ## Technical debt
 
+- [ ] **Adopt `stash-postgres` into Docker Compose** — it was created by hand (no Compose labels), so deploys must use `--no-deps`. Needs a backup + a planned container swap on the same data dir (BUILD_LOG ch. 30)
+- [ ] Remove parked `stash-backend-old` / `stash-admin-old` containers once v1.5.1 is confirmed on the phone
 - [ ] **Security:** refuse to start in production without `JWT_SECRET` (config falls back to a dev secret)
 - [ ] **Security:** `/api/files/*` (photos, QR, exports) is served without auth
 - [ ] **Security:** rate limiting on `/api/auth/login` (express-rate-limit); tighten open CORS
