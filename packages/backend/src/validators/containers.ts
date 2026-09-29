@@ -23,3 +23,8 @@ export const createContainerSchema = z.object({
 });
 
 export const updateContainerSchema = createContainerSchema.partial();
+
+// v2: put a container at a storage spot (null clears it).
+export const setContainerLocationSchema = z.object({
+  locationId: z.string().uuid().nullable(),
+});

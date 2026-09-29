@@ -20,8 +20,8 @@ tags: [project, active, software, stash, spec]
 
 - [x] v1.3.0 — Expo SDK 57, mobile Change Password (branch `upgrade/expo-sdk-57`, not yet merged/deployed)
 - [x] Spec, data model, build order agreed (2026-09-28)
-- [ ] **Phase 0 — Foundation** ← next
-- [ ] Phase 1 — Find it
+- [~] **Phase 0 — Foundation** — built + rehearsed on a production copy (v1.4.0); **deploy + prune await James's OK**
+- [~] **Phase 1 — Find it** — built + tested locally (v1.5.0); **awaiting deploy + phone test**
 - [ ] Phase 2 — Quick Add (manual)
 - [ ] Phase 3 — Ready for Storage + labels
 - [ ] Phase 4 — Check out, transfer, archive, delete

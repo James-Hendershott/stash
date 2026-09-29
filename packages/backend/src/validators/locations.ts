@@ -14,3 +14,13 @@ export const createLocationSchema = z.object({
 });
 
 export const updateLocationSchema = createLocationSchema.partial();
+
+// v2: create a spot inside the location tree from the phone
+// ("new location" while storing a container).
+export const createTreeLocationSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  parentId: z.string().uuid().nullable(),
+  kind: z.enum(['PLACE', 'AREA', 'SPOT']).default('SPOT'),
+  shortCode: z.string().trim().max(30).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
+});

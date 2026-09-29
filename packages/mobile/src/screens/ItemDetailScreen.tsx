@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { api, getBaseUrl } from '../lib/api';
+import { api, categoryLabel, getBaseUrl } from '../lib/api';
 import { FateBadge } from '../components/FateBadge';
 
 const FATES = ['KEEP', 'SELL', 'DONATE', 'TRASH', 'UNDECIDED'];
@@ -113,6 +113,30 @@ export function ItemDetailScreen({ route, navigation }: any) {
 
       {item.description && <Text style={styles.description}>{item.description}</Text>}
 
+      {/* Where it is (v2): container + full location path */}
+      {item.whereabouts && (
+        <TouchableOpacity
+          style={styles.whereCard}
+          disabled={!item.whereabouts.container && !item.container}
+          onPress={() =>
+            item.container
+              ? navigation.navigate('Container', { id: item.container.id })
+              : navigation.navigate('Container', { id: item.whereabouts.container.id })
+          }
+        >
+          <Text style={styles.whereLabel}>{item.container ? 'This is a container' : 'Where it is'}</Text>
+          {item.whereabouts.container && (
+            <Text style={styles.whereContainer}>In container {item.whereabouts.container.display}</Text>
+          )}
+          <Text style={[styles.wherePath, !item.whereabouts.location && styles.whereMissing]}>
+            {item.whereabouts.location ? `📍 ${item.whereabouts.location.path}` : 'No location set yet'}
+          </Text>
+          {(item.whereabouts.container || item.container) && (
+            <Text style={styles.whereLink}>{item.container ? 'Open its contents ›' : 'Open container ›'}</Text>
+          )}
+        </TouchableOpacity>
+      )}
+
       {/* Fate Selector */}
       <Text style={styles.sectionTitle}>Fate</Text>
       <View style={styles.fateRow}>
@@ -130,7 +154,7 @@ export function ItemDetailScreen({ route, navigation }: any) {
       {/* Details */}
       <Text style={styles.sectionTitle}>Details</Text>
       <View style={styles.detailGrid}>
-        <DetailField label="Category" value={item.category?.name} />
+        <DetailField label="Category" value={categoryLabel(item.category)} />
         <DetailField label="Condition" value={item.condition} />
         <DetailField label="Quantity" value={String(item.quantity)} />
         <DetailField label="Origin" value={item.originLocation?.name} />
@@ -214,6 +238,15 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 22, fontWeight: '700', color: '#1e293b', flex: 1, marginRight: 8 },
   description: { paddingHorizontal: 16, color: '#475569', fontSize: 14, lineHeight: 20 },
+  whereCard: {
+    marginHorizontal: 16, marginTop: 14, padding: 14, backgroundColor: '#eff6ff',
+    borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe',
+  },
+  whereLabel: { fontSize: 12, fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  whereContainer: { fontSize: 20, fontWeight: '800', color: '#1e293b', marginTop: 4 },
+  wherePath: { fontSize: 15, color: '#1e293b', fontWeight: '600', marginTop: 4, lineHeight: 21 },
+  whereMissing: { color: '#b45309' },
+  whereLink: { fontSize: 13, color: '#2563eb', fontWeight: '600', marginTop: 8 },
   sectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#64748b', textTransform: 'uppercase',
     letterSpacing: 0.5, paddingHorizontal: 16, marginTop: 20, marginBottom: 8,

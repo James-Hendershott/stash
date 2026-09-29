@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useFocusEffect } from '@react-navigation/native';
+import { parseStashCode } from '../lib/qr';
 
 export function ScanScreen({ navigation }: any) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -12,24 +14,25 @@ export function ScanScreen({ navigation }: any) {
     }
   }, [permission]);
 
+  // Re-arm the scanner every time this tab comes back into view — otherwise
+  // one successful scan would leave it ignoring every later code.
+  useFocusEffect(useCallback(() => { setScanned(false); }, []));
+
   function handleBarCodeScanned({ data }: { data: string }) {
     if (scanned) return;
     setScanned(true);
 
-    // QR codes encode URLs like: http://localhost:3001/api/items/abc-123
-    // or http://localhost:3001/api/containers/xyz-456
-    const itemMatch = data.match(/\/items\/([a-f0-9-]+)/);
-    const containerMatch = data.match(/\/containers\/([a-f0-9-]+)/);
-
-    if (itemMatch) {
-      navigation.navigate('ItemDetail', { id: itemMatch[1] });
-    } else if (containerMatch) {
-      Alert.alert('Container Scanned', `Container ID: ${containerMatch[1]}`);
-      setScanned(false);
+    const code = parseStashCode(data);
+    if (!code) {
+      Alert.alert('Not a Stash code', data, [{ text: 'OK', onPress: () => setScanned(false) }]);
+      return;
+    }
+    if (code.kind === 'item') {
+      navigation.navigate('ItemDetail', { id: code.id });
+    } else if ('number' in code) {
+      navigation.navigate('Container', { number: code.number });
     } else {
-      Alert.alert('Unknown QR Code', data, [
-        { text: 'OK', onPress: () => setScanned(false) },
-      ]);
+      navigation.navigate('Container', { id: code.id });
     }
   }
 

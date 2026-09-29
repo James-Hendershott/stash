@@ -5,7 +5,36 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.0] - 2026-09-28 — Phase 1: Find it
+
+### Added
+- `services/whereabouts.ts` — resolves item → container (→ parent container) → location path in memory (3 queries for any number of items).
+- `GET /api/items` and `GET /api/items/:id` include `whereabouts` (container number + full location path + summary) and the category's parent.
+- `GET /api/containers/by-number/:number`, `GET /api/containers/:id/screen` — the phone's container screen (tote + location + contents).
+- `PATCH /api/containers/:id/location` — put a container at a spot (sets STORED; activity-logged).
+- `GET /api/locations/tree`, `GET /api/locations/unplaced`, `GET /api/locations/:id/contents`, `POST /api/locations/tree`.
+- Mobile: **Places** tab (Needs a spot + place tree), **Container** screen, **Location** screen, **Location picker** (drill down, create a spot inline).
+- Mobile: `src/lib/qr.ts` — parses v2 (`/c/12`, `/i/<id>`), v1 (`/api/containers|items/<id>`), and bare `#12` codes.
+
+### Changed
+- Mobile navigation: detail screens moved to the root stack so any tab can open them.
+- Mobile Items list shows whereabouts and full category path; search is debounced (300 ms); load errors are shown.
+- Mobile Item detail: "Where it is" card linking to the container.
+
+### Fixed
+- Scanning a container QR now opens its contents (was a dead-end popup).
+- Scanner re-arms when the Scan tab regains focus (previously ignored every scan after the first).
+
+## [1.4.0] - 2026-09-28 — Phase 0: Foundation
+
+### Added
+- Migration `20260929000000_v2_storage_foundation` (additive): location tree, category tree, `container_models`, container number/colors/status/location/label status, item status/location/UPC/AI suggestion, `checkouts`, `notifications`, `settings`, `pg_trgm` + trigram index on item names.
+- `prisma/v2-reference-data.cjs` — idempotent: 8 tote models, 23 categories + subcategories (7 v1 categories renamed in place), Blue Flax + Unit 3204 location tree (64 locations), archives v1 move rooms, numbers the 7 kept totes, fixes the April import's Miscellaneous game items.
+- `prisma/v2-prune.cjs` — dry-run-by-default prune (keeps all books + 7 totes); `CONFIRM=yes` to execute; activity-logged.
+
+### Changed
+- `prisma/seed.ts` refuses to run when items exist (unless `SEED_FORCE=yes`) and applies the v2 reference data on fresh installs.
+- `books.ts` looks up the top-level "Books & Media" category (names are unique per parent now); null-safety fixes in exports, floorplan, CSV import.
 
 ### Docs
 - Realigned all docs with the v2 storage direction: `README.md` intro, `GUIDE.md` / `TAILSCALE.md` / `SETUP.md` / `IPHONE-GUIDE.md` (Expo login, SDK coupling, HTTPS default, Change Password), `BACKLOG.md` regrouped by spec phase.

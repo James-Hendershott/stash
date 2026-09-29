@@ -1,31 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Image, StyleSheet, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { api, getBaseUrl } from '../lib/api';
+import { api, ApiError, categoryLabel, getBaseUrl } from '../lib/api';
 import { FateBadge } from '../components/FateBadge';
 
 const FATES = ['ALL', 'KEEP', 'SELL', 'DONATE', 'TRASH', 'UNDECIDED'];
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function ItemListScreen() {
   const navigation = useNavigation<any>();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [query, setQuery] = useState(''); // `search`, debounced
   const [fate, setFate] = useState('ALL');
+
+  // Debounce: wait until typing pauses before hitting the server, instead
+  // of downloading the whole list on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const fetchItems = useCallback(async () => {
     const params: Record<string, string> = {};
     if (fate !== 'ALL') params.fate = fate;
-    if (search) params.search = search;
+    if (query) params.search = query;
 
     try {
       const data = await api.items.list(params);
       setItems(data);
-    } catch {
-      // silently fail — user sees empty list
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server. Pull down to retry.');
     }
-  }, [fate, search]);
+  }, [fate, query]);
 
   useEffect(() => {
     setLoading(true);
@@ -62,9 +73,15 @@ export function ItemListScreen() {
             <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
             <FateBadge fate={item.fate} />
           </View>
-          <Text style={styles.cardMeta}>
-            {item.category?.name} · {item.originLocation?.name}
-          </Text>
+          <Text style={styles.cardMeta} numberOfLines={1}>{categoryLabel(item.category)}</Text>
+          {item.whereabouts && (
+            <Text
+              style={[styles.cardWhere, !item.whereabouts.location && styles.cardWhereMissing]}
+              numberOfLines={2}
+            >
+              {item.whereabouts.summary}
+            </Text>
+          )}
           {item.quantity > 1 && <Text style={styles.cardQty}>×{item.quantity}</Text>}
         </View>
       </TouchableOpacity>
@@ -94,6 +111,8 @@ export function ItemListScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {error && <Text style={styles.error}>{error}</Text>}
 
       <FlatList
         data={items}
@@ -150,6 +169,9 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '600', color: '#1e293b', flex: 1, marginRight: 8 },
   cardMeta: { fontSize: 12, color: '#64748b' },
   cardQty: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  cardWhere: { fontSize: 12, color: '#1d4ed8', fontWeight: '600', marginTop: 3 },
+  cardWhereMissing: { color: '#b45309' },
+  error: { color: '#dc2626', fontSize: 13, paddingHorizontal: 16, paddingBottom: 6 },
   empty: { textAlign: 'center', color: '#94a3b8', marginTop: 40, fontSize: 15 },
   fab: {
     position: 'absolute', right: 20, bottom: 24,

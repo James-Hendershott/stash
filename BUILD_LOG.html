@@ -345,6 +345,25 @@
         <a class="toc-l2" href="#step-3-one-source-mirrored">Step 3: One source, mirrored</a>
         <a class="toc-l2" href="#verifying-9">Verifying</a>
         <a class="toc-l2" href="#chapter-takeaways-27">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-26">The ask</a>
+        <a class="toc-l2" href="#step-1-back-up-before-touching-anything">Step 1: Back up before touching anything</a>
+        <a class="toc-l2" href="#step-2-rehearse-on-a-copy-of-production">Step 2: Rehearse on a copy of production</a>
+        <a class="toc-l2" href="#step-3-the-additive-migration">Step 3: The additive migration</a>
+        <a class="toc-l2" href="#step-4-reference-data-idempotent-never-destructive">Step 4: Reference data — idempotent, never destructive</a>
+        <a class="toc-l2" href="#step-5-the-prune-dry-run-by-default">Step 5: The prune — dry run by default</a>
+        <a class="toc-l2" href="#step-6-defusing-prisma-db-seed">Step 6: Defusing prisma db seed</a>
+        <a class="toc-l2" href="#verifying-10">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-28">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-ask-27">The ask</a>
+        <a class="toc-l2" href="#step-1-whereabouts-without-n1">Step 1: Whereabouts without N+1</a>
+        <a class="toc-l2" href="#step-2-the-tree-in-one-pass">Step 2: The tree in one pass</a>
+        <a class="toc-l2" href="#step-3-route-order-in-express">Step 3: Route order in Express</a>
+        <a class="toc-l2" href="#step-4-navigation-detail-screens-in-the-root-stack">Step 4: Navigation — detail screens in the root stack</a>
+        <a class="toc-l2" href="#step-5-the-scanner">Step 5: The scanner</a>
+        <a class="toc-l2" href="#step-6-items-list-polish">Step 6: Items list polish</a>
+        <a class="toc-l2" href="#verifying-11">Verifying</a>
+        <a class="toc-l2" href="#known-limits-next-phases">Known limits (next phases)</a>
+        <a class="toc-l2" href="#chapter-takeaways-29">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -3909,6 +3928,321 @@ runs.</strong></li>
 24 started by fixing exactly that drift).</li>
 </ul>
 <hr>
+<h1 id="chapter-27-v140-phase-0-foundation-schema-reference-data-a-safe-prune">Chapter 27 — v1.4.0: Phase 0 — Foundation (schema, reference data, a safe prune)</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> How to change a live database
+safely: back up first, rehearse on a <strong>copy of production</strong>, make
+migrations <em><strong>additive</strong></em>, write data scripts that are <em><strong>idempotent</strong></em>
+(safe to run twice), make destructive scripts <em><strong>dry-run by default</strong></em>,
+and guard the one command that could erase everything.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-28, overnight. James went to bed with: <em>&quot;Do as much
+as you can until you need me.&quot;</em> The rule from <code>CLAUDE.md</code>: destructive
+operations wait for an explicit yes — so everything here was built and
+rehearsed locally; production was only <strong>read</strong> and <strong>backed up</strong>.</p>
+<h2 id="the-ask-26">The ask</h2>
+<p>Phase 0 of <code>SPEC.md</code>: database backup, the additive v2 migration, real
+locations / categories / tote models, container numbers, and pruning
+the data down to all books + 7 known totes.</p>
+<h2 id="step-1-back-up-before-touching-anything">Step 1: Back up before touching anything</h2>
+<pre><code class="language-bash">ssh unraid &#39;docker exec stash-postgres pg_dump -U stash -d stash -Fc &gt; /mnt/user/appdata/stash/backups/stash-20260928-2310-pre-phase0.dump&#39;
+docker exec -i stash-postgres pg_restore -l &lt; …dump | grep -c &quot;TABLE DATA&quot;   # 9 tables — the dump is readable
+scp unraid:…/stash-20260928-2310-pre-phase0.dump data/backups/          # second copy on the laptop
+</code></pre>
+<p><code>-Fc</code> is Postgres&#39;s <em><strong>custom format</strong></em>: compressed, and <code>pg_restore</code>
+can list or restore individual tables from it. A backup you haven&#39;t
+verified is a hope, not a backup — <code>pg_restore -l</code> proves it&#39;s readable.
+Two copies in two places (server + laptop) survive either one dying.</p>
+<p><strong>Surprise found:</strong> <code>WARNING: database &quot;stash&quot; has a collation version mismatch (2.36 vs 2.41)</code>. The <code>postgres:16</code> image moved to a newer
+Debian/glibc, which can change how text sorts. Fix (non-destructive,
+done during deploy): <code>REINDEX DATABASE stash; ALTER DATABASE stash REFRESH COLLATION VERSION;</code>.</p>
+<h2 id="step-2-rehearse-on-a-copy-of-production">Step 2: Rehearse on a copy of production</h2>
+<pre><code class="language-bash">docker run -d --name stash-pg-local -e POSTGRES_USER=stash -e POSTGRES_PASSWORD=stash -e POSTGRES_DB=stash -p 5434:5432 postgres:16
+docker exec -i stash-pg-local pg_restore -U stash -d stash --no-owner &lt; data/backups/…dump
+</code></pre>
+<p>Now every migration and script runs against <strong>real data</strong> (712 items,
+the actual 4 migrations) without any risk. Bugs that only show up with
+real data — odd characters, missing categories — show up here.</p>
+<blockquote>
+<p><strong>Windows gotcha:</strong> <code>docker cp file container:/tmp/b.dump</code> failed —
+Git Bash rewrote <code>/tmp/b.dump</code> into a Windows path. Piping through
+stdin (<code>docker exec -i … &lt; file</code>) sidesteps path conversion entirely.</p>
+</blockquote>
+<h2 id="step-3-the-additive-migration">Step 3: The additive migration</h2>
+<p>Schema changes (full list in <code>SPEC.md</code> → &quot;Data model changes&quot;):
+location tree (<code>parentId</code>, <code>kind</code>, <code>shortCode</code>, <code>archivedAt</code>),
+category tree, <code>ContainerModel</code> table, container <code>number</code> / colors /
+<code>status</code> / <code>locationId</code> / <code>labelStatus</code>, item <code>status</code> / <code>locationId</code> /
+<code>upc</code>, and new <code>Checkout</code>, <code>Notification</code>, <code>Setting</code> tables.</p>
+<p><code>prisma migrate dev</code> refused to run (&quot;non-interactive environment&quot;), so
+the SQL came from a diff instead:</p>
+<pre><code class="language-bash">npx prisma migrate diff --from-url &quot;$LOCAL_COPY_URL&quot; --to-schema-datamodel prisma/schema.prisma --script &gt; migration.sql
+</code></pre>
+<p><strong>Reading the generated SQL is not optional.</strong> It contained only
+<code>CREATE TYPE / TABLE / INDEX</code>, <code>ADD COLUMN</code>, four <code>DROP NOT NULL</code>s, and
+one dropped index (<code>categories_name_key</code> — intended, names become
+unique <em>per parent</em>). No <code>DROP TABLE</code>, no <code>DROP COLUMN</code>.</p>
+<p>One line Prisma can&#39;t generate: the trigram index needs an extension.</p>
+<pre><code class="language-sql">CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- …
+CREATE INDEX &quot;items_name_trgm_idx&quot; ON &quot;items&quot; USING GIN (&quot;name&quot; gin_trgm_ops);
+</code></pre>
+<p>In the schema that index is declared as
+<code>@@index([name(ops: raw(&quot;gin_trgm_ops&quot;))], type: Gin)</code>, so Prisma knows
+about it and won&#39;t try to drop it later. After applying:</p>
+<pre><code class="language-bash">npx prisma migrate diff --from-url &quot;$LOCAL_COPY_URL&quot; --to-schema-datamodel prisma/schema.prisma --exit-code
+# exit 0 → the database and the schema agree exactly (no drift)
+</code></pre>
+<p>Making columns nullable surfaced <strong>9 TypeScript errors</strong> in 4 files —
+the compiler listing every place that assumed &quot;every item has an origin
+room&quot;. Each got a one-line fix (<code>?.</code>, <code>?? &#39;Other&#39;</code>, skip nulls). This is
+the payoff of strict types: the migration&#39;s blast radius was a list,
+not a surprise in production.</p>
+<h2 id="step-4-reference-data-idempotent-never-destructive">Step 4: Reference data — idempotent, never destructive</h2>
+<p><code>packages/backend/prisma/v2-reference-data.cjs</code> loads the tote models,
+the category tree, the location tree, and numbers the kept totes.
+Every step is <strong>find-or-create</strong> or <strong>update-if-different</strong>:</p>
+<pre><code class="language-js">let loc = await prisma.location.findUnique({ where: { shortCode: node.shortCode } });
+if (!loc) { loc = await prisma.location.create({ data: { … } }); locsCreated++; }
+</code></pre>
+<p>Proof it&#39;s idempotent — run it twice:</p>
+<pre><code>run 1: {&quot;containerModelsCreated&quot;:8,&quot;categoriesRenamed&quot;:7,&quot;categoriesCreated&quot;:106,&quot;v1LocationsArchived&quot;:42,&quot;locationsCreated&quot;:64,&quot;containersNumbered&quot;:7,&quot;itemsRecategorized&quot;:132}
+run 2: {&quot;containerModelsCreated&quot;:0,&quot;categoriesRenamed&quot;:0,&quot;categoriesCreated&quot;:0,&quot;v1LocationsArchived&quot;:0,&quot;locationsCreated&quot;:0,&quot;containersNumbered&quot;:0,&quot;itemsRecategorized&quot;:0}
+</code></pre>
+<p>Design choices worth noticing:</p>
+<ul>
+<li><strong>Rename, don&#39;t recreate.</strong> <code>Kitchen</code> → <code>Kitchen &amp; Dining</code> updates the
+existing row, so every item pointing at it keeps its link.</li>
+<li><strong>Archive, don&#39;t delete.</strong> The 42 Eagle Mountain / NC rooms get
+<code>archivedAt</code>; items still reference them; nothing breaks.</li>
+<li><strong>Match locations by <code>shortCode</code></strong>, not name — so renaming &quot;Overhead
+Shelf 2&quot; in the app later won&#39;t make a re-run create a duplicate.</li>
+<li><strong>Only fix what the import got wrong.</strong> The April import dropped the
+game totes into <em>Miscellaneous</em>; the script moves items <strong>only if they
+are still in Miscellaneous</strong>, never overriding a deliberate choice.</li>
+<li><strong>Plain <code>.cjs</code>, not TypeScript</strong> — the production image has no <code>tsx</code>,
+but it has <code>node</code> and <code>@prisma/client</code>, and <code>prisma/</code> is copied in.</li>
+</ul>
+<h2 id="step-5-the-prune-dry-run-by-default">Step 5: The prune — dry run by default</h2>
+<p><code>prisma/v2-prune.cjs</code> deletes nothing unless told to:</p>
+<pre><code>$ node prisma/v2-prune.cjs
+Keeping 7 containers (BXS-0001, T27-0010 … T27-0021) and 191 items inside them, plus all books.
+Would delete 128 items and 8 containers:
+…
+Dry run — nothing deleted. Re-run with CONFIRM=yes to delete.
+</code></pre>
+<p>It <strong>aborts</strong> if any of the 7 kept containers is missing (so a typo
+can&#39;t turn &quot;keep 7&quot; into &quot;keep 6&quot;), deletes inside one transaction,
+and writes an activity-log record of every name removed. Rehearsed on
+the copy: 712 → <strong>576</strong> items (431 books + 7 totes + 138 items in them).</p>
+<p>The production run waits for James&#39;s yes after he reviews
+<code>data/backups/prune-list-20260928.csv</code>.</p>
+<h2 id="step-6-defusing-prisma-db-seed">Step 6: Defusing prisma db seed</h2>
+<p>Reading <code>seed.ts</code> turned up a landmine: it starts with <code>deleteMany()</code> on
+<strong>every table</strong>, and older deploy instructions included running it. One
+copy-paste in production = everything gone. Now:</p>
+<pre><code class="language-ts">const existingItems = await prisma.item.count();
+if (existingItems &gt; 0 &amp;&amp; process.env.SEED_FORCE !== &#39;yes&#39;) {
+  throw new Error(`Refusing to seed: the database already has ${existingItems} items …`);
+}
+</code></pre>
+<p>Verified both ways: refused on the populated copy; on a brand-new empty
+database, <code>migrate deploy</code> + <code>seed</code> built everything (including the v2
+reference data, which the seed now calls).</p>
+<h2 id="verifying-10">Verifying</h2>
+<ul>
+<li>Migration applied to the production copy; drift check exit 0.</li>
+<li>Backend <code>tsc</code> clean; admin <code>tsc</code> clean.</li>
+<li>Reference data: idempotent (two runs).</li>
+<li>Prune: dry run matches the review CSV (136 rows); execute leaves 576.</li>
+<li>Seed guard: refuses on data; fresh install works end to end.</li>
+</ul>
+<h2 id="chapter-takeaways-28">Chapter takeaways</h2>
+<ul>
+<li><strong>Backup → verify → second copy</strong>, before anything else.</li>
+<li><strong>Rehearse on a restored copy of production.</strong> It&#39;s cheap and catches
+what dev data never will.</li>
+<li><strong>Read generated migration SQL</strong> for any <code>DROP</code>.</li>
+<li><strong>Data scripts should be idempotent</strong>; prove it by running twice.</li>
+<li><strong>Destructive scripts: dry-run by default, abort on surprises, log
+what they did.</strong> And look for the command that could wipe everything
+— then put a guard on it.</li>
+</ul>
+<hr>
+<h1 id="chapter-28-v150-phase-1-find-it">Chapter 28 — v1.5.0: Phase 1 — Find it</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Resolving a chain of relationships
+(item → tote → tote → spot → area → place) without the <em><strong>N+1 query</strong></em>
+problem, tree building in one pass, why Express route order matters,
+React Navigation&#39;s root-stack pattern, <em><strong>debouncing</strong></em> input, and
+writing a parser you can test without a camera.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-28, overnight, right after Chapter 27.</p>
+<h2 id="the-ask-27">The ask</h2>
+<p>Phase 1 of <code>SPEC.md</code>: <em>&quot;Where is X?&quot;</em> and <em>&quot;What&#39;s in this tote?&quot;</em> from
+the phone — search shows the full whereabouts; scanning a tote opens its
+contents; browse Place › Area › Spot → totes → items.</p>
+<p>Two bugs from the Chapter 25 review were in scope: scanning a
+<strong>container</strong> QR showed a popup and went nowhere, and the scanner never
+re-armed after one scan.</p>
+<h2 id="step-1-whereabouts-without-n1">Step 1: Whereabouts without N+1</h2>
+<p>The naive version: for each item, query its placement, then its
+container, then the container&#39;s location, then that location&#39;s parent…
+For a list of 700 items that&#39;s thousands of queries.</p>
+<p><code>services/whereabouts.ts</code> does it with a constant number of queries:
+locations and containers are small tables, so load each <strong>once</strong> into a
+<code>Map</code> and walk chains in memory.</p>
+<pre><code class="language-ts">export function locationPath(index: Map&lt;string, LocationNode&gt;, id: string | null): LocationNode[] {
+  const path: LocationNode[] = [];
+  let cur = id ? index.get(id) : undefined;
+  for (let depth = 0; cur &amp;&amp; depth &lt; MAX_DEPTH; depth++) {
+    path.unshift(cur);
+    cur = cur.parentId ? index.get(cur.parentId) : undefined;
+  }
+  return path;
+}
+</code></pre>
+<p><strong>Complexity:</strong> 3 queries total, then <strong>O(N × d)</strong> in memory for N
+items and chain depth d (d ≤ 4 in practice). <code>MAX_DEPTH</code> guards against
+an accidental cycle (A inside B inside A) turning into an infinite loop.</p>
+<p>Containers <strong>inherit</strong> location: a tote packed inside the cedar chest
+has no spot of its own — <code>containerLocationId()</code> walks up to the chest&#39;s.</p>
+<p>The result is one sentence for list rows:</p>
+<pre><code>Bears vs Babies -&gt; In #12 · Lehi Indoor Storage — Unit 3204 › Rack 5 › Shelf 3
+Dragonology     -&gt; In #1 · location not set
+</code></pre>
+<h2 id="step-2-the-tree-in-one-pass">Step 2: The tree in one pass</h2>
+<p><code>GET /api/locations/tree</code> builds the nested tree from a flat list:</p>
+<pre><code class="language-ts">for (const node of nodes.values()) {
+  const parent = node.parentId ? nodes.get(node.parentId) : undefined;
+  (parent ? parent.children : roots).push(node);
+}
+const total = (n) =&gt; (n.totalContainers = n.containerCount + n.children.reduce((s, c) =&gt; s + total(c), 0));
+</code></pre>
+<p>One pass to link children (O(L)), one <em><strong>postorder</strong></em> recursion to sum
+container counts up the tree (O(L)). &quot;Rack 5 has 1 container&quot; is the
+sum of its shelves.</p>
+<h2 id="step-3-route-order-in-express">Step 3: Route order in Express</h2>
+<pre><code class="language-ts">router.get(&#39;/by-number/:number&#39;, …);   // must come first
+router.get(&#39;/:id&#39;, …);
+</code></pre>
+<p>Express matches routes <strong>in registration order</strong>. If <code>/:id</code> came first,
+<code>GET /containers/by-number/12</code> would match it with
+<code>id = &quot;by-number&quot;</code> → 404. Same for <code>/locations/tree</code> and <code>/unplaced</code>.</p>
+<p>New endpoints:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /api/containers/by-number/:n</code></td>
+<td>Scanning a v2 label (<code>…/c/12</code>)</td>
+</tr>
+<tr>
+<td><code>GET /api/containers/:id/screen</code></td>
+<td>Same payload by id (v1 labels)</td>
+</tr>
+<tr>
+<td><code>PATCH /api/containers/:id/location</code></td>
+<td>Put a tote on a spot (→ STORED, activity-logged)</td>
+</tr>
+<tr>
+<td><code>GET /api/locations/tree</code></td>
+<td>Places tab + picker</td>
+</tr>
+<tr>
+<td><code>GET /api/locations/unplaced</code></td>
+<td>&quot;Needs a spot&quot; list</td>
+</tr>
+<tr>
+<td><code>GET /api/locations/:id/contents</code></td>
+<td>One location&#39;s children, totes, loose items</td>
+</tr>
+<tr>
+<td><code>POST /api/locations/tree</code></td>
+<td>New spot from the phone</td>
+</tr>
+<tr>
+<td><code>GET /api/items</code>, <code>/:id</code></td>
+<td>Now include <code>whereabouts</code> and the category&#39;s parent</td>
+</tr>
+</tbody></table>
+<h2 id="step-4-navigation-detail-screens-in-the-root-stack">Step 4: Navigation — detail screens in the root stack</h2>
+<p>Before, <code>ItemDetail</code> lived <em>inside</em> the Items tab&#39;s stack, so the Scan
+tab couldn&#39;t open it (that&#39;s why scanning an item likely did nothing).
+Now:</p>
+<pre><code>Root stack
+├─ Main (tabs: Items · Places · Scan · Settings)
+└─ ItemDetail, AddItem, Container, Location, LocationPicker
+</code></pre>
+<p><code>navigation.navigate(&#39;Container&#39;, …)</code> from any tab bubbles up to the
+root stack and finds it. The picker is presented as a modal and the
+container screen refetches in <code>useFocusEffect</code> when you come back —
+no callbacks passed through route params (React Navigation warns
+against non-serializable params).</p>
+<h2 id="step-5-the-scanner">Step 5: The scanner</h2>
+<p>The parser moved out of the screen into <code>src/lib/qr.ts</code>, so it can be
+tested with plain strings:</p>
+<pre><code>{&quot;kind&quot;:&quot;container&quot;,&quot;number&quot;:12}          &lt;= https://stash.shottsserver.com/c/12
+{&quot;kind&quot;:&quot;container&quot;,&quot;id&quot;:&quot;7d4a…&quot;}         &lt;= …/api/containers/7d4a…   (v1 labels)
+{&quot;kind&quot;:&quot;item&quot;,&quot;id&quot;:&quot;7d4a…&quot;}              &lt;= …/api/items/7D4A…        (uppercase ok)
+{&quot;kind&quot;:&quot;container&quot;,&quot;number&quot;:21}          &lt;= #21
+null                                      &lt;= https://example.com/hello
+</code></pre>
+<p>And the &quot;one scan then dead&quot; bug: <code>scanned</code> was set to <code>true</code> and never
+reset. <code>useFocusEffect(() =&gt; setScanned(false))</code> re-arms it every time
+the tab comes back into view.</p>
+<h2 id="step-6-items-list-polish">Step 6: Items list polish</h2>
+<ul>
+<li><p><strong>Whereabouts on every card</strong> (blue), or <em>Location not set</em> (amber).</p>
+</li>
+<li><p><strong>Debounced search</strong> — waits 300 ms after typing stops:</p>
+<pre><code class="language-ts">useEffect(() =&gt; {
+  const t = setTimeout(() =&gt; setQuery(search.trim()), SEARCH_DEBOUNCE_MS);
+  return () =&gt; clearTimeout(t); // a new keystroke cancels the pending one
+}, [search]);
+</code></pre>
+<p>Typing &quot;mixer&quot; used to fire 5 requests that each downloaded the whole
+list; now it fires 1.</p>
+</li>
+<li><p><strong>Errors are shown</strong>, not swallowed (<code>catch {}</code> hid every failure).</p>
+</li>
+</ul>
+<h2 id="verifying-11">Verifying</h2>
+<p>Backend, run locally against the restored production copy:</p>
+<ul>
+<li>Tree: Blue Flax (11 areas), Unit 3204 (7) ✓ · Unplaced: all 7 totes ✓</li>
+<li><code>#12</code> → model, status, 37 items with category paths ✓ · <code>#999</code> → 404 ✓</li>
+<li>Move #12 to <code>U-R5-S3</code> → STORED; search &quot;bears&quot; shows the full chain;
+Rack 5 shows Shelf 3 = 1 ✓ · bad UUID → 400 ✓</li>
+<li>New spot created; duplicate short code → 409 with a clear message ✓</li>
+</ul>
+<p>Mobile: <code>tsc</code> clean (18 files), <code>expo export --platform ios</code> bundles
+(825 modules), QR parser checked against 9 inputs. <strong>Not yet tried on
+the phone</strong> — that&#39;s the morning walkthrough (the phone talks to
+production, which doesn&#39;t have these endpoints until deploy — or point
+Settings → Server URL at the laptop&#39;s local backend to test first).</p>
+<h2 id="known-limits-next-phases">Known limits (next phases)</h2>
+<ul>
+<li>Item categories were assigned <strong>per tote</strong> (e.g. everything in #12 →
+Role-Playing Games), so a few are wrong (<em>Bears vs Babies</em> is a card
+game). Editing categories on the phone arrives with Phase 2.</li>
+<li>The admin site still shows the v1 (move) location view.</li>
+</ul>
+<h2 id="chapter-takeaways-29">Chapter takeaways</h2>
+<ul>
+<li><strong>N+1 is the default</strong> when you follow relationships in a loop. Load
+small tables once into a <code>Map</code>; walk in memory.</li>
+<li><strong>Guard every walk up a tree</strong> with a max depth.</li>
+<li><strong>Specific routes before parameterized ones</strong> in Express.</li>
+<li><strong>Put shared detail screens in the root stack</strong> so every tab can
+reach them.</li>
+<li><strong>Pull parsing out of UI code</strong> so it&#39;s testable without the device.</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -3921,6 +4255,38 @@ runs.</strong></li>
 <tbody><tr>
 <td>AABB</td>
 <td>Axis-Aligned Bounding Box. Collision check via comparing min/max on x/y/z. Fast and correct when shapes don&#39;t rotate freely.</td>
+</tr>
+<tr>
+<td>additive migration</td>
+<td>A schema change that only adds (tables, columns, indexes) or relaxes (NOT NULL → nullable) — never drops data. Old code keeps working (Chapter 27).</td>
+</tr>
+<tr>
+<td>custom format (pg_dump -Fc)</td>
+<td>Compressed Postgres backup that <code>pg_restore</code> can list (<code>-l</code>) and restore selectively.</td>
+</tr>
+<tr>
+<td>debounce</td>
+<td>Wait until input pauses before acting — one search request per pause instead of one per keystroke (Chapter 28).</td>
+</tr>
+<tr>
+<td>dry run</td>
+<td>Running a destructive script in report-only mode; it prints what it <em>would</em> do. <code>v2-prune.cjs</code> is dry-run unless <code>CONFIRM=yes</code>.</td>
+</tr>
+<tr>
+<td>idempotent</td>
+<td>Safe to run any number of times with the same result. Proven by running twice and seeing zero changes the second time (Chapter 27).</td>
+</tr>
+<tr>
+<td>N+1 query</td>
+<td>One query for a list, then one more per row to fetch related data. Fixed by loading related tables once into a <code>Map</code> (Chapter 28).</td>
+</tr>
+<tr>
+<td>postorder</td>
+<td>Tree traversal that visits children before the parent — how subtree totals are summed (Chapter 28).</td>
+</tr>
+<tr>
+<td>root stack</td>
+<td>The top-level React Navigation stack holding the tabs <em>and</em> shared detail screens, so any tab can open them (Chapter 28).</td>
 </tr>
 <tr>
 <td>ADR</td>
@@ -4040,7 +4406,7 @@ runs.</strong></li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 202 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 221 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

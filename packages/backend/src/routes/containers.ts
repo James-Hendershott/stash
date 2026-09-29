@@ -2,8 +2,11 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { createContainerSchema, updateContainerSchema } from '../validators/containers';
+import {
+  createContainerSchema, updateContainerSchema, setContainerLocationSchema,
+} from '../validators/containers';
 import { nextContainerCode } from '../services/container-codes';
+import { containerDisplay, whereaboutsForOne } from '../services/whereabouts';
 
 const router = Router();
 
@@ -39,6 +42,151 @@ router.get('/', async (req: Request, res: Response) => {
   }));
 
   res.json(result);
+});
+
+// ── v2 (storage): container screen + moving a container ───────
+// These must be registered BEFORE `/:id`, or Express would treat
+// "by-number" as an id.
+
+/**
+ * Build the phone's container screen payload: the tote itself, where it
+ * is (full location path), and everything currently inside it.
+ */
+async function containerScreen(where: { id: string } | { number: number }) {
+  const container = await prisma.container.findUnique({
+    where,
+    include: {
+      model: true,
+      item: { include: { category: { include: { parent: true } } } },
+      placements: {
+        where: { removedAt: null },
+        include: {
+          item: {
+            include: {
+              category: { include: { parent: true } },
+              container: { select: { id: true, number: true, label: true } },
+            },
+          },
+        },
+        orderBy: { placedAt: 'asc' },
+      },
+    },
+  });
+  if (!container || container.item.deletedAt) return null;
+
+  const whereabouts = await whereaboutsForOne(container.item);
+  const items = container.placements
+    .filter((p) => !p.item.deletedAt)
+    .map((p) => ({
+      id: p.item.id,
+      name: p.item.name,
+      description: p.item.description,
+      photoPath: p.item.photoPath,
+      quantity: p.item.quantity,
+      status: p.item.status,
+      category: p.item.category,
+      // Nested container (a tote inside a cedar chest)
+      container: p.item.container,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    id: container.id,
+    itemId: container.itemId,
+    number: container.number,
+    label: container.label,
+    display: containerDisplay(container),
+    name: container.item.name,
+    description: container.item.description,
+    photoPath: container.item.photoPath,
+    category: container.item.category,
+    status: container.status,
+    labelStatus: container.labelStatus,
+    lidColor: container.lidColor,
+    bodyColor: container.bodyColor,
+    model: container.model,
+    locationId: container.locationId,
+    whereabouts,
+    itemCount: items.length,
+    items,
+  };
+}
+
+/**
+ * GET /api/containers/by-number/:number
+ * What a QR scan of a label ("…/c/12") resolves to.
+ */
+router.get('/by-number/:number', async (req: Request, res: Response) => {
+  const number = Number(req.params.number);
+  if (!Number.isInteger(number) || number < 0) {
+    res.status(400).json({ error: 'Container number must be a whole number' });
+    return;
+  }
+  const screen = await containerScreen({ number });
+  if (!screen) {
+    res.status(404).json({ error: `No container #${number}` });
+    return;
+  }
+  res.json(screen);
+});
+
+/**
+ * GET /api/containers/:id/screen
+ * Same payload as by-number, looked up by id (older QR codes encode the id).
+ */
+router.get('/:id/screen', async (req: Request, res: Response) => {
+  const screen = await containerScreen({ id: req.params.id as string });
+  if (!screen) {
+    res.status(404).json({ error: 'Container not found' });
+    return;
+  }
+  res.json(screen);
+});
+
+/**
+ * PATCH /api/containers/:id/location
+ * Put a container at a spot (or clear it with null). A container with a
+ * location counts as STORED.
+ */
+router.patch('/:id/location', validate(setContainerLocationSchema), async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const { locationId } = req.body as { locationId: string | null };
+
+  const container = await prisma.container.findUnique({ where: { id } });
+  if (!container) {
+    res.status(404).json({ error: 'Container not found' });
+    return;
+  }
+  if (locationId) {
+    const loc = await prisma.location.findUnique({ where: { id: locationId } });
+    if (!loc || loc.archivedAt || !loc.kind) {
+      res.status(400).json({ error: 'Pick one of the current storage locations' });
+      return;
+    }
+  }
+
+  const updated = await prisma.container.update({
+    where: { id },
+    data: {
+      locationId,
+      // Moving a container onto a spot means it's stored there. Clearing the
+      // spot leaves the status alone (it may be AWAY or still PACKING).
+      ...(locationId && container.status !== 'AWAY' ? { status: 'STORED' as const } : {}),
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: req.user!.userId,
+      action: 'MOVE_CONTAINER',
+      entityType: 'Container',
+      entityId: id,
+      previousValue: { locationId: container.locationId },
+      newValue: { locationId },
+    },
+  });
+
+  res.json({ id: updated.id, locationId: updated.locationId, status: updated.status });
 });
 
 /**

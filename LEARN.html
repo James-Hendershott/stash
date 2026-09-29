@@ -276,6 +276,24 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):</p>
 <td>Soft-delete with history</td>
 </tr>
 <tr>
+<td>008</td>
+<td>Reference data ships as an <strong>idempotent <code>.cjs</code> script</strong> (<code>prisma/v2-reference-data.cjs</code>), shared by the seed; the seed <strong>refuses to run on a populated DB</strong></td>
+<td>Prod image has <code>node</code> but no <code>tsx</code>; re-runnable scripts are safe; the old seed wiped every table</td>
+<td>Putting reference data in the seed (destructive) or in migration SQL (can&#39;t be re-run or edited easily)</td>
+</tr>
+<tr>
+<td>009</td>
+<td>Destructive data scripts are <strong>dry-run by default</strong> (<code>CONFIRM=yes</code> to act), abort on unexpected state, and write an activity-log record</td>
+<td>The prune is irreversible without a restore</td>
+<td>Interactive prompts (don&#39;t work over <code>docker exec</code>), or trusting a one-off SQL <code>DELETE</code></td>
+</tr>
+<tr>
+<td>010</td>
+<td><strong>Whereabouts resolved in memory</strong> from per-request <code>Map</code>s of locations and containers</td>
+<td>Constant 3 queries instead of N+1; both tables are small</td>
+<td>Recursive SQL CTE per item; denormalizing a <code>path</code> column (goes stale on every move/rename)</td>
+</tr>
+<tr>
 <td>007</td>
 <td><strong>Spec + key docs mirrored</strong> repo ↔ vault, with the sync rule written into both <code>CLAUDE.md</code> files</td>
 <td>James plans in Obsidian; sessions code in the repo; both need the same truth</td>
@@ -454,6 +472,9 @@ changing — not the future.</li>
 <hr>
 <h1 id="part-5-codebase-tour">Part 5 — Codebase tour</h1>
 <h2 id="chapter-18-the-data-model">Chapter 18 — The data model</h2>
+<blockquote>
+<p><strong>v2 update (Chapter 27):</strong> the model is now centered on <strong>Item → Container → Location</strong>. <code>Location</code> is a tree (<code>parentId</code>, <code>kind</code> PLACE/AREA/SPOT, <code>shortCode</code>, <code>archivedAt</code>); <code>Category</code> has subcategories; <code>ContainerModel</code> is a catalog of tote types; <code>Container</code> gained <code>number</code> (the printed ID), colors, <code>status</code> (PACKING/STORED/AWAY), <code>locationId</code>, <code>labelStatus</code>; <code>Item</code> gained <code>status</code> (STORED/IN_USE/ARCHIVED), <code>locationId</code>, <code>upc</code>. New tables: <code>Checkout</code>, <code>Notification</code>, <code>Setting</code>. &quot;Where is it?&quot; is computed by <code>services/whereabouts.ts</code> (ADR-010). The v1 fields below (<code>fate</code>, <code>originLocationId</code>, ORIGIN/DESTINATION) still exist but are optional and back-burnered.</p>
+</blockquote>
 <p>Stash&#39;s domain is <em>items</em>. Every meaningful thing is an Item: a sofa
 is an Item, a tote that holds other items is an Item, a book is an
 Item, a U-Box you packed at home is an Item. The thing that varies

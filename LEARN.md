@@ -88,6 +88,9 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):
 | 004 | **Additive migrations** for v2 | Old rows and the admin site keep working while the phone catches up | Big-bang schema rewrite |
 | 005 | Labels go out through the **iPhone Share sheet** | Print (AirPrint), Mail, Files, Phomemo app — no SMTP, no Bluetooth native module | In-app email; direct Bluetooth printing (needs a custom native build) |
 | 006 | Sold / Disposed = **hard delete** | User's choice; activity log keeps a one-line record | Soft-delete with history |
+| 008 | Reference data ships as an **idempotent `.cjs` script** (`prisma/v2-reference-data.cjs`), shared by the seed; the seed **refuses to run on a populated DB** | Prod image has `node` but no `tsx`; re-runnable scripts are safe; the old seed wiped every table | Putting reference data in the seed (destructive) or in migration SQL (can't be re-run or edited easily) |
+| 009 | Destructive data scripts are **dry-run by default** (`CONFIRM=yes` to act), abort on unexpected state, and write an activity-log record | The prune is irreversible without a restore | Interactive prompts (don't work over `docker exec`), or trusting a one-off SQL `DELETE` |
+| 010 | **Whereabouts resolved in memory** from per-request `Map`s of locations and containers | Constant 3 queries instead of N+1; both tables are small | Recursive SQL CTE per item; denormalizing a `path` column (goes stale on every move/rename) |
 | 007 | **Spec + key docs mirrored** repo ↔ vault, with the sync rule written into both `CLAUDE.md` files | James plans in Obsidian; sessions code in the repo; both need the same truth | Single copy in one place (the other audience never sees it) |
 
 ## Chapter 4 — Designing the data model
@@ -284,6 +287,8 @@ Rules we follow (BUILD_LOG ch. 26):
 # Part 5 — Codebase tour
 
 ## Chapter 18 — The data model
+
+> **v2 update (Chapter 27):** the model is now centered on **Item → Container → Location**. `Location` is a tree (`parentId`, `kind` PLACE/AREA/SPOT, `shortCode`, `archivedAt`); `Category` has subcategories; `ContainerModel` is a catalog of tote types; `Container` gained `number` (the printed ID), colors, `status` (PACKING/STORED/AWAY), `locationId`, `labelStatus`; `Item` gained `status` (STORED/IN_USE/ARCHIVED), `locationId`, `upc`. New tables: `Checkout`, `Notification`, `Setting`. "Where is it?" is computed by `services/whereabouts.ts` (ADR-010). The v1 fields below (`fate`, `originLocationId`, ORIGIN/DESTINATION) still exist but are optional and back-burnered.
 
 Stash's domain is *items*. Every meaningful thing is an Item: a sofa
 is an Item, a tote that holds other items is an Item, a book is an

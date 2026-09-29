@@ -11,19 +11,23 @@ import { ItemDetailScreen } from './src/screens/ItemDetailScreen';
 import { AddItemScreen } from './src/screens/AddItemScreen';
 import { ScanScreen } from './src/screens/ScanScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { PlacesScreen } from './src/screens/PlacesScreen';
+import { LocationScreen } from './src/screens/LocationScreen';
+import { ContainerScreen } from './src/screens/ContainerScreen';
+import { LocationPickerScreen } from './src/screens/LocationPickerScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function ItemsStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="ItemList" component={ItemListScreen} options={{ title: 'Items' }} />
-      <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: 'Item' }} />
-      <Stack.Screen name="AddItem" component={AddItemScreen} options={{ title: 'Add Item' }} />
-    </Stack.Navigator>
-  );
-}
+// Navigation shape (v2):
+//   Root stack
+//   ├─ Main (bottom tabs: Items · Places · Scan · Settings)
+//   └─ detail screens — ItemDetail, Container, Location, LocationPicker, AddItem
+//
+// Detail screens live in the ROOT stack (not inside a tab) so any tab can
+// open any of them: Scan → Container, Places → Container → Item, etc.
+// `navigation.navigate('Container', …)` from inside a tab bubbles up to
+// the root stack automatically.
 
 function MainTabs() {
   return (
@@ -32,15 +36,23 @@ function MainTabs() {
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: { paddingBottom: 4, height: 56 },
-        headerShown: false,
+        headerShown: true,
       }}
     >
       <Tab.Screen
         name="ItemsTab"
-        component={ItemsStack}
+        component={ItemListScreen}
         options={{
           title: 'Items',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>{'📦'}</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Places"
+        component={PlacesScreen}
+        options={{
+          title: 'Places',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>{'📍'}</Text>,
         }}
       />
       <Tab.Screen
@@ -49,7 +61,6 @@ function MainTabs() {
         options={{
           title: 'Scan',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>{'📷'}</Text>,
-          headerShown: true,
         }}
       />
       <Tab.Screen
@@ -58,7 +69,6 @@ function MainTabs() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>{'⚙️'}</Text>,
-          headerShown: true,
         }}
       />
     </Tab.Navigator>
@@ -73,11 +83,22 @@ function RootNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator>
       {user ? (
-        <Stack.Screen name="Main" component={MainTabs} />
+        <>
+          <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="ItemDetail" component={ItemDetailScreen} options={{ title: 'Item' }} />
+          <Stack.Screen name="AddItem" component={AddItemScreen} options={{ title: 'Add Item' }} />
+          <Stack.Screen name="Container" component={ContainerScreen} options={{ title: 'Container' }} />
+          <Stack.Screen name="Location" component={LocationScreen} options={{ title: 'Location' }} />
+          <Stack.Screen
+            name="LocationPicker"
+            component={LocationPickerScreen}
+            options={{ title: 'Move', presentation: 'modal' }}
+          />
+        </>
       ) : (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       )}
     </Stack.Navigator>
   );

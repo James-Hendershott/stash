@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createItemSchema, updateItemSchema, updateItemFateSchema } from '../validators/items';
+import { whereaboutsFor, whereaboutsForOne } from '../services/whereabouts';
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.get('/', async (req: Request, res: Response) => {
   const items = await prisma.item.findMany({
     where,
     include: {
-      category: true,
+      category: { include: { parent: true } },
       originLocation: true,
       destinationLocation: true,
       container: true,
@@ -50,7 +51,9 @@ router.get('/', async (req: Request, res: Response) => {
     orderBy: { [sortBy as string]: sortOrder },
   });
 
-  res.json(items);
+  // v2: attach "where is it" (container number + full location path).
+  const whereabouts = await whereaboutsFor(items);
+  res.json(items.map((i) => ({ ...i, whereabouts: whereabouts.get(i.id) })));
 });
 
 /**
@@ -61,13 +64,13 @@ router.get('/:id', async (req: Request, res: Response) => {
   const item = await prisma.item.findUnique({
     where: { id: req.params.id },
     include: {
-      category: true,
+      category: { include: { parent: true } },
       originLocation: true,
       destinationLocation: true,
       container: true,
       placements: {
         include: {
-          container: { include: { item: { select: { name: true } } } },
+          container: { include: { item: { select: { name: true, description: true } } } },
           placedBy: { select: { id: true, name: true } },
         },
         orderBy: { placedAt: 'desc' },
@@ -82,7 +85,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     return;
   }
 
-  res.json(item);
+  res.json({ ...item, whereabouts: await whereaboutsForOne(item) });
 });
 
 /**

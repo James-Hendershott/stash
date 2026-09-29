@@ -22,6 +22,97 @@ export function setBaseUrl(url: string): void {
   }
 }
 
+/** Full URL for a stored file path (photos, QR codes). */
+export function fileUrl(path: string): string {
+  return `${baseUrl.replace(/\/api$/, '')}/api/files/${path}`;
+}
+
+// ── v2 (storage) response shapes ─────────────────────────────
+
+export interface Whereabouts {
+  status: string;
+  container: { id: string; number: number | null; label: string; display: string } | null;
+  location: { id: string; path: string; shortCode: string | null } | null;
+  summary: string;
+}
+
+export interface CategoryRef {
+  id: string;
+  name: string;
+  parent?: { id: string; name: string } | null;
+}
+
+export interface ContainerSummary {
+  id: string;
+  number: number | null;
+  label: string;
+  display: string;
+  name: string;
+  description: string | null;
+  lidColor: string | null;
+  status: string;
+  itemCount: number;
+}
+
+export interface ContainerScreenData {
+  id: string;
+  itemId: string;
+  number: number | null;
+  label: string;
+  display: string;
+  name: string;
+  description: string | null;
+  photoPath: string | null;
+  category: CategoryRef;
+  status: 'PACKING' | 'STORED' | 'AWAY';
+  labelStatus: 'NONE' | 'NOT_PRINTED' | 'PRINTED';
+  lidColor: string | null;
+  bodyColor: string | null;
+  model: { brand: string; name: string; capacity: string | null } | null;
+  locationId: string | null;
+  whereabouts: Whereabouts;
+  itemCount: number;
+  items: {
+    id: string;
+    name: string;
+    description: string | null;
+    photoPath: string | null;
+    quantity: number;
+    status: string;
+    category: CategoryRef;
+    container: { id: string; number: number | null; label: string } | null;
+  }[];
+}
+
+export interface LocationTreeNode {
+  id: string;
+  name: string;
+  kind: 'PLACE' | 'AREA' | 'SPOT';
+  shortCode: string | null;
+  parentId: string | null;
+  containerCount: number;
+  totalContainers: number;
+  children: LocationTreeNode[];
+}
+
+export interface LocationContents {
+  id: string;
+  name: string;
+  kind: string;
+  shortCode: string | null;
+  path: string;
+  breadcrumbs: { id: string; name: string }[];
+  children: { id: string; name: string; kind: string; shortCode: string | null; totalContainers: number }[];
+  containers: ContainerSummary[];
+  looseItems: { id: string; name: string; photoPath: string | null; quantity: number; status: string }[];
+}
+
+/** "Games & Tabletop › Role-Playing Games" */
+export function categoryLabel(c?: CategoryRef | null): string {
+  if (!c) return '';
+  return c.parent ? `${c.parent.name} › ${c.name}` : c.name;
+}
+
 async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN_KEY);
 }
@@ -134,6 +225,19 @@ export const api = {
     get3dData(id: string) {
       return request<{ container: any; items: any[] }>(`/containers/${id}/3d`);
     },
+    // v2 container screen — by printed number (new QR labels) or by id (old ones)
+    byNumber(number: number) {
+      return request<ContainerScreenData>(`/containers/by-number/${number}`);
+    },
+    screen(id: string) {
+      return request<ContainerScreenData>(`/containers/${id}/screen`);
+    },
+    setLocation(id: string, locationId: string | null) {
+      return request<{ id: string; locationId: string | null; status: string }>(`/containers/${id}/location`, {
+        method: 'PATCH',
+        body: JSON.stringify({ locationId }),
+      });
+    },
   },
 
   categories: {
@@ -145,6 +249,19 @@ export const api = {
   locations: {
     list() {
       return request<any[]>('/locations');
+    },
+    // v2 storage tree
+    tree() {
+      return request<LocationTreeNode[]>('/locations/tree');
+    },
+    unplaced() {
+      return request<ContainerSummary[]>('/locations/unplaced');
+    },
+    contents(id: string) {
+      return request<LocationContents>(`/locations/${id}/contents`);
+    },
+    createInTree(data: { name: string; parentId: string | null; kind?: 'PLACE' | 'AREA' | 'SPOT'; shortCode?: string | null }) {
+      return request<any>('/locations/tree', { method: 'POST', body: JSON.stringify(data) });
     },
   },
 

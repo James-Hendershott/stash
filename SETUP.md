@@ -249,6 +249,17 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 docker compose exec stash-backend npx prisma migrate deploy
 ```
 
+> ⚠️ **Never run `prisma db seed` on production.** It deletes every table
+> (it now refuses when items exist). For reference data use:
+> `docker exec -w /app/packages/backend stash-backend node prisma/v2-reference-data.cjs`
+> (idempotent — safe to re-run).
+
+**Always back up before a deploy that includes a migration:**
+
+```bash
+docker exec stash-postgres pg_dump -U stash -d stash -Fc > /mnt/user/appdata/stash/backups/stash-$(date +%Y%m%d-%H%M).dump
+```
+
 ### Production Checklist
 
 - [ ] All containers running: `docker ps | grep stash`
