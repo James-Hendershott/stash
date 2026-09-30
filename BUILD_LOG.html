@@ -374,6 +374,12 @@
         <a class="toc-l2" href="#the-run">The run</a>
         <a class="toc-l2" href="#bug-quotthe-container-name-stash-postgres-is-already-in-usequot">Bug: &quot;The container name /stash-postgres is already in use&quot;</a>
         <a class="toc-l2" href="#chapter-takeaways-31">Chapter takeaways</a>
+        <a class="toc-l2" href="#step-1-heic-jpeg">Step 1: HEIC → JPEG</a>
+        <a class="toc-l2" href="#step-2-identify-from-photos">Step 2: Identify from photos</a>
+        <a class="toc-l2" href="#step-3-where-photos-live">Step 3: Where photos live</a>
+        <a class="toc-l2" href="#step-4-one-transaction-validate-first">Step 4: One transaction, validate first</a>
+        <a class="toc-l2" href="#verifying-12">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-32">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -4427,6 +4433,62 @@ whole point of the change.</li>
 proven — a free, instant rollback.</li>
 </ul>
 <hr>
+<h1 id="chapter-31-the-first-real-tote-50-from-33-photos">Chapter 31 — The first real tote: #50 from 33 photos</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Turning a folder of iPhone photos into
+real inventory: HEIC conversion, identifying items from images, where the
+app actually keeps photos, and reusing the rehearse → run → verify loop
+for a small one-off import.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-09-30. James: <em>&quot;I added a new folder in the vault … yellow
+lid HDX 27 gallon #50 with images of everything inside. Can we add those
+items and images, create the container, categorize, and then we could use
+it in the real world test.&quot;</em></p>
+<h2 id="step-1-heic-jpeg">Step 1: HEIC → JPEG</h2>
+<p>iPhones save <strong>HEIC</strong> (smaller, but not universally supported). Two sizes
+were made with Pillow + <code>pillow_heif</code>:</p>
+<pre><code class="language-python">im = ImageOps.exif_transpose(Image.open(heic)).convert(&quot;RGB&quot;)  # respect phone rotation
+im.thumbnail((1600, 1600)); im.save(f&quot;{base}.jpg&quot;, quality=85)    # the stored photo
+</code></pre>
+<p><code>exif_transpose</code> matters: phones store &quot;rotate 90°&quot; as metadata; without
+it, half the photos come out sideways.</p>
+<h2 id="step-2-identify-from-photos">Step 2: Identify from photos</h2>
+<p>Six labeled contact sheets (6 photos each) made 33 photos reviewable at
+once. 33 photos → <strong>28 items</strong> (some items had a label photo <em>and</em> a box
+photo; the best one became the item photo, the other is noted in the
+description). The tote lid&#39;s own label — <em>&quot;Peripherals: Keyboards,
+Controllers, Headphones, External Hard-drives&quot;</em> — became its description.
+One item couldn&#39;t be identified (<em>X-GO C27-C</em>) and says so in its name,
+rather than guessing.</p>
+<h2 id="step-3-where-photos-live">Step 3: Where photos live</h2>
+<p><code>routes/uploads.ts:49</code> stores <code>photoPath = images/&lt;file&gt;</code> relative to
+<code>DATA_PATH</code> (<code>/mnt/user/appdata/stash</code>), served at
+<code>/api/files/images/&lt;file&gt;</code>. So the import copies files into
+<code>/mnt/user/appdata/stash/images/</code> and writes the matching <code>photoPath</code> —
+the same shape the in-app upload produces.</p>
+<h2 id="step-4-one-transaction-validate-first">Step 4: One transaction, validate first</h2>
+<p><code>scripts/imports/2026-09-30-tote50-peripherals.cjs</code> resolves <strong>every
+category before writing anything</strong> (a typo aborts with nothing written),
+then creates the tote, its container row (number 50, model, colors,
+PACKING), the 28 items, their placements, and an activity-log entry — in
+one transaction. It&#39;s idempotent: if #50 exists it does nothing. Run by
+piping into the container: <code>… | ssh unraid &quot;docker exec -i … node -&quot;</code>.</p>
+<h2 id="verifying-12">Verifying</h2>
+<ul>
+<li>Local copy: created, then second run → <em>&quot;already exists — nothing to do&quot;</em>.</li>
+<li>Production: 732 records; <code>#50: PACKING Yellow Black items: 28</code>;
+<em>&quot;Corsair M75 Air → In #50 · location not set&quot;</em>; photo URL → 200 image/jpeg.</li>
+</ul>
+<h2 id="chapter-takeaways-32">Chapter takeaways</h2>
+<ul>
+<li><strong>Normalize inputs first</strong> (HEIC → JPEG, rotation fixed).</li>
+<li><strong>Say &quot;unknown&quot; instead of guessing</strong> — the item name flags it for James.</li>
+<li><strong>Validate everything before the first write</strong>, then write in one
+transaction.</li>
+<li><strong>Match what the app would have done</strong> (same <code>photoPath</code> shape) so the
+import is indistinguishable from phone-entered data.</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -4594,7 +4656,7 @@ proven — a free, instant rollback.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 231 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 237 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

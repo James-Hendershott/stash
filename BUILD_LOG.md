@@ -4431,6 +4431,75 @@ own careful change with a backup).
 
 ---
 
+# Chapter 31 — The first real tote: #50 from 33 photos
+
+> 📌 **What this chapter teaches.** Turning a folder of iPhone photos into
+> real inventory: HEIC conversion, identifying items from images, where the
+> app actually keeps photos, and reusing the rehearse → run → verify loop
+> for a small one-off import.
+
+**Date:** 2026-09-30. James: *"I added a new folder in the vault … yellow
+lid HDX 27 gallon #50 with images of everything inside. Can we add those
+items and images, create the container, categorize, and then we could use
+it in the real world test."*
+
+## Step 1: HEIC → JPEG
+
+iPhones save **HEIC** (smaller, but not universally supported). Two sizes
+were made with Pillow + `pillow_heif`:
+
+```python
+im = ImageOps.exif_transpose(Image.open(heic)).convert("RGB")  # respect phone rotation
+im.thumbnail((1600, 1600)); im.save(f"{base}.jpg", quality=85)    # the stored photo
+```
+
+`exif_transpose` matters: phones store "rotate 90°" as metadata; without
+it, half the photos come out sideways.
+
+## Step 2: Identify from photos
+
+Six labeled contact sheets (6 photos each) made 33 photos reviewable at
+once. 33 photos → **28 items** (some items had a label photo *and* a box
+photo; the best one became the item photo, the other is noted in the
+description). The tote lid's own label — *"Peripherals: Keyboards,
+Controllers, Headphones, External Hard-drives"* — became its description.
+One item couldn't be identified (*X-GO C27-C*) and says so in its name,
+rather than guessing.
+
+## Step 3: Where photos live
+
+`routes/uploads.ts:49` stores `photoPath = images/<file>` relative to
+`DATA_PATH` (`/mnt/user/appdata/stash`), served at
+`/api/files/images/<file>`. So the import copies files into
+`/mnt/user/appdata/stash/images/` and writes the matching `photoPath` —
+the same shape the in-app upload produces.
+
+## Step 4: One transaction, validate first
+
+`scripts/imports/2026-09-30-tote50-peripherals.cjs` resolves **every
+category before writing anything** (a typo aborts with nothing written),
+then creates the tote, its container row (number 50, model, colors,
+PACKING), the 28 items, their placements, and an activity-log entry — in
+one transaction. It's idempotent: if #50 exists it does nothing. Run by
+piping into the container: `… | ssh unraid "docker exec -i … node -"`.
+
+## Verifying
+
+- Local copy: created, then second run → *"already exists — nothing to do"*.
+- Production: 732 records; `#50: PACKING Yellow Black items: 28`;
+  *"Corsair M75 Air → In #50 · location not set"*; photo URL → 200 image/jpeg.
+
+## Chapter takeaways
+
+- **Normalize inputs first** (HEIC → JPEG, rotation fixed).
+- **Say "unknown" instead of guessing** — the item name flags it for James.
+- **Validate everything before the first write**, then write in one
+  transaction.
+- **Match what the app would have done** (same `photoPath` shape) so the
+  import is indistinguishable from phone-entered data.
+
+---
+
 # Glossary
 
 Terms in **bold italic** in chapter text are defined here.
