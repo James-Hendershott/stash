@@ -71,6 +71,10 @@ export interface ContainerScreenData {
   model: { brand: string; name: string; capacity: string | null } | null;
   locationId: string | null;
   whereabouts: Whereabouts;
+  /** Still on its old handwritten label ("Old #12") — needs a new ID (ADR-012). */
+  needsNewId: boolean;
+  /** What the printed QR encodes, e.g. https://stash.shottsserver.com/c/001 */
+  qrUrl: string | null;
   itemCount: number;
   items: {
     id: string;
@@ -231,6 +235,17 @@ export const api = {
     },
     screen(id: string) {
       return request<ContainerScreenData>(`/containers/${id}/screen`);
+    },
+    assignNumber(id: string) {
+      return request<{ id: string; number: number; display: string; labelStatus: string }>(`/containers/${id}/assign-number`, {
+        method: 'POST',
+      });
+    },
+    setLabelStatus(id: string, labelStatus: 'NOT_PRINTED' | 'PRINTED') {
+      return request<{ id: string; labelStatus: string }>(`/containers/${id}/label-status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ labelStatus }),
+      });
     },
     setLocation(id: string, locationId: string | null) {
       return request<{ id: string; locationId: string | null; status: string }>(`/containers/${id}/location`, {

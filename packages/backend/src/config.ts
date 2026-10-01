@@ -8,6 +8,9 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
+  // Public address of the admin site — what tote QR labels point at
+  // (e.g. https://stash.shottsserver.com/c/001).
+  publicAppUrl: (process.env.PUBLIC_APP_URL || 'https://stash.shottsserver.com').replace(/\/+$/, ''),
 
   get imagesPath() {
     return path.join(this.dataPath, 'images');

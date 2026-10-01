@@ -19,6 +19,7 @@ import { ExportPage } from './pages/ExportPage';
 import { ImportPage } from './pages/ImportPage';
 import { FloorPlanPage } from './pages/FloorPlanPage';
 import { UsersPage } from './pages/UsersPage';
+import { ContainerByNumberPage } from './pages/ContainerByNumberPage';
 
 export function App() {
   return (
@@ -41,6 +42,7 @@ export function App() {
                 <Route path="/items/:id" element={<ItemDetailPage />} />
                 <Route path="/containers" element={<ContainerListPage />} />
                 <Route path="/containers/:id" element={<ContainerDetailPage />} />
+                <Route path="/c/:number" element={<ContainerByNumberPage />} />
                 <Route path="/locations" element={<LocationListPage />} />
                 <Route path="/locations/:id" element={<LocationDetailPage />} />
                 <Route path="/categories" element={<CategoryListPage />} />

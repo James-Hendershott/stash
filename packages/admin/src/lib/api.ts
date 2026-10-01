@@ -159,6 +159,10 @@ export const api = {
     get3dData(id: string) {
       return request<{ container: any; items: any[] }>(`/containers/${id}/3d`);
     },
+    // v2: a tote's QR label points at /c/<number>
+    byNumber(number: string) {
+      return request<{ id: string; display: string }>(`/containers/by-number/${encodeURIComponent(number)}`);
+    },
   },
 
   // ── Locations ─────────────────────────────────────────────

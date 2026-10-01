@@ -5,7 +5,7 @@
  */
 import { useCallback, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, RefreshControl,
+  View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api, ApiError, categoryLabel, fileUrl, type ContainerScreenData } from '../lib/api';
@@ -40,6 +40,29 @@ export function ContainerScreen({ route, navigation }: any) {
       load();
     }, [load]),
   );
+
+  function assignNewId() {
+    if (!data) return;
+    Alert.alert(
+      'Assign a new ID?',
+      `${data.display} gets the next uniform ID (like #001). It's permanent — you'll print a new label for it next.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Assign',
+          onPress: async () => {
+            try {
+              const res = await api.containers.assignNumber(data.id);
+              await load();
+              navigation.navigate('Label', { id: res.id });
+            } catch (err) {
+              Alert.alert('Could not assign', err instanceof ApiError ? err.message : 'Could not reach the server.');
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -85,6 +108,28 @@ export function ContainerScreen({ route, navigation }: any) {
             {data.bodyColor && <Text style={styles.chip}>{data.bodyColor}</Text>}
           </View>
         </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Label</Text>
+      <View style={styles.card}>
+        {data.needsNewId ? (
+          <>
+            <Text style={styles.labelWarn}>Still on its old label ({data.display})</Text>
+            <Text style={styles.meta}>Give it a new uniform ID, then print and stick on the new label.</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={assignNewId}>
+              <Text style={styles.primaryBtnText}>Assign new ID</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={data.labelStatus === 'PRINTED' ? styles.labelOk : styles.labelWarn}>
+              {data.labelStatus === 'PRINTED' ? 'Label printed ✓' : 'Label not printed yet'}
+            </Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Label', { id: data.id })}>
+              <Text style={styles.primaryBtnText}>{data.labelStatus === 'PRINTED' ? 'Reprint label' : 'Print label'}</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>Where it is</Text>
@@ -183,6 +228,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#e2e8f0' },
   path: { fontSize: 16, color: '#1e293b', fontWeight: '600', lineHeight: 22 },
   pathMissing: { fontSize: 15, color: '#b45309', fontWeight: '600' },
+  labelWarn: { fontSize: 15, color: '#b45309', fontWeight: '700' },
+  labelOk: { fontSize: 15, color: '#15803d', fontWeight: '700' },
   primaryBtn: { marginTop: 12, padding: 12, backgroundColor: '#3b82f6', borderRadius: 10, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   empty: { textAlign: 'center', color: '#94a3b8', marginTop: 12 },

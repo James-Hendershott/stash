@@ -28,3 +28,8 @@ export const updateContainerSchema = createContainerSchema.partial();
 export const setContainerLocationSchema = z.object({
   locationId: z.string().uuid().nullable(),
 });
+
+// v2: mark a tote's label printed (or not yet → reminders).
+export const setLabelStatusSchema = z.object({
+  labelStatus: z.enum(['NOT_PRINTED', 'PRINTED']),
+});

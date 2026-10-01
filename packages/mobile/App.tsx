@@ -15,6 +15,7 @@ import { PlacesScreen } from './src/screens/PlacesScreen';
 import { LocationScreen } from './src/screens/LocationScreen';
 import { ContainerScreen } from './src/screens/ContainerScreen';
 import { LocationPickerScreen } from './src/screens/LocationPickerScreen';
+import { LabelScreen } from './src/screens/LabelScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -96,6 +97,7 @@ function RootNavigator() {
             component={LocationPickerScreen}
             options={{ title: 'Move', presentation: 'modal' }}
           />
+          <Stack.Screen name="Label" component={LabelScreen} options={{ title: 'Print label', presentation: 'modal' }} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

@@ -3,10 +3,12 @@ import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import {
-  createContainerSchema, updateContainerSchema, setContainerLocationSchema,
+  createContainerSchema, updateContainerSchema, setContainerLocationSchema, setLabelStatusSchema,
 } from '../validators/containers';
 import { nextContainerCode } from '../services/container-codes';
-import { containerDisplay, whereaboutsForOne } from '../services/whereabouts';
+import { containerDisplay, formatContainerNumber, whereaboutsForOne } from '../services/whereabouts';
+import { takeNextContainerNumber } from '../services/container-numbers';
+import { config } from '../config';
 
 const router = Router();
 
@@ -107,9 +109,18 @@ async function containerScreen(where: { id: string } | { number: number }) {
     model: container.model,
     locationId: container.locationId,
     whereabouts,
+    // v2 labels (ADR-012): totes without a number are still on their old
+    // handwritten label and need a new ID before a label can be printed.
+    needsNewId: container.number == null,
+    qrUrl: container.number != null ? containerQrUrl(container.number) : null,
     itemCount: items.length,
     items,
   };
+}
+
+/** What a tote's QR label encodes — a plain camera scan opens the admin site. */
+function containerQrUrl(n: number): string {
+  return `${config.publicAppUrl}/c/${String(n).padStart(3, '0')}`;
 }
 
 /**
@@ -187,6 +198,69 @@ router.patch('/:id/location', validate(setContainerLocationSchema), async (req: 
   });
 
   res.json({ id: updated.id, locationId: updated.locationId, status: updated.status });
+});
+
+/**
+ * POST /api/containers/:id/assign-number
+ * Give a tote its new uniform ID ("#001", ADR-012) from the never-reused
+ * counter. Only for totes that don't have one yet — a printed number is
+ * permanent. The label then counts as NOT_PRINTED until marked printed.
+ */
+router.post('/:id/assign-number', async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const container = await prisma.container.findUnique({ where: { id } });
+  if (!container) {
+    res.status(404).json({ error: 'Container not found' });
+    return;
+  }
+  if (container.number != null) {
+    res.status(409).json({ error: `This container already has ID ${formatContainerNumber(container.number)}` });
+    return;
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const number = await takeNextContainerNumber(tx);
+    const c = await tx.container.update({
+      where: { id },
+      data: { number, labelStatus: 'NOT_PRINTED' },
+    });
+    await tx.activityLog.create({
+      data: {
+        userId: req.user!.userId,
+        action: 'ASSIGN_NUMBER',
+        entityType: 'Container',
+        entityId: id,
+        previousValue: { label: container.label },
+        newValue: { number },
+      },
+    });
+    return c;
+  });
+
+  res.json({ id: updated.id, number: updated.number, display: formatContainerNumber(updated.number!), labelStatus: updated.labelStatus });
+});
+
+/**
+ * PATCH /api/containers/:id/label-status
+ * Mark a tote's label as printed (or back to "not printed" → reminders).
+ */
+router.patch('/:id/label-status', validate(setLabelStatusSchema), async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const { labelStatus } = req.body as { labelStatus: 'NOT_PRINTED' | 'PRINTED' };
+  const container = await prisma.container.findUnique({ where: { id } });
+  if (!container) {
+    res.status(404).json({ error: 'Container not found' });
+    return;
+  }
+  if (container.number == null) {
+    res.status(400).json({ error: 'Assign a new ID before printing a label' });
+    return;
+  }
+  const updated = await prisma.container.update({
+    where: { id },
+    data: { labelStatus, labelPrintedAt: labelStatus === 'PRINTED' ? new Date() : null },
+  });
+  res.json({ id: updated.id, labelStatus: updated.labelStatus, labelPrintedAt: updated.labelPrintedAt });
 });
 
 /**

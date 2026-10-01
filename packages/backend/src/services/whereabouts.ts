@@ -67,8 +67,14 @@ export function pathLabel(path: LocationNode[]): string {
   return path.map((n) => n.name).join(' › ');
 }
 
+/** Printed tote ID: always 3 digits ("#001") — ADR-012. Totes awaiting a
+ *  new ID show their legacy label instead (e.g. "Old #12"). */
+export function formatContainerNumber(n: number): string {
+  return `#${String(n).padStart(3, '0')}`;
+}
+
 export function containerDisplay(c: { number: number | null; label: string }): string {
-  return c.number != null ? `#${c.number}` : c.label;
+  return c.number != null ? formatContainerNumber(c.number) : c.label;
 }
 
 export async function loadContainerIndex(): Promise<Map<string, ContainerRef>> {
