@@ -286,6 +286,26 @@ is**, and **everything inside** (with photos). Tap an item to open it.
 4. Need a spot that doesn't exist? Type it in **New spot** and tap
    **Add**, then pick it.
 
+## Relabeling a tote (new uniform IDs)
+
+Every tote gets a uniform ID like **#001**. Old totes show as **Old #12**
+(what's written on them now) until you relabel them:
+
+1. Open the tote (Places → Needs a spot, or search an item inside it).
+2. In the **Label** card, tap **Assign new ID** → it gets the next number
+   (#001, #002 …). This is permanent.
+3. The **Print label** screen opens with a preview: QR code, the big ID,
+   tote model + lid color, and what's inside (switch off "Show contents"
+   for a cleaner label).
+4. Tap **Share / Print label** → pick the **Phomemo** app (or *Save
+   Image*, then open it in Phomemo) → print on the **50 × 80 mm** roll.
+5. Back in Stash, answer **Yes, printed** — or **Not yet** and Stash will
+   remind you later.
+6. Stick the label on the tote (cover old handwriting).
+
+Scanning the new label with the Stash **Scan** tab opens the tote; the
+regular iPhone Camera opens it in the browser.
+
 ## Scanning QR codes
 
 1. Tap the **Scan** tab.

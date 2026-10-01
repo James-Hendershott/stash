@@ -380,6 +380,14 @@
         <a class="toc-l2" href="#step-4-one-transaction-validate-first">Step 4: One transaction, validate first</a>
         <a class="toc-l2" href="#verifying-12">Verifying</a>
         <a class="toc-l2" href="#chapter-takeaways-32">Chapter takeaways</a>
+        <a class="toc-l2" href="#the-decisions-asked-as-three-questions">The decisions (asked as three questions)</a>
+        <a class="toc-l2" href="#step-1-the-collision-nobody-asked-about">Step 1: The collision nobody asked about</a>
+        <a class="toc-l2" href="#step-2-a-counter-that-never-goes-backwards">Step 2: A counter that never goes backwards</a>
+        <a class="toc-l2" href="#step-3-endpoints">Step 3: Endpoints</a>
+        <a class="toc-l2" href="#step-4-the-label-is-drawn-on-the-phone-adr-013">Step 4: The label is drawn on the phone (ADR-013)</a>
+        <a class="toc-l2" href="#step-5-scanning-with-the-plain-camera">Step 5: Scanning with the plain camera</a>
+        <a class="toc-l2" href="#verifying-13">Verifying</a>
+        <a class="toc-l2" href="#chapter-takeaways-33">Chapter takeaways</a>
     </nav>
   </aside>
   <main class="content" id="content">
@@ -4489,6 +4497,128 @@ transaction.</li>
 import is indistinguishable from phone-entered data.</li>
 </ul>
 <hr>
+<h1 id="chapter-32-v160-uniform-tote-ids-001-and-labels-printed-from-the-phone">Chapter 32 — v1.6.0: Uniform tote IDs (#001) and labels printed from the phone</h1>
+<blockquote>
+<p>📌 <strong>What this chapter teaches.</strong> Designing an ID scheme people will
+stick on physical objects: a counter that never reuses numbers, atomic
+increments in SQL, migrating from legacy IDs without the app and the
+real world disagreeing, and rendering a printable label on the phone
+instead of the server.</p>
+</blockquote>
+<p><strong>Date:</strong> 2026-10-01. James: <em>&quot;I think we want to relabel all the storage
+bins, right? With a uniform unique ID.&quot;</em></p>
+<h2 id="the-decisions-asked-as-three-questions">The decisions (asked as three questions)</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Format</td>
+<td><strong>#001</strong> (3 digits)</td>
+<td>Uniform width on every label, sorts cleanly, still just a number (ADR-001 said &quot;no letters&quot;)</td>
+</tr>
+<tr>
+<td>When</td>
+<td><strong>As each tote is relabeled</strong></td>
+<td>The app never disagrees with what&#39;s written on a tote</td>
+</tr>
+<tr>
+<td>Labels</td>
+<td><strong>Pull printing forward</strong></td>
+<td>Relabeling needs labels; visual maps wait for the storage-unit measurements</td>
+</tr>
+</tbody></table>
+<h2 id="step-1-the-collision-nobody-asked-about">Step 1: The collision nobody asked about</h2>
+<p>&quot;Assign as you relabel&quot; + &quot;start at #001&quot; collides with the old numbers:
+the Book Box was <strong>#1</strong>, so a new <strong>#001</strong> would make <code>GET /by-number/1</code>
+ambiguous. One-time <code>prisma/v2-relabel-prep.cjs</code> clears the old numbers
+and keeps what&#39;s physically written on each tote as its display label:</p>
+<pre><code>Moved 8 totes to their old labels: Old #1 (was BXS-0001), Old #10 …, Old #50 (was T27-0050)
+New IDs start at #001.
+</code></pre>
+<p>It records <code>relabel.prepDone</code> in <code>settings</code>, so a second run does nothing.</p>
+<h2 id="step-2-a-counter-that-never-goes-backwards">Step 2: A counter that never goes backwards</h2>
+<p><code>services/container-numbers.ts</code> keeps the next number in the <code>settings</code>
+table and advances it in <strong>one SQL statement</strong>:</p>
+<pre><code class="language-sql">UPDATE settings
+   SET value = (value::int + 1)::text, &quot;updatedAt&quot; = now()
+ WHERE key = &#39;container.nextNumber&#39;
+RETURNING (value::int - 1) AS n
+</code></pre>
+<p>Why not <code>MAX(number) + 1</code>? Two reasons:</p>
+<ol>
+<li><strong>Reuse.</strong> Delete #007 and <code>MAX+1</code> might hand out 7 again — and an old
+printed #007 label would open the wrong tote. The counter only goes up.</li>
+<li><strong>Races.</strong> Two phones assigning at once could both read the same MAX.
+An <code>UPDATE … RETURNING</code> row-locks the counter, so each caller gets a
+different number. This is an <em><strong>atomic increment</strong></em>.</li>
+</ol>
+<h2 id="step-3-endpoints">Step 3: Endpoints</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>POST /api/containers/:id/assign-number</code></td>
+<td>Takes the next number, sets label status NOT_PRINTED; <strong>409</strong> if the tote already has one (a printed ID is permanent)</td>
+</tr>
+<tr>
+<td><code>PATCH /api/containers/:id/label-status</code></td>
+<td>PRINTED / NOT_PRINTED (drives Phase 5 reminders)</td>
+</tr>
+<tr>
+<td><code>GET …/screen</code></td>
+<td>Now includes <code>needsNewId</code> and <code>qrUrl</code> (<code>PUBLIC_APP_URL/c/001</code>)</td>
+</tr>
+</tbody></table>
+<p><code>containerDisplay()</code> formats every number as <code>#001</code> everywhere (list rows,
+whereabouts, picker), so there&#39;s one place to change the format.</p>
+<h2 id="step-4-the-label-is-drawn-on-the-phone-adr-013">Step 4: The label is drawn on the phone (ADR-013)</h2>
+<p>Rendering a PNG on the server needs fonts and an image library in a slim
+Alpine container. The phone already has both. <code>LabelScreen.tsx</code> lays out
+an ordinary <code>View</code> — QR code (<code>react-native-qrcode-svg</code>), the big ID,
+model · lid color, contents — then:</p>
+<pre><code class="language-ts">const uri = await captureRef(labelRef, { format: &#39;png&#39;, width: 640, height: 400 }); // 80×50 mm @ 203 dpi
+await Sharing.shareAsync(uri, { mimeType: &#39;image/png&#39;, UTI: &#39;public.png&#39; });
+</code></pre>
+<p><code>captureRef</code> photographs the view; the iOS Share sheet hands the PNG to
+the Phomemo app (or AirPrint / Save Image). Everything is pure black on
+white — thermal printers have no grays. After sharing, the app asks
+<em>&quot;Did the label print?&quot;</em> and records the answer.</p>
+<h2 id="step-5-scanning-with-the-plain-camera">Step 5: Scanning with the plain camera</h2>
+<p>The QR encodes <code>https://stash.shottsserver.com/c/001</code>. The Stash app&#39;s
+scanner already understands <code>/c/&lt;n&gt;</code> (Chapter 28). For a plain iPhone
+camera scan, the admin site gained a <code>/c/:number</code> route that looks the
+tote up and redirects to its page. nginx&#39;s <code>try_files … /index.html</code>
+fallback means the SPA receives the path.</p>
+<h2 id="verifying-13">Verifying</h2>
+<ul>
+<li>Local copy: Old #50 → assign → <strong>#001</strong>, <code>qrUrl …/c/001</code>; assigning
+again → 409; next tote → <strong>#002</strong>; mark printed ✓; search shows
+<em>&quot;In #001 · …&quot;</em>.</li>
+<li>Mobile <code>tsc</code> clean; <code>expo export</code> bundles (1144 modules).</li>
+<li>Production: backup <code>stash-20261001-1009-pre-1.6.0.dump</code>; rebuild with
+<code>--no-deps</code> worked first time (Chapter 30&#39;s fix); prep moved 8 totes to
+<em>Old #…</em>; counter = 1; <code>/c/001</code> → 200.</li>
+</ul>
+<h2 id="chapter-takeaways-33">Chapter takeaways</h2>
+<ul>
+<li><strong>IDs on physical things must never be reused</strong> — use a counter, not
+<code>MAX+1</code>.</li>
+<li><strong>Increment atomically</strong> in the database, not read-then-write in code.</li>
+<li><strong>Migrate legacy IDs into a separate namespace</strong> (&quot;Old #12&quot;) so the old
+and new can&#39;t collide during the transition.</li>
+<li><strong>Render where the resources already are</strong> — the phone has fonts and a
+share sheet; the server doesn&#39;t need to.</li>
+</ul>
+<hr>
 <h1 id="glossary">Glossary</h1>
 <p>Terms in <strong>bold italic</strong> in chapter text are defined here.</p>
 <table>
@@ -4505,6 +4635,10 @@ import is indistinguishable from phone-entered data.</li>
 <tr>
 <td>container labels</td>
 <td>Key/value metadata Docker stores on a container. Compose uses <code>com.docker.compose.project</code> / <code>.service</code> labels to know which containers it manages (Chapter 30).</td>
+</tr>
+<tr>
+<td>atomic increment</td>
+<td>Advancing a counter in a single database statement (<code>UPDATE … RETURNING</code>) so concurrent callers can&#39;t get the same value (Chapter 32).</td>
 </tr>
 <tr>
 <td>additive migration</td>
@@ -4656,7 +4790,7 @@ import is indistinguishable from phone-entered data.</li>
 feature ships, a bug is fixed, or an architectural decision is made.</em></p>
 
     <div class="foot">
-      <code>BUILD_LOG.md</code> wiki · 237 sections. Regenerate with <code>npm run build:wiki</code>.
+      <code>BUILD_LOG.md</code> wiki · 245 sections. Regenerate with <code>npm run build:wiki</code>.
     </div>
   </main>
 </div>

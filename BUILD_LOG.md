@@ -4500,6 +4500,117 @@ piping into the container: `… | ssh unraid "docker exec -i … node -"`.
 
 ---
 
+# Chapter 32 — v1.6.0: Uniform tote IDs (#001) and labels printed from the phone
+
+> 📌 **What this chapter teaches.** Designing an ID scheme people will
+> stick on physical objects: a counter that never reuses numbers, atomic
+> increments in SQL, migrating from legacy IDs without the app and the
+> real world disagreeing, and rendering a printable label on the phone
+> instead of the server.
+
+**Date:** 2026-10-01. James: *"I think we want to relabel all the storage
+bins, right? With a uniform unique ID."*
+
+## The decisions (asked as three questions)
+
+| Question | Choice | Why |
+|---|---|---|
+| Format | **#001** (3 digits) | Uniform width on every label, sorts cleanly, still just a number (ADR-001 said "no letters") |
+| When | **As each tote is relabeled** | The app never disagrees with what's written on a tote |
+| Labels | **Pull printing forward** | Relabeling needs labels; visual maps wait for the storage-unit measurements |
+
+## Step 1: The collision nobody asked about
+
+"Assign as you relabel" + "start at #001" collides with the old numbers:
+the Book Box was **#1**, so a new **#001** would make `GET /by-number/1`
+ambiguous. One-time `prisma/v2-relabel-prep.cjs` clears the old numbers
+and keeps what's physically written on each tote as its display label:
+
+```
+Moved 8 totes to their old labels: Old #1 (was BXS-0001), Old #10 …, Old #50 (was T27-0050)
+New IDs start at #001.
+```
+
+It records `relabel.prepDone` in `settings`, so a second run does nothing.
+
+## Step 2: A counter that never goes backwards
+
+`services/container-numbers.ts` keeps the next number in the `settings`
+table and advances it in **one SQL statement**:
+
+```sql
+UPDATE settings
+   SET value = (value::int + 1)::text, "updatedAt" = now()
+ WHERE key = 'container.nextNumber'
+RETURNING (value::int - 1) AS n
+```
+
+Why not `MAX(number) + 1`? Two reasons:
+
+1. **Reuse.** Delete #007 and `MAX+1` might hand out 7 again — and an old
+   printed #007 label would open the wrong tote. The counter only goes up.
+2. **Races.** Two phones assigning at once could both read the same MAX.
+   An `UPDATE … RETURNING` row-locks the counter, so each caller gets a
+   different number. This is an ***atomic increment***.
+
+## Step 3: Endpoints
+
+| Endpoint | Does |
+|---|---|
+| `POST /api/containers/:id/assign-number` | Takes the next number, sets label status NOT_PRINTED; **409** if the tote already has one (a printed ID is permanent) |
+| `PATCH /api/containers/:id/label-status` | PRINTED / NOT_PRINTED (drives Phase 5 reminders) |
+| `GET …/screen` | Now includes `needsNewId` and `qrUrl` (`PUBLIC_APP_URL/c/001`) |
+
+`containerDisplay()` formats every number as `#001` everywhere (list rows,
+whereabouts, picker), so there's one place to change the format.
+
+## Step 4: The label is drawn on the phone (ADR-013)
+
+Rendering a PNG on the server needs fonts and an image library in a slim
+Alpine container. The phone already has both. `LabelScreen.tsx` lays out
+an ordinary `View` — QR code (`react-native-qrcode-svg`), the big ID,
+model · lid color, contents — then:
+
+```ts
+const uri = await captureRef(labelRef, { format: 'png', width: 640, height: 400 }); // 80×50 mm @ 203 dpi
+await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' });
+```
+
+`captureRef` photographs the view; the iOS Share sheet hands the PNG to
+the Phomemo app (or AirPrint / Save Image). Everything is pure black on
+white — thermal printers have no grays. After sharing, the app asks
+*"Did the label print?"* and records the answer.
+
+## Step 5: Scanning with the plain camera
+
+The QR encodes `https://stash.shottsserver.com/c/001`. The Stash app's
+scanner already understands `/c/<n>` (Chapter 28). For a plain iPhone
+camera scan, the admin site gained a `/c/:number` route that looks the
+tote up and redirects to its page. nginx's `try_files … /index.html`
+fallback means the SPA receives the path.
+
+## Verifying
+
+- Local copy: Old #50 → assign → **#001**, `qrUrl …/c/001`; assigning
+  again → 409; next tote → **#002**; mark printed ✓; search shows
+  *"In #001 · …"*.
+- Mobile `tsc` clean; `expo export` bundles (1144 modules).
+- Production: backup `stash-20261001-1009-pre-1.6.0.dump`; rebuild with
+  `--no-deps` worked first time (Chapter 30's fix); prep moved 8 totes to
+  *Old #…*; counter = 1; `/c/001` → 200.
+
+## Chapter takeaways
+
+- **IDs on physical things must never be reused** — use a counter, not
+  `MAX+1`.
+- **Increment atomically** in the database, not read-then-write in code.
+- **Migrate legacy IDs into a separate namespace** ("Old #12") so the old
+  and new can't collide during the transition.
+- **Render where the resources already are** — the phone has fonts and a
+  share sheet; the server doesn't need to.
+
+---
+
 # Glossary
 
 Terms in **bold italic** in chapter text are defined here.
@@ -4508,6 +4619,7 @@ Terms in **bold italic** in chapter text are defined here.
 |---|---|
 | AABB | Axis-Aligned Bounding Box. Collision check via comparing min/max on x/y/z. Fast and correct when shapes don't rotate freely. |
 | container labels | Key/value metadata Docker stores on a container. Compose uses `com.docker.compose.project` / `.service` labels to know which containers it manages (Chapter 30). |
+| atomic increment | Advancing a counter in a single database statement (`UPDATE … RETURNING`) so concurrent callers can't get the same value (Chapter 32). |
 | additive migration | A schema change that only adds (tables, columns, indexes) or relaxes (NOT NULL → nullable) — never drops data. Old code keeps working (Chapter 27). |
 | custom format (pg_dump -Fc) | Compressed Postgres backup that `pg_restore` can list (`-l`) and restore selectively. |
 | debounce | Wait until input pauses before acting — one search request per pause instead of one per keystroke (Chapter 28). |

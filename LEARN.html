@@ -300,6 +300,18 @@ Appendix B). Current ones, from the v2 design (BUILD_LOG ch. 25):</p>
 <td>Recursive SQL CTE per item; denormalizing a <code>path</code> column (goes stale on every move/rename)</td>
 </tr>
 <tr>
+<td>012</td>
+<td>Tote IDs are <strong>3-digit numbers (<code>#001</code>)</strong> from a <strong>never-reused counter</strong>, assigned <strong>when each tote is relabeled</strong>; legacy totes show as &quot;Old #N&quot; until then</td>
+<td>Printed labels must never point at a different tote; app and tote must always agree</td>
+<td><code>MAX(number)+1</code> (reuses + races); renumbering everything at once (app ≠ physical labels until relabeled); letter prefixes</td>
+</tr>
+<tr>
+<td>013</td>
+<td><strong>Labels are rendered on the phone</strong> (<code>react-native-view-shot</code> + <code>expo-sharing</code>) and shared to the Phomemo app</td>
+<td>Phone has fonts, layout and the share sheet; no image/font stack in the Alpine server</td>
+<td>Server-side PNG/PDF rendering (needs fonts + native libs); direct Bluetooth printing (needs a custom native build)</td>
+</tr>
+<tr>
 <td>007</td>
 <td><strong>Spec + key docs mirrored</strong> repo ↔ vault, with the sync rule written into both <code>CLAUDE.md</code> files</td>
 <td>James plans in Obsidian; sessions code in the repo; both need the same truth</td>

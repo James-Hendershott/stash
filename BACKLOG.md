@@ -15,8 +15,9 @@ into a phase.
 - [ ] Duplicate detection on add + admin "possible duplicates" list — **Phase 2**
 - [ ] Barcode / UPC scanning for retail items (feeds duplicate matching) — **Phase 2**
 - [ ] Admin "Create Container" form (phone flow first) — **Phase 2**
-- [ ] Ready for Storage flow; QR labels for Phomemo M110 (50×80 mm), 2″×2″ sheets, location legends — **Phase 3**
-- [ ] Batch QR label generation — **Phase 3**
+- [x] ~~Uniform IDs + Phomemo 50×80 label from the phone~~ (v1.6.0, Phase 3a)
+- [ ] Ready for Storage flow (number + location + label in one step); 2″×2″ sheet labels; location legends — **Phase 3**
+- [ ] Batch QR label generation (several totes on one sheet) — **Phase 3**
 - [ ] Check out / return items; container transfers with remembered home spot; archive; Sold/Disposed delete — **Phase 4**
 - [ ] Home Mode check-in / check-out log — **Phase 4** (replaced by the Checkout model)
 - [ ] Reminders: scheduler, in-app inbox, admin-configurable intervals; decide install method for push — **Phase 5**

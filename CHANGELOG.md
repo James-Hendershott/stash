@@ -5,6 +5,22 @@ All notable changes to Stash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-10-01 — Uniform tote IDs + labels from the phone
+
+**Deployed 2026-10-01.**
+
+### Added
+- Never-reused container ID counter (`settings.container.nextNumber`, `services/container-numbers.ts`).
+- `POST /api/containers/:id/assign-number`, `PATCH /api/containers/:id/label-status`; container screen payload gains `needsNewId` and `qrUrl`.
+- `prisma/v2-relabel-prep.cjs` — one-time: existing totes become "Old #N", counter starts at 1.
+- Mobile: **Label** card on the tote screen (Assign new ID / Print label), **LabelScreen** that draws the 50×80 mm label (QR + #001 + model/lid + contents) and shares it as a PNG; printed / not-printed tracking.
+- Admin: `/c/:number` route — a plain camera scan of a label opens the tote.
+- `PUBLIC_APP_URL` env (default `https://stash.shottsserver.com`).
+
+### Changed
+- Container IDs display as 3 digits (`#001`) everywhere.
+- Mobile deps: `react-native-svg`, `react-native-qrcode-svg`, `react-native-view-shot`, `expo-sharing`, `expo-file-system`; `expo-camera` 57.0.6.
+
 ## Data — 2026-09-30
 
 - Imported tote **#50** (HDX 27-gal, black/yellow, "Peripherals") with 28 items and photos via `scripts/imports/2026-09-30-tote50-peripherals.cjs` (BUILD_LOG ch. 31). First item photos in Stash.

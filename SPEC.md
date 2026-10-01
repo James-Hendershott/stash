@@ -23,6 +23,7 @@ tags: [project, active, software, stash, spec]
 - [x] **Phase 0 — Foundation** — deployed 2026-09-29 (v1.4.0–1.5.1): schema, locations, categories, tote models, per-item categories, unpack
 - [~] **Phase 1 — Find it** — deployed 2026-09-29 (v1.5.0); **awaiting James's phone test**
 - [ ] **Phase 1b — Visual storage maps** — garage layout captured; storage unit details pending the visit
+- [x] **Phase 3a — Relabel** (pulled forward 2026-10-01, v1.6.0): uniform IDs, Assign new ID, phone-printed Phomemo label, printed/not-printed tracking, `/c/001` scan route
 - [ ] Phase 2 — Quick Add (manual)
 - [ ] Phase 3 — Ready for Storage + labels
 - [ ] Phase 4 — Check out, transfer, archive, delete
@@ -114,7 +115,8 @@ Storage unit racks: exact rack/shelf counts, measurements and a photo coming fro
 Interior dimensions to be looked up from manufacturer specs, not guessed. Legacy types (U-Box, boxes, 35-gal) stay for existing data.
 
 ### Identifier
-- **Just a number** — `12`. Unique across all containers, never reused.
+- **Just a number, shown as 3 digits** — `#001` (decided 2026-10-01, ADR-012). Unique, from a never-reused counter.
+- **Assigned as each tote is relabeled**: existing totes show as *Old #12* (their handwritten label) until they get a new ID on the phone.
 - Brand, size, lid color live as **fields** (shown in app and optionally on the label), not in the ID — a swapped lid can't make a printed ID wrong.
 - Existing physical numbers are honored when possible.
 
